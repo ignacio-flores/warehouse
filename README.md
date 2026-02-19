@@ -153,8 +153,8 @@ This dataset encompasses a variety of auxiliary variables, such as exchange rate
 Source metadata is now managed from `metadata/sources/sources.yaml` (JSON-compatible YAML).
 
 - Add/edit requests should use the local Source Registry UI: `python3 code/tools/sources/ui_local.py`.
-- Mac users can also launch it by double-clicking `Launch_Source_Registry_UI.command`.
-- Windows users can launch it by double-clicking `Launch_Source_Registry_UI.bat`.
+- Mac users can also launch it by double-clicking `code/tools/source_manager_mac.command`.
+- Windows users can launch it by double-clicking `code/tools/source_manager_win.bat`.
 - `handmade_tables/dictionary.xlsx` (`Sources` sheet) is generated; do not edit it manually.
 - `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib` is generated from the canonical registry.
 - Validation and generation scripts live under `code/tools/sources/`.

@@ -111,6 +111,30 @@
       "actor": "IF",
       "issue_number": "local-ui",
       "updated_at": "2026-02-19T15:12:30Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T15:33:14Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Correct typo/formatting only",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T15:36:05Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Correct typo/formatting only",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T15:38:21Z"
     }
   ]
 }

@@ -1,7 +1,9 @@
 @echo off
 setlocal
 
-cd /d "%~dp0"
+set "SCRIPT_DIR=%~dp0"
+for %%I in ("%SCRIPT_DIR%..\..") do set "REPO_ROOT=%%~fI"
+cd /d "%REPO_ROOT%"
 
 where python >nul 2>nul
 if %errorlevel%==0 (

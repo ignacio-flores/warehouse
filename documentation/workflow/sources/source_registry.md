@@ -10,8 +10,8 @@ Generated artifacts:
 ## Contributor Flow
 
 1. Launch local UI:
-   - Mac double-click: `Launch_Source_Registry_UI.command`
-   - Windows double-click: `Launch_Source_Registry_UI.bat`
+   - Mac double-click: `code/tools/source_manager_mac.command`
+   - Windows double-click: `code/tools/source_manager_win.bat`
    - Or Terminal: `python3 code/tools/sources/ui_local.py`
 2. Open `http://127.0.0.1:8765`.
 3. Choose `mode` = `add` or `edit`.
@@ -62,7 +62,6 @@ Generated artifacts:
 
 1. Check entry (validation only, no save).
 2. Save entry and regenerate artifacts.
-3. Publish web BibTeX copy.
 Edit-only helper: Load existing entry.
 If validation/save fails, the UI shows an error popup and full details in the status panel.
 In edit mode, delete is available with a required confirmation prompt.

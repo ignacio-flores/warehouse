@@ -9,7 +9,6 @@ Then open http://127.0.0.1:8765
 import argparse
 import json
 import re
-import shutil
 import threading
 import time
 from datetime import datetime
@@ -612,10 +611,6 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       <button id='loadBtn' onclick='loadTarget()'>Load existing entry into form</button>
       <button class='warn' onclick='deleteEntry()'>Delete entry (requires confirmation)</button>
     </div>
-    <div class='help' style='margin-top:8px;'>
-      If you rename Source/Citekey while editing, the UI will ask for explicit confirmation before saving.
-      Confirmed renames are tracked in <code>metadata/sources/aliases.yaml</code>.
-    </div>
   </div>
 
   <details open>
@@ -694,10 +689,6 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
   <div class='row'>
     <div class='step'>Step 2: Save and regenerate files</div>
     <button class='warn' onclick='applyAndBuild()'>Save entry + regenerate dictionary.xlsx and .bib</button>
-  </div>
-  <div class='row'>
-    <div class='step'>Step 3: Publish web BibTeX file</div>
-    <button onclick='publishWebBib()'>Publish web BibTeX (copy canonical .bib to web path)</button>
   </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
@@ -854,7 +845,6 @@ function setStatusWithChecks(out, heading){
   }
   if (out.warnings && out.warnings.length) lines.push(`Warnings:\\n- ${out.warnings.join('\\n- ')}`);
   if (out.errors && out.errors.length) lines.push(`Errors:\\n- ${out.errors.join('\\n- ')}`);
-  if (out.modified_files && out.modified_files.length) lines.push(`Modified files:\\n- ${out.modified_files.join('\\n- ')}`);
   if (out.file_change_summary && out.file_change_summary.length) {
     const details = out.file_change_summary.map(x => `- ${x.file}: ${x.summary}`);
     lines.push(`Modification summary by file:\\n${details.join('\\n')}`);
@@ -1027,16 +1017,6 @@ async function applyAndBuild(){
     clearDirty();
   }
   catch(err){
-    setStatus({ok:false, error:String(err)});
-    showErrorWindow(String(err));
-  }
-}
-
-async function publishWebBib(){
-  try{
-    const out = await req('/api/publish_web_bib', {});
-    setStatusWithChecks(out, 'Web BibTeX publish complete.');
-  }catch(err){
     setStatus({ok:false, error:String(err)});
     showErrorWindow(String(err));
   }
@@ -1319,24 +1299,6 @@ class Handler(BaseHTTPRequestHandler):
                         False,
                     ),
                     "message": "Entry deleted and artifacts regenerated",
-                })
-                return
-
-            if self.path == "/api/publish_web_bib":
-                reg = self.app.registry
-                cfg = reg.get("config", {}) or {}
-                source_bib = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
-                web_bib = Path(cfg.get("web_bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary_web.bib"))
-                if not source_bib.exists():
-                    raise ValueError(f"Canonical bib file not found: {source_bib}")
-                web_bib.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_bib, web_bib)
-                self._send_json({
-                    "ok": True,
-                    "checks": [{"name": "Web BibTeX publish", "passed": True, "detail": f"Copied {source_bib} to {web_bib}"}],
-                    "modified_files": [str(web_bib)],
-                    "file_change_summary": [{"file": str(web_bib), "summary": "Published web BibTeX from canonical .bib output."}],
-                    "message": "Web BibTeX published",
                 })
                 return
 

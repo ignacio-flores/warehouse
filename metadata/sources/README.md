@@ -29,23 +29,25 @@ python3 code/tools/sources/ui_local.py
 ### Option 1 (Mac, double-click)
 
 1. In Finder, open this repository folder.
-2. Double-click `Launch_Source_Registry_UI.command`.
-3. Your browser should open automatically at `http://127.0.0.1:8765`.
-4. Keep the Terminal window open while using the UI.
-5. Close the UI tab/window when finished; the local server stops automatically.
+2. Open `code/tools`.
+3. Double-click `source_manager_mac.command`.
+4. Your browser should open automatically at `http://127.0.0.1:8765`.
+5. Keep the Terminal window open while using the UI.
+6. Close the UI tab/window when finished; the local server stops automatically.
 
 If macOS blocks the file the first time:
-1. Right-click `Launch_Source_Registry_UI.command`.
+1. Right-click `source_manager_mac.command`.
 2. Click `Open`.
 3. Confirm `Open` in the dialog.
 
 ### Option 2 (Windows, double-click)
 
 1. Open this repository folder in File Explorer.
-2. Double-click `Launch_Source_Registry_UI.bat`.
-3. Your browser opens at `http://127.0.0.1:8765`.
-4. Keep the command window open while using the UI.
-5. Close the UI tab/window when finished; the local server stops automatically.
+2. Open `code/tools`.
+3. Double-click `source_manager_win.bat`.
+4. Your browser opens at `http://127.0.0.1:8765`.
+5. Keep the command window open while using the UI.
+6. Close the UI tab/window when finished; the local server stops automatically.
 
 ### Option 3 (Terminal)
 
@@ -89,7 +91,6 @@ If that fails, install Python 3 from:
 - Button sequence is intentional:
   1. **Check entry (validation only, no save)**
   2. **Save entry + regenerate dictionary.xlsx and .bib**
-  3. **Publish web BibTeX (copy canonical .bib to web path)**
 - The status panel now shows an explicit checklist with `PASS`/`FAIL` for each validation category.
 - Validation now also runs duplicate checks against generated artifacts:
   - `handmade_tables/dictionary.xlsx` (`Sources` sheet)
