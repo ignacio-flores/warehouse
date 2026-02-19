@@ -1,0 +1,116 @@
+{
+  "changes": [
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T12:39:58Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T12:41:44Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Delete obsolete or duplicate entry",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T12:50:28Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:01:18Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight-tmp-debug",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:02:10Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:06:48Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Update metadata fields (section/aggsource/data_type)",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:12:04Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-tmpkeyui123",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:22:36Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Update metadata fields (section/aggsource/data_type)",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:27:59Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Update metadata fields (section/aggsource/data_type)",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T13:58:06Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Update metadata fields (section/aggsource/data_type)",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T14:10:50Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Correct typo/formatting only",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T14:22:15Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Update metadata fields (section/aggsource/data_type)",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T14:58:57Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Deleted via local UI",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T15:12:30Z"
+    }
+  ]
+}

@@ -148,6 +148,18 @@ This dataset encompasses a variety of auxiliary variables, such as exchange rate
   
 - **Digital Library of Sources**: A list of all sources used in each section of the GC Wealth Project's data warehouse. Available under each reference are BibTeX citations and abstracts. [Link to Library](https://wealthproject.gc.cuny.edu/data/data-sources-library/), [Download the bib file]().
 
+## Source Registry (Canonical)
+
+Source metadata is now managed from `metadata/sources/sources.yaml` (JSON-compatible YAML).
+
+- Add/edit requests should use the local Source Registry UI: `python3 code/tools/sources/ui_local.py`.
+- Mac users can also launch it by double-clicking `Launch_Source_Registry_UI.command`.
+- Windows users can launch it by double-clicking `Launch_Source_Registry_UI.bat`.
+- `handmade_tables/dictionary.xlsx` (`Sources` sheet) is generated; do not edit it manually.
+- `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib` is generated from the canonical registry.
+- Validation and generation scripts live under `code/tools/sources/`.
+- Workflow reference: `documentation/workflow/sources/source_registry.md`.
+
 ## Warehouse History 
 
 For the sake of space keeping and accessibility, former versions are only accessible in CSV format, which is unlicensed and lighter than the alternatives. 
@@ -157,4 +169,3 @@ For the sake of space keeping and accessibility, former versions are only access
 - Full data warehouse: [download with metadata](https://drive.google.com/file/d/1FmO8qVbBshI0iQqyY321jjp1jfKnvLT_/view?usp=share_link), [download without metadata](https://drive.google.com/file/d/1dEuqsWiyFfhwSDGysY3qLw0H-iYrolhg/view?usp=share_link)
 - Supplementary variables (28 sep, 2023): [download](https://drive.google.com/file/d/16LS8NicLEFLfiVh6GqNOgho7SNuSDm2H/view?usp=share_link)
 - Documentation: [download](https://osf.io/preprints/socarxiv/ta67n/).
-
