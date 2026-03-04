@@ -135,6 +135,14 @@
       "actor": "IF",
       "issue_number": "local-ui",
       "updated_at": "2026-02-19T15:38:21Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-02-19T20:38:34Z"
     }
   ]
 }
