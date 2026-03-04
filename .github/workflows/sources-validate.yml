@@ -23,4 +23,4 @@ jobs:
             --change-log metadata/sources/change_log.yaml \
             --check-generated \
             --dictionary handmade_tables/dictionary.xlsx \
-            --bib metadata/sources/GCWealthProject_DataSourcesLibrary.bib
+            --bib "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"

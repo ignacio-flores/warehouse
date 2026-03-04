@@ -9,6 +9,7 @@ Then open http://127.0.0.1:8765
 import argparse
 import hashlib
 import json
+import platform
 import re
 import shutil
 import subprocess
@@ -29,6 +30,7 @@ DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
 YEAR_RE = re.compile(r"^\d{4}$")
 ONLINE_COMPARE_MAX_DIFF_LINES = 400
 ONLINE_COMPARE_MAX_DIFF_CHARS = 60000
+CANONICAL_BIB_PATH = "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -212,7 +214,7 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
     checks: List[dict] = []
     cfg = registry.get("config", {}) or {}
     dictionary_path = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
-    bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    bib_path = Path(cfg.get("bib_output", CANONICAL_BIB_PATH))
     target_norm = normalize_whitespace(target)
 
     c_source = normalize_whitespace(candidate.get("source", ""))
@@ -709,7 +711,21 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
   <div class='row'>
     <div class='step'>Step 3: Compare with online reference (optional)</div>
     <button class='secondary' onclick='compareOnlineBib()'>Compare local .bib with online reference</button>
-    <small style='display:block; margin-top:6px;'>Online replace action planned.</small>
+    <small style='display:block; margin-top:6px;'>Compares local .bib against the configured online reference URL.</small>
+  </div>
+  <div class='row'>
+    <div class='step'>Step 4: Publish local .bib with one click</div>
+    <div style='display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;'>
+      <button class='secondary' onclick='runGitSetupCheck()'>Run setup check</button>
+      <button class='secondary' onclick='connectGitHubAccount()'>Connect GitHub</button>
+      <button class='secondary' onclick='configureGcmStore()'>Configure GCM store</button>
+      <button class='secondary' onclick='switchGitHubAccount()'>Switch GitHub account</button>
+      <button class='secondary' onclick='cleanupPendingPublish()'>Clean pending publish commit</button>
+      <button class='warn' id='publishBtn' onclick='publishOnlineBib()' disabled title='Run setup check first.'>Publish local .bib to GitHub</button>
+    </div>
+    <small style='display:block; margin-top:6px;'>If setup is missing, the Status panel will show exact terminal commands to run. If publish gets stuck with "ahead", use "Clean pending publish commit". On Linux, if GCM complains about credential store, click "Configure GCM store".</small>
+    <small id='gitSetupLine' style='display:block; margin-top:6px;'></small>
+    <small id='publishResultLine' style='display:block; margin-top:6px;'></small>
   </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
@@ -742,7 +758,7 @@ function escapeHtml(s){
     .replace(/'/g, '&#39;');
 }
 function statusClassForLine(line){
-  if (line.startsWith('Overall result: PASSED') || line.startsWith('- Status: up_to_date')) return 'status-ok';
+  if (line.startsWith('Overall result: PASSED') || line.startsWith('- Status: up_to_date') || line.startsWith('- Status: published') || line.startsWith('- Status: cleaned')) return 'status-ok';
   if (line.startsWith('Overall result: FAILED') || line.startsWith('- Status: unavailable') || line.startsWith('- Status: not_configured')) return 'status-fail';
   if (line.startsWith('- Status: different')) return 'status-warn';
   return '';
@@ -772,6 +788,9 @@ function showErrorWindow(msg){
 }
 let dirty = false;
 let loadedSourceKey = '';
+let gitSetupState = null;
+let publishInFlight = false;
+let authInFlight = false;
 function markDirty(){ dirty = true; }
 function clearDirty(){ dirty = false; }
 
@@ -898,6 +917,19 @@ function formatOnlineCompare(onlineCompare){
   return lines.join('\\n');
 }
 
+function formatGitPublish(gitPublish){
+  if (!gitPublish) return '';
+  const lines = ['Git publish:'];
+  lines.push(`- Status: ${gitPublish.status || 'unknown'}`);
+  if (gitPublish.message) lines.push(`- Message: ${gitPublish.message}`);
+  if (gitPublish.target_repo) lines.push(`- Repo: ${gitPublish.target_repo}`);
+  if (gitPublish.target_branch) lines.push(`- Branch: ${gitPublish.target_branch}`);
+  if (gitPublish.target_path) lines.push(`- Path: ${gitPublish.target_path}`);
+  if (gitPublish.commit_sha) lines.push(`- Commit SHA: ${gitPublish.commit_sha}`);
+  if (gitPublish.commit_url) lines.push(`- Commit URL: ${gitPublish.commit_url}`);
+  return lines.join('\\n');
+}
+
 function setStatusWithChecks(out, heading){
   const lines = [];
   if (heading) lines.push(heading);
@@ -917,6 +949,8 @@ function setStatusWithChecks(out, heading){
   }
   const onlineText = formatOnlineCompare(out.online_compare);
   if (onlineText) lines.push(onlineText);
+  const gitText = formatGitPublish(out.git_publish);
+  if (gitText) lines.push(gitText);
   setStatusColored(lines.join('\\n\\n'));
 }
 
@@ -1100,6 +1134,233 @@ async function compareOnlineBib(){
   }
 }
 
+function renderGitSetupState(state){
+  gitSetupState = state;
+  const publishBtn = document.getElementById('publishBtn');
+  const line = document.getElementById('gitSetupLine');
+  if (!state) {
+    publishBtn.disabled = true;
+    publishBtn.title = 'Run setup check first.';
+    line.textContent = 'Setup status unavailable. Click "Run setup check".';
+    return;
+  }
+  const issues = state.issues || [];
+  const warnings = state.warnings || [];
+  const target = state.target_repo ? `${state.target_repo}/${state.target_path} @ ${state.target_branch}` : '(target unavailable)';
+  if (state.ready) {
+    publishBtn.disabled = false;
+    publishBtn.title = 'Publish local .bib to GitHub';
+    line.textContent = warnings.length
+      ? `Setup ready with warning: ${warnings[0]} Target: ${target}`
+      : `Setup ready. Target: ${target}`;
+    return;
+  }
+  publishBtn.disabled = true;
+  publishBtn.title = 'Fix setup issues before publishing.';
+  line.textContent = `Setup required: ${issues[0] || 'Run setup check'}. Target: ${target}`;
+}
+
+async function runGitSetupCheck(showStatus = true){
+  try{
+    if (showStatus) {
+      const line = document.getElementById('publishResultLine');
+      line.textContent = 'Running setup check (including push-auth precheck)...';
+    }
+    const url = showStatus ? '/api/git_publish_status?check_push=1' : '/api/git_publish_status';
+    const r = await fetch(url);
+    const j = await r.json();
+    renderGitSetupState(j);
+    if (showStatus) {
+      const lines = ['Git setup check'];
+      lines.push(j.ready ? 'Overall result: PASSED' : 'Overall result: FAILED');
+      if (j.git_version) lines.push(`- Git: ${j.git_version}`);
+      if (j.user_name || j.user_email) lines.push(`- Git identity: ${j.user_name || '(missing name)'} <${j.user_email || 'missing-email'}>`);
+      lines.push(`- Credential helper: ${j.credential_helper || '(not configured)'}`);
+      if (j.target_repo) lines.push(`- Target: ${j.target_repo}/${j.target_path} @ ${j.target_branch}`);
+      if ((j.ahead_count || 0) || (j.behind_count || 0)) lines.push(`- Branch divergence: ahead ${j.ahead_count || 0}, behind ${j.behind_count || 0}`);
+      if (j.ahead_changed_paths && j.ahead_changed_paths.length) lines.push(`- Unpushed files: ${j.ahead_changed_paths.join(', ')}`);
+      if (j.ahead_only_canonical_bib) lines.push('- Recovery: you can publish now, or click "Clean pending publish commit" to uncommit and retry.');
+      if (j.gcm_detected) lines.push(`- GCM credential store: ${j.gcm_credential_store || '(not configured)'}`);
+      if (j.push_check_requested) {
+        lines.push(`- Push auth check: ${j.push_check_status || 'unknown'}`);
+        if (j.push_check_message) lines.push(`- Push auth detail: ${j.push_check_message}`);
+      }
+      if (j.warnings && j.warnings.length) lines.push(`Warnings:\\n- ${j.warnings.join('\\n- ')}`);
+      if (j.issues && j.issues.length) lines.push(`Issues:\\n- ${j.issues.join('\\n- ')}`);
+      if (!j.ready) {
+        lines.push(
+          'How to fix setup:',
+          '1) Open a terminal (PowerShell on Windows, Terminal on macOS/Linux).',
+          '2) Configure Git identity once (type exactly):',
+          '   git config --global user.name "Your Name"',
+          '   git config --global user.email "you@example.com"',
+          '3) Install Git Credential Manager (GCM):',
+          '   - Windows: install/update Git for Windows (includes GCM): https://git-scm.com/download/win',
+          '   - macOS (Homebrew): brew install --cask git-credential-manager',
+          '   - Linux: docs: https://github.com/git-ecosystem/git-credential-manager/blob/release/docs/install.md',
+          '            quick script: https://aka.ms/gcm/linux-install-source.sh',
+          '4) Configure GCM (type exactly):',
+          '   git-credential-manager configure',
+          '   git config --global credential.helper manager-core',
+          '5) Verify setup (type exactly):',
+          '   git config --global --get user.name',
+          '   git config --global --get user.email',
+          '   git config --global --get credential.helper',
+          '6) In this UI, click "Connect GitHub" and complete browser sign-in.',
+          '7) If Linux shows "No credential store has been selected", click "Configure GCM store" in this UI.',
+          '8) Click "Run setup check" again in this UI.',
+          '9) Shared computer: click "Switch GitHub account" before the next collaborator publishes.'
+        );
+      }
+      setStatusColored(lines.join('\\n'));
+      const line = document.getElementById('publishResultLine');
+      const stamp = new Date().toLocaleTimeString();
+      line.textContent = `[${stamp}] Setup check complete: ${j.ready ? 'ready' : 'action required'}.`;
+    }
+  } catch (err) {
+    renderGitSetupState(null);
+    if (showStatus) {
+      setStatus({ok:false, error:String(err)});
+      showErrorWindow(String(err));
+      const line = document.getElementById('publishResultLine');
+      const stamp = new Date().toLocaleTimeString();
+      line.textContent = `[${stamp}] Setup check failed: ${String(err)}`;
+    }
+  }
+}
+
+async function switchGitHubAccount(){
+  try{
+    const out = await req('/api/git_switch_account', {});
+    setStatusWithChecks(out, 'GitHub account switch complete.');
+    await runGitSetupCheck(false);
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+  }
+}
+
+async function connectGitHubAccount(){
+  try{
+    if (authInFlight || publishInFlight) return;
+    authInFlight = true;
+    const line = document.getElementById('publishResultLine');
+    line.textContent = 'Connecting GitHub account. Complete the browser sign-in flow if prompted.';
+    const out = await req('/api/git_connect_account', {});
+    setStatusWithChecks(out, 'GitHub connection complete.');
+    const gp = out.git_publish || {};
+    const stamp = new Date().toLocaleTimeString();
+    line.textContent = `[${stamp}] ${gp.message || 'GitHub connection flow finished.'}`;
+    await runGitSetupCheck(true);
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+    const line = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    line.textContent = `[${stamp}] Connect GitHub failed: ${String(err)}`;
+    await runGitSetupCheck(false);
+  } finally {
+    authInFlight = false;
+  }
+}
+
+async function configureGcmStore(){
+  try{
+    if (authInFlight || publishInFlight) return;
+    const out = await req('/api/git_configure_credential_store', {});
+    setStatusWithChecks(out, 'GCM credential store configured.');
+    const gp = out.git_publish || {};
+    const line = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    line.textContent = `[${stamp}] ${gp.message || 'GCM credential store configured.'}`;
+    await runGitSetupCheck(true);
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+    const line = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    line.textContent = `[${stamp}] Configure GCM store failed: ${String(err)}`;
+    await runGitSetupCheck(false);
+  }
+}
+
+async function cleanupPendingPublish(){
+  try{
+    if (publishInFlight) return;
+    const ok = confirm(
+      'This will uncommit pending local publish commit(s) if they only touch the canonical .bib file.\\n' +
+      'Your .bib file changes will be kept locally. Continue?'
+    );
+    if (!ok) return;
+    const out = await req('/api/git_cleanup_pending_publish', {});
+    setStatusWithChecks(out, 'Pending publish cleanup complete.');
+    const gp = out.git_publish || {};
+    const line = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    if (gp.status === 'cleaned') {
+      line.textContent = `[${stamp}] Cleanup complete: pending .bib commit was removed and local .bib changes were kept.`;
+    } else if (gp.status === 'nothing_to_clean') {
+      line.textContent = `[${stamp}] Nothing to clean: no unpushed commits found.`;
+    } else {
+      line.textContent = `[${stamp}] Cleanup finished with status: ${gp.status || 'unknown'}.`;
+    }
+    await runGitSetupCheck(false);
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+    const line = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    line.textContent = `[${stamp}] Cleanup failed: ${String(err)}`;
+    await runGitSetupCheck(false);
+  }
+}
+
+async function publishOnlineBib(){
+  try{
+    if (publishInFlight) return;
+    if (!v('editor_name').trim()) throw new Error('Your name is required before publishing.');
+    if (!(gitSetupState && gitSetupState.ready)) {
+      throw new Error('Setup is not ready. Click "Run setup check" and resolve issues first.');
+    }
+    publishInFlight = true;
+    const publishBtn = document.getElementById('publishBtn');
+    const publishLine = document.getElementById('publishResultLine');
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Publishing...';
+    publishLine.textContent = 'Publishing local .bib to GitHub. If prompted, finish browser sign-in.';
+    const out = await req('/api/publish_online_bib', {
+      editor_name: v('editor_name'),
+      change_reason: v('change_reason')
+    });
+    setStatusWithChecks(out, 'Git publish complete.');
+    const gp = out.git_publish || {};
+    const stamp = new Date().toLocaleTimeString();
+    if (gp.status === 'published') {
+      const shortSha = gp.commit_sha ? gp.commit_sha.slice(0, 7) : '(no sha)';
+      publishLine.textContent = `[${stamp}] Publish succeeded: commit ${shortSha}.`;
+    } else if (gp.status === 'up_to_date') {
+      publishLine.textContent = `[${stamp}] No publish needed: local .bib already matches GitHub.`;
+    } else {
+      publishLine.textContent = `[${stamp}] Publish finished with status: ${gp.status || 'unknown'}.`;
+    }
+    await runGitSetupCheck(false);
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+    const publishLine = document.getElementById('publishResultLine');
+    const stamp = new Date().toLocaleTimeString();
+    publishLine.textContent = `[${stamp}] Publish failed: ${String(err)}`;
+    await runGitSetupCheck(false);
+  } finally {
+    publishInFlight = false;
+    const publishBtn = document.getElementById('publishBtn');
+    publishBtn.textContent = 'Publish local .bib to GitHub';
+    if (gitSetupState && gitSetupState.ready) {
+      publishBtn.disabled = false;
+    }
+  }
+}
+
 async function deleteEntry(){
   try{
     if (v('mode') !== 'edit') throw new Error('Delete is available only in edit mode.');
@@ -1125,6 +1386,7 @@ async function deleteEntry(){
 loadOptions();
 onModeChange();
 onEntryTypeChange();
+runGitSetupCheck(false);
 document.getElementById('legend').addEventListener('input', () => { document.getElementById('legend').dataset.userEdited = '1'; });
 document.querySelectorAll('input, textarea, select').forEach(el => {
   el.addEventListener('input', markDirty);
@@ -1163,7 +1425,7 @@ class App:
     def artifact_paths(self, reg: dict) -> List[Path]:
         cfg = reg.get("config", {}) or {}
         dictionary_output = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
-        bib_output = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+        bib_output = Path(cfg.get("bib_output", CANONICAL_BIB_PATH))
         return [self.registry_path, self.changelog_path, self.aliases_path, dictionary_output, bib_output]
 
 
@@ -1344,7 +1606,7 @@ def _fetch_url_text(reference_url: str, timeout_seconds: int) -> Dict[str, str]:
 
 def compare_local_bib_with_online(registry: dict) -> dict:
     cfg = registry.get("config", {}) or {}
-    bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    bib_path = Path(cfg.get("bib_output", CANONICAL_BIB_PATH))
     reference_url = normalize_whitespace(str(cfg.get("online_bib_reference_url", "")))
     timeout_seconds = _coerce_timeout_seconds(cfg.get("online_bib_timeout_seconds", 20), default=20)
     base = {
@@ -1438,6 +1700,557 @@ def compare_local_bib_with_online(registry: dict) -> dict:
     }
 
 
+def _git_publish_target(registry: dict) -> Dict[str, str]:
+    cfg = registry.get("config", {}) or {}
+    reference_url = normalize_whitespace(str(cfg.get("online_bib_reference_url", "")))
+    if not reference_url:
+        return {"ok": False, "message": "online_bib_reference_url is not configured in metadata/sources/sources.yaml."}
+    ref = _parse_github_raw_reference(reference_url)
+    if not ref:
+        return {"ok": False, "message": "online_bib_reference_url must be a raw.githubusercontent.com URL."}
+    if ref.get("path") != CANONICAL_BIB_PATH:
+        return {
+            "ok": False,
+            "message": (
+                "online_bib_reference_url must target "
+                f"{CANONICAL_BIB_PATH} (got {ref.get('path', '')})."
+            ),
+        }
+    return {
+        "ok": True,
+        "owner": ref["owner"],
+        "repo": ref["repo"],
+        "branch": ref["branch"],
+        "path": ref["path"],
+        "reference_url": reference_url,
+    }
+
+
+def _run_git_any(args: List[str], timeout_seconds: int = 20, stdin_text: str = "") -> subprocess.CompletedProcess:
+    cmd = ["git"] + args
+    return _run_cmd_any(cmd, timeout_seconds=timeout_seconds, stdin_text=stdin_text)
+
+
+def _run_cmd_any(cmd: List[str], timeout_seconds: int = 20, stdin_text: str = "") -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(
+            cmd,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_seconds,
+            cwd=str(REPO_ROOT),
+            input=stdin_text.encode("utf-8") if stdin_text else None,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=124,
+            stdout=b"",
+            stderr=f"git {' '.join(args)} timed out after {timeout_seconds}s".encode("utf-8", errors="replace"),
+        )
+    except FileNotFoundError as exc:
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=127,
+            stdout=b"",
+            stderr=str(exc).encode("utf-8", errors="replace"),
+        )
+
+
+def _git_out(args: List[str], timeout_seconds: int = 20) -> str:
+    proc = _run_git_any(args, timeout_seconds)
+    if proc.returncode != 0:
+        err = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(err or f"git {' '.join(args)} failed")
+    return proc.stdout.decode("utf-8", errors="replace").strip()
+
+
+def _git_try_out(args: List[str], timeout_seconds: int = 20) -> str:
+    proc = _run_git_any(args, timeout_seconds)
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout.decode("utf-8", errors="replace").strip()
+
+
+def _remote_for_target(owner: str, repo: str, timeout_seconds: int = 20) -> str:
+    candidates = _remote_candidates(owner, repo, timeout_seconds)
+    return candidates[0] if candidates else ""
+
+
+def _int_out(value: str, default: int = 0) -> int:
+    try:
+        return int((value or "").strip())
+    except Exception:  # pylint: disable=broad-except
+        return default
+
+
+def _repo_relative_posix(path: Path) -> str:
+    if path.is_absolute():
+        try:
+            return path.relative_to(REPO_ROOT).as_posix()
+        except Exception:  # pylint: disable=broad-except
+            return path.as_posix()
+    return path.as_posix()
+
+
+def _ahead_changed_paths(remote: str, branch: str) -> List[str]:
+    revs_raw = _git_try_out(["rev-list", f"{remote}/{branch}..HEAD"], timeout_seconds=20)
+    revs = [x.strip() for x in revs_raw.splitlines() if x.strip()]
+    if not revs:
+        return []
+    paths = set()
+    for sha in revs:
+        changed = _git_try_out(["show", "--pretty=format:", "--name-only", sha], timeout_seconds=30)
+        for line in changed.splitlines():
+            p = line.strip()
+            if p:
+                paths.add(p)
+    return sorted(paths)
+
+
+def _push_head(remote: str, branch: str, timeout_seconds: int = 180) -> None:
+    push_proc = _run_git_any(["push", remote, f"HEAD:{branch}"], timeout_seconds=timeout_seconds)
+    if push_proc.returncode == 0:
+        return
+    err = push_proc.stderr.decode("utf-8", errors="replace").strip()
+    low = err.lower()
+    if push_proc.returncode == 124 or "timed out" in low:
+        raise RuntimeError(
+            "Push timed out while waiting for GitHub auth. Complete browser sign-in and retry. "
+            "If it keeps happening, click 'Switch GitHub account' and retry publish."
+        )
+    if "permission" in low or "403" in low or "denied" in low:
+        raise PermissionError("GitHub rejected push: this account does not have collaborator publish access.")
+    if "non-fast-forward" in low or "fetch first" in low:
+        raise RuntimeError("Push rejected because branch is not up to date. Please sync local repository and retry.")
+    raise RuntimeError(err or "git push failed")
+
+
+def git_publish_status(registry: dict, check_push_auth: bool = False) -> dict:
+    cfg = registry.get("config", {}) or {}
+    bib_path = Path(cfg.get("bib_output", CANONICAL_BIB_PATH))
+    target = _git_publish_target(registry)
+    issues: List[str] = []
+    warnings: List[str] = []
+    info = {
+        "git_available": False,
+        "git_version": "",
+        "user_name": "",
+        "user_email": "",
+        "credential_helper": "",
+        "credential_helper_configured": False,
+        "gcm_detected": False,
+        "gcm_credential_store": "",
+        "gcm_store_required": False,
+        "target_configured": bool(target.get("ok")),
+        "target_repo": "",
+        "target_branch": "",
+        "target_path": "",
+        "target_reference_url": target.get("reference_url", ""),
+        "target_message": target.get("message", ""),
+        "target_remote": "",
+        "local_bib_path": str(bib_path),
+        "local_bib_exists": bib_path.exists(),
+        "ahead_count": 0,
+        "behind_count": 0,
+        "ahead_only_canonical_bib": False,
+        "ahead_changed_paths": [],
+        "push_check_requested": bool(check_push_auth),
+        "push_check_status": "skipped",
+        "push_check_message": "",
+    }
+
+    if target.get("ok"):
+        info["target_repo"] = f"{target['owner']}/{target['repo']}"
+        info["target_branch"] = target["branch"]
+        info["target_path"] = target["path"]
+    else:
+        issues.append(str(target.get("message", "Invalid publish target configuration.")))
+
+    git_check = _run_git_any(["--version"])
+    if git_check.returncode != 0:
+        issues.append("Git is not installed or not available in PATH.")
+    else:
+        info["git_available"] = True
+        info["git_version"] = git_check.stdout.decode("utf-8", errors="replace").strip()
+
+    if info["git_available"]:
+        info["user_name"] = _git_try_out(["config", "--get", "user.name"])
+        info["user_email"] = _git_try_out(["config", "--get", "user.email"])
+        helper = _git_try_out(["config", "--get", "credential.helper"])
+        info["credential_helper"] = helper
+        info["credential_helper_configured"] = bool(helper)
+        helper_lc = helper.lower()
+        gcm_detected = ("manager" in helper_lc) or bool(_resolve_gcm_binary(helper))
+        info["gcm_detected"] = gcm_detected
+        if gcm_detected:
+            store = _git_try_out(["config", "--global", "--get", "credential.credentialStore"])
+            info["gcm_credential_store"] = store
+            if not store and platform.system().lower() == "linux":
+                info["gcm_store_required"] = True
+                issues.append("GCM credential store is not configured on Linux. Click 'Configure GCM store' in Step 4.")
+
+        if not info["user_name"]:
+            issues.append("Git user.name is not configured.")
+        if not info["user_email"]:
+            issues.append("Git user.email is not configured.")
+        if not info["credential_helper_configured"]:
+            issues.append("Git credential.helper is not configured.")
+
+        if target.get("ok"):
+            remote = _remote_for_target(target["owner"], target["repo"])
+            info["target_remote"] = remote
+            if not remote:
+                issues.append(f"No git remote points to github.com/{target['owner']}/{target['repo']}.")
+            else:
+                fetch_proc = _run_git_any(["fetch", "--quiet", remote, target["branch"]], timeout_seconds=30)
+                if fetch_proc.returncode != 0:
+                    fetch_err = fetch_proc.stderr.decode("utf-8", errors="replace").strip()
+                    issues.append(f"Could not fetch {remote}/{target['branch']}: {fetch_err or 'unknown fetch error'}")
+                else:
+                    ahead = _int_out(_git_try_out(["rev-list", "--count", f"{remote}/{target['branch']}..HEAD"]))
+                    behind = _int_out(_git_try_out(["rev-list", "--count", f"HEAD..{remote}/{target['branch']}"]))
+                    info["ahead_count"] = ahead
+                    info["behind_count"] = behind
+                    if ahead > 0:
+                        allowed_path = _repo_relative_posix(bib_path)
+                        changed_paths = _ahead_changed_paths(remote, target["branch"])
+                        info["ahead_changed_paths"] = changed_paths
+                        if not changed_paths:
+                            issues.append("Could not inspect unpushed commits. Please sync and retry.")
+                        elif all(p == allowed_path for p in changed_paths):
+                            info["ahead_only_canonical_bib"] = True
+                            warnings.append(
+                                f"Local branch has {ahead} unpushed commit(s) touching only canonical .bib. "
+                                "Publish will push them."
+                            )
+                        else:
+                            issues.append(
+                                f"Local branch has {ahead} unpushed commit(s) including non-canonical files: "
+                                + ", ".join(changed_paths)
+                            )
+                    if behind > 0:
+                        issues.append(f"Local branch is behind by {behind} commit(s). Please sync before one-click publish.")
+
+                if check_push_auth and not issues:
+                    push_timeout = _coerce_timeout_seconds(cfg.get("git_push_check_timeout_seconds", 120), default=120)
+                    dry = _run_git_any(["push", "--dry-run", remote, f"HEAD:{target['branch']}"], timeout_seconds=push_timeout)
+                    out = dry.stdout.decode("utf-8", errors="replace").strip()
+                    err = dry.stderr.decode("utf-8", errors="replace").strip()
+                    low = f"{out}\n{err}".lower()
+                    if dry.returncode == 0:
+                        info["push_check_status"] = "ok"
+                        info["push_check_message"] = "Push auth check passed."
+                    elif dry.returncode == 124 or "timed out" in low:
+                        info["push_check_status"] = "auth_timeout"
+                        info["push_check_message"] = "Push auth check timed out."
+                        issues.append(
+                            "Push auth check timed out. Complete browser sign-in and run setup check again."
+                        )
+                    elif "permission" in low or "403" in low or "denied" in low:
+                        info["push_check_status"] = "denied"
+                        info["push_check_message"] = "Connected account does not have collaborator publish access."
+                        issues.append(
+                            "Connected account does not have collaborator publish access for this repository."
+                        )
+                    else:
+                        info["push_check_status"] = "failed"
+                        info["push_check_message"] = err or out or "Push auth check failed."
+                        issues.append(f"Push auth check failed: {err or out or 'unknown error'}")
+
+    if bib_path.as_posix() != CANONICAL_BIB_PATH:
+        issues.append(f"bib_output must be set to {CANONICAL_BIB_PATH} for one-click publish.")
+    if not info["local_bib_exists"]:
+        issues.append(f"Local .bib artifact is missing: {bib_path}")
+
+    info["issues"] = issues
+    info["warnings"] = warnings
+    info["ready"] = len(issues) == 0
+    return info
+
+
+def git_switch_account(registry: dict) -> dict:
+    target = _git_publish_target(registry)
+    if not target.get("ok"):
+        raise ValueError(target.get("message", "Invalid publish target configuration."))
+    helper = _git_try_out(["config", "--get", "credential.helper"])
+    if not helper:
+        return {
+            "ok": True,
+            "status": "no_helper",
+            "message": "No credential helper is configured, so there is no cached GitHub account to clear.",
+        }
+    proc = _run_git_any(["credential", "reject"], stdin_text="protocol=https\nhost=github.com\n\n")
+    if proc.returncode != 0:
+        err = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(err or "Could not clear cached GitHub credentials.")
+    return {
+        "ok": True,
+        "status": "cleared",
+        "message": "Cached GitHub credentials were cleared. Next publish will prompt browser login.",
+    }
+
+
+def _resolve_gcm_binary(helper_value: str = "") -> str:
+    helper = normalize_whitespace(helper_value)
+    if helper:
+        try:
+            if Path(helper).name == "git-credential-manager" and Path(helper).exists():
+                return helper
+        except Exception:  # pylint: disable=broad-except
+            pass
+    found = shutil.which("git-credential-manager")
+    return found or ""
+
+
+def _gcm_list_accounts(gcm_bin: str) -> str:
+    if not gcm_bin:
+        return ""
+    listed = _run_cmd_any([gcm_bin, "github", "list"], timeout_seconds=20)
+    if listed.returncode != 0:
+        return ""
+    return listed.stdout.decode("utf-8", errors="replace").strip()
+
+
+def git_configure_credential_store(registry: dict) -> dict:
+    status = git_publish_status(registry, check_push_auth=False)
+    helper = str(status.get("credential_helper", ""))
+    if not helper:
+        raise ValueError("Git credential.helper is not configured. Run setup check and configure helper first.")
+    gcm_bin = _resolve_gcm_binary(helper)
+    if not gcm_bin:
+        raise ValueError("Git Credential Manager was not found. Install GCM first.")
+
+    current_store = _git_try_out(["config", "--global", "--get", "credential.credentialStore"])
+    if current_store:
+        return {
+            "ok": True,
+            "status": "already_configured",
+            "message": f"GCM credential store is already configured as '{current_store}'.",
+            "credential_store": current_store,
+        }
+
+    preferred = "cache"
+    set_proc = _run_git_any(["config", "--global", "credential.credentialStore", preferred], timeout_seconds=20)
+    if set_proc.returncode != 0:
+        err = set_proc.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(err or "Could not configure GCM credential store.")
+
+    # Keep this enabled for consistency with setup guidance.
+    _run_git_any(["config", "--global", "credential.helper", "manager-core"], timeout_seconds=20)
+    final_store = _git_try_out(["config", "--global", "--get", "credential.credentialStore"]) or preferred
+    return {
+        "ok": True,
+        "status": "configured",
+        "message": f"Configured GCM credential store as '{final_store}'. You can now click Connect GitHub.",
+        "credential_store": final_store,
+    }
+
+
+def git_connect_account(registry: dict) -> dict:
+    status = git_publish_status(registry, check_push_auth=False)
+    target = _git_publish_target(registry)
+    if not target.get("ok"):
+        raise ValueError(target.get("message", "Invalid publish target configuration."))
+
+    gcm_bin = _resolve_gcm_binary(str(status.get("credential_helper", "")))
+    if not gcm_bin:
+        raise ValueError(
+            "Git Credential Manager was not found. Install it first, then run setup check again."
+        )
+
+    login = _run_cmd_any(
+        [gcm_bin, "github", "login", "--url", "https://github.com", "--browser", "--force"],
+        timeout_seconds=240,
+    )
+    out = login.stdout.decode("utf-8", errors="replace").strip()
+    err = login.stderr.decode("utf-8", errors="replace").strip()
+    msg = err or out
+    if login.returncode != 0:
+        low = msg.lower()
+        if login.returncode == 124 or "timed out" in low:
+            raise RuntimeError(
+                "GitHub sign-in timed out. Click 'Connect GitHub' again and finish browser login promptly."
+            )
+        if "no credential store has been selected" in low:
+            raise RuntimeError(
+                "GCM credential store is missing. Click 'Configure GCM store' in Step 4, then click 'Connect GitHub' again."
+            )
+        raise RuntimeError(msg or "GitHub sign-in failed.")
+
+    accounts = _gcm_list_accounts(gcm_bin)
+    return {
+        "ok": True,
+        "status": "connected",
+        "message": "GitHub sign-in completed. Run setup check to confirm push access.",
+        "connected_accounts": accounts,
+    }
+
+
+def git_cleanup_pending_publish(registry: dict) -> dict:
+    status = git_publish_status(registry)
+    ahead = int(status.get("ahead_count", 0))
+    behind = int(status.get("behind_count", 0))
+    if ahead <= 0:
+        return {
+            "ok": True,
+            "status": "nothing_to_clean",
+            "message": "No unpushed commits were found.",
+            "target_repo": status.get("target_repo", ""),
+            "target_branch": status.get("target_branch", ""),
+            "target_path": status.get("target_path", ""),
+        }
+    if behind > 0:
+        raise ValueError("Branch is behind remote. Sync branch first; cleanup is blocked for safety.")
+    if not bool(status.get("ahead_only_canonical_bib", False)):
+        paths = status.get("ahead_changed_paths", []) or []
+        raise ValueError(
+            "Cleanup is only allowed when unpushed commits touch canonical .bib only. "
+            f"Found: {', '.join(paths) if paths else 'unknown files'}."
+        )
+    remote = str(status.get("target_remote", ""))
+    branch = str(status.get("target_branch", ""))
+    if not remote or not branch:
+        raise ValueError("Could not resolve target remote/branch for cleanup.")
+    reset_proc = _run_git_any(["reset", "--mixed", f"{remote}/{branch}"], timeout_seconds=20)
+    if reset_proc.returncode != 0:
+        err = reset_proc.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(err or "Could not clean pending publish commits.")
+
+    bib_rel = _repo_relative_posix(Path(registry.get("config", {}).get("bib_output", CANONICAL_BIB_PATH)))
+    bib_dirty = bool(_git_try_out(["status", "--porcelain", "--", bib_rel], timeout_seconds=20))
+    return {
+        "ok": True,
+        "status": "cleaned",
+        "message": "Pending local .bib commit(s) were uncommitted. Your .bib changes were kept locally.",
+        "target_repo": status.get("target_repo", ""),
+        "target_branch": branch,
+        "target_path": status.get("target_path", ""),
+        "local_bib_has_uncommitted_changes": bib_dirty,
+    }
+
+
+def publish_local_bib_with_git(registry: dict, editor_name: str, change_reason: str) -> dict:
+    status = git_publish_status(registry)
+    if not status.get("ready"):
+        raise ValueError("Publish setup is not ready:\n- " + "\n- ".join(status.get("issues", [])))
+
+    target = _git_publish_target(registry)
+    cfg = registry.get("config", {}) or {}
+    bib_path = Path(cfg.get("bib_output", CANONICAL_BIB_PATH))
+    local_text = bib_path.read_text(encoding="utf-8")
+    local_hash = hashlib.sha256(local_text.encode("utf-8")).hexdigest()
+    remote = str(status.get("target_remote", ""))
+    branch = str(target["branch"])
+    remote_spec = f"{remote}/{branch}:{target['path']}"
+    pushed_pending = False
+
+    if int(status.get("ahead_count", 0)) > 0:
+        if not bool(status.get("ahead_only_canonical_bib", False)):
+            raise ValueError("Local branch has unpushed commits outside canonical .bib. Please sync before publishing.")
+        _push_head(remote, branch, timeout_seconds=60)
+        pushed_pending = True
+
+    _run_git_any(["fetch", "--quiet", remote, branch], timeout_seconds=30)
+    remote_show = _run_git_any(["show", remote_spec], timeout_seconds=30)
+    remote_text = remote_show.stdout.decode("utf-8", errors="replace") if remote_show.returncode == 0 else ""
+    remote_hash = hashlib.sha256(remote_text.encode("utf-8")).hexdigest() if remote_text else ""
+
+    if remote_text == local_text:
+        if pushed_pending:
+            commit_sha = _git_out(["rev-parse", "HEAD"])
+            repo = status.get("target_repo", "")
+            commit_url = f"https://github.com/{repo}/commit/{commit_sha}" if repo and commit_sha else ""
+            return {
+                "ok": True,
+                "status": "published",
+                "message": "Pushed pending local .bib commit(s) to GitHub.",
+                "target_repo": status.get("target_repo", ""),
+                "target_branch": branch,
+                "target_path": target["path"],
+                "local_hash": local_hash,
+                "remote_hash": remote_hash,
+                "commit_sha": commit_sha,
+                "commit_url": commit_url,
+            }
+        return {
+            "ok": True,
+            "status": "up_to_date",
+            "message": "Local .bib already matches remote. Nothing was pushed. If you expected changes, run Step 2 (save + regenerate) first.",
+            "target_repo": status.get("target_repo", ""),
+            "target_branch": branch,
+            "target_path": target["path"],
+            "local_hash": local_hash,
+            "remote_hash": remote_hash,
+            "commit_sha": "",
+            "commit_url": "",
+        }
+
+    _git_out(["add", "--", str(bib_path)])
+    staged = _git_out(["diff", "--cached", "--name-only", "--", str(bib_path)])
+    if not staged:
+        return {
+            "ok": True,
+            "status": "up_to_date",
+            "message": "No staged .bib changes were detected. Nothing was pushed. If you edited entries, run Step 2 (save + regenerate) first.",
+            "target_repo": status.get("target_repo", ""),
+            "target_branch": branch,
+            "target_path": target["path"],
+            "local_hash": local_hash,
+            "remote_hash": remote_hash,
+            "commit_sha": "",
+            "commit_url": "",
+        }
+
+    actor = normalize_whitespace(editor_name) or normalize_whitespace(status.get("user_name", "")) or "unknown"
+    reason = normalize_whitespace(change_reason) or "Published via Source Registry UI"
+    commit_message = (
+        "sources: publish canonical .bib from Source Registry UI\n\n"
+        f"Editor: {actor}\n"
+        f"Reason: {reason}\n"
+        f"Published-at: {now_utc()}\n"
+        f"Local-SHA256: {local_hash}"
+    )
+    commit_proc = _run_git_any(["commit", "-m", commit_message, "--", str(bib_path)], timeout_seconds=30)
+    if commit_proc.returncode != 0:
+        err = commit_proc.stderr.decode("utf-8", errors="replace").strip()
+        out = commit_proc.stdout.decode("utf-8", errors="replace").strip()
+        msg = err or out
+        if "nothing to commit" in msg.lower():
+            return {
+                "ok": True,
+                "status": "up_to_date",
+                "message": "No .bib changes to commit. If you expected changes, run Step 2 (save + regenerate) first.",
+                "target_repo": status.get("target_repo", ""),
+                "target_branch": branch,
+                "target_path": target["path"],
+                "local_hash": local_hash,
+                "remote_hash": remote_hash,
+                "commit_sha": "",
+                "commit_url": "",
+            }
+        raise RuntimeError(msg or "git commit failed")
+
+    _push_head(remote, branch, timeout_seconds=60)
+
+    commit_sha = _git_out(["rev-parse", "HEAD"])
+    repo = status.get("target_repo", "")
+    commit_url = f"https://github.com/{repo}/commit/{commit_sha}" if repo and commit_sha else ""
+    return {
+        "ok": True,
+        "status": "published",
+        "message": "Published local .bib to GitHub via git push.",
+        "target_repo": repo,
+        "target_branch": branch,
+        "target_path": target["path"],
+        "local_hash": local_hash,
+        "remote_hash": remote_hash,
+        "commit_sha": commit_sha,
+        "commit_url": commit_url,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     app: App = None
 
@@ -1479,6 +2292,13 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True})
             return
 
+        if parsed.path == "/api/git_publish_status":
+            reg = self.app.registry
+            qs = parse_qs(parsed.query)
+            check_push = (qs.get("check_push") or ["0"])[0].strip().lower() in {"1", "true", "yes", "on"}
+            self._send_json(git_publish_status(reg, check_push_auth=check_push))
+            return
+
         if parsed.path == "/api/record":
             reg = self.app.registry
             qs = parse_qs(parsed.query)
@@ -1512,6 +2332,86 @@ class Handler(BaseHTTPRequestHandler):
                     "errors": [],
                     "online_compare": online_compare,
                     "message": "Online comparison complete",
+                })
+                return
+
+            if self.path == "/api/git_switch_account":
+                reg = self.app.registry
+                switched = git_switch_account(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "git_switch_account",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "git_publish": switched,
+                    "git_status": git_publish_status(reg),
+                    "message": switched.get("message", "Git account switch complete."),
+                })
+                return
+
+            if self.path == "/api/git_connect_account":
+                reg = self.app.registry
+                connected = git_connect_account(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "git_connect_account",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "git_publish": connected,
+                    "git_status": git_publish_status(reg),
+                    "message": connected.get("message", "GitHub connection complete."),
+                })
+                return
+
+            if self.path == "/api/git_configure_credential_store":
+                reg = self.app.registry
+                configured = git_configure_credential_store(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "git_configure_credential_store",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "git_publish": configured,
+                    "git_status": git_publish_status(reg),
+                    "message": configured.get("message", "GCM credential store configured."),
+                })
+                return
+
+            if self.path == "/api/git_cleanup_pending_publish":
+                reg = self.app.registry
+                cleaned = git_cleanup_pending_publish(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "git_cleanup_pending_publish",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "git_publish": cleaned,
+                    "git_status": git_publish_status(reg),
+                    "message": cleaned.get("message", "Pending publish cleanup complete."),
+                })
+                return
+
+            if self.path == "/api/publish_online_bib":
+                data = self._read_json()
+                reg = self.app.registry
+                editor_name = normalize_whitespace(data.get("editor_name", ""))
+                change_reason = normalize_whitespace(data.get("change_reason", ""))
+                published = publish_local_bib_with_git(reg, editor_name, change_reason)
+                online_compare = compare_local_bib_with_online(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "publish_online_bib",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "git_publish": published,
+                    "git_status": git_publish_status(reg),
+                    "online_compare": online_compare,
+                    "message": published.get("message", "Publish complete."),
                 })
                 return
 
@@ -1661,6 +2561,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             self._send_json({"error": "Not found"}, 404)
+        except PermissionError as exc:
+            self._send_json({"error": str(exc)}, 403)
         except Exception as exc:  # pylint: disable=broad-except
             self._send_json({"error": str(exc)}, 400)
 

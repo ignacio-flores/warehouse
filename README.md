@@ -155,6 +155,8 @@ Source metadata is now managed from `metadata/sources/sources.yaml` (JSON-compat
 - Add/edit requests should use the local Source Registry UI: `python3 code/tools/sources/ui_local.py`.
 - Mac users can also launch it by double-clicking `code/tools/source_manager_mac.command`.
 - Windows users can launch it by double-clicking `code/tools/source_manager_win.bat`.
+- Linux users can launch it by double-clicking `code/tools/source_manager_linux.desktop` (mark as executable/trusted once), or from Terminal: `bash code/tools/source_manager_linux.sh`.
+- The UI includes one-click `.bib` publishing to GitHub using local git auth; run the built-in setup check in Step 4 for first-time machine setup. Publish scope is restricted to `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib`.
 - `handmade_tables/dictionary.xlsx` (`Sources` sheet) is generated; do not edit it manually.
 - `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib` is generated from the canonical registry.
 - Validation and generation scripts live under `code/tools/sources/`.

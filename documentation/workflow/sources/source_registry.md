@@ -12,6 +12,8 @@ Generated artifacts:
 1. Launch local UI:
    - Mac double-click: `code/tools/source_manager_mac.command`
    - Windows double-click: `code/tools/source_manager_win.bat`
+   - Linux double-click: `code/tools/source_manager_linux.desktop` (mark as executable/trusted once)
+   - Linux Terminal: `bash code/tools/source_manager_linux.sh`
    - Or Terminal: `python3 code/tools/sources/ui_local.py`
 2. Open `http://127.0.0.1:8765`.
 3. Choose `mode` = `add` or `edit`.
@@ -62,9 +64,41 @@ Generated artifacts:
 
 1. Check entry (validation only, no save).
 2. Save entry and regenerate artifacts.
+3. Compare local `.bib` with online reference.
+4. Publish local `.bib` from the UI:
+   - Click `Run setup check` in Step 4 (this now runs a push-auth dry-run check).
+   - If Linux shows a GCM credential-store error, click `Configure GCM store` (sets a working `cache` store automatically).
+   - Click `Connect GitHub` and complete browser sign-in when prompted.
+   - If setup issues appear, follow the setup commands shown in the UI Status panel.
+   - Click `Publish local .bib to GitHub`.
+   - If another collaborator uses the same computer, click `Switch GitHub account` before they publish.
+   - The publish step is restricted to `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib`.
+   - If setup shows `ahead` with only the canonical `.bib` file, either publish directly (it will push pending `.bib` commit(s)) or click `Clean pending publish commit` to uncommit and retry.
 Edit-only helper: Load existing entry.
 If validation/save fails, the UI shows an error popup and full details in the status panel.
 In edit mode, delete is available with a required confirmation prompt.
+
+## One-Time Machine Setup (for one-click publish)
+
+Open a terminal and run these commands explicitly.
+
+1. Configure git identity once:
+   - `git config --global user.name "Your Name"`
+   - `git config --global user.email "you@example.com"`
+2. Install Git Credential Manager (GCM):
+   - Windows: install or update Git for Windows (includes GCM): https://git-scm.com/download/win
+   - macOS (Homebrew): `brew install --cask git-credential-manager`
+   - Linux docs: https://github.com/git-ecosystem/git-credential-manager/blob/release/docs/install.md
+   - Linux quick script: https://aka.ms/gcm/linux-install-source.sh
+3. Configure GCM:
+   - `git-credential-manager configure`
+   - `git config --global credential.helper manager-core`
+4. Verify setup:
+   - `git config --global --get user.name`
+   - `git config --global --get user.email`
+   - `git config --global --get credential.helper`
+5. Back in the UI, click `Run setup check` in Step 4.
+6. Click `Connect GitHub` in Step 4 and finish browser sign-in.
 
 ## Key Rename Tracking
 
