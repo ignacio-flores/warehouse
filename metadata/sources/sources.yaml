@@ -3,6 +3,8 @@
   "config": {
     "bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib",
     "web_bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary_web.bib",
+    "online_bib_reference_url": "https://raw.githubusercontent.com/ignacio-flores/warehouse/main/documentation/BibTeX%20files/GCWealthProject_DataSourcesLibrary.bib",
+    "online_bib_timeout_seconds": 20,
     "dictionary_template": "handmade_tables/dictionary.xlsx",
     "dictionary_output": "handmade_tables/dictionary.xlsx"
   },
@@ -34520,7 +34522,7 @@
     },
     {
       "id": "src-blanchet2022weight",
-      "section": "Wealth Inequality Trends",
+      "section": "Supplementary Variables",
       "aggsource": "Academic research",
       "legend": "Blanchet et al. (2022)",
       "source": "blanchet2022weight",
@@ -34540,7 +34542,7 @@
       "seeaggsourcelisthere": "",
       "bib": {
         "entry_type": "article",
-        "title": "The weight of the rich: improving surveys using tax data",
+        "title": "The weight of the rich: improving surveys using tax datA",
         "author": "Blanchet, Thomas and Flores, Ignacio and Morgan, Marc",
         "year": "2022",
         "month": "",
@@ -34560,9 +34562,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T20:38:34Z",
-      "updated_at": "2026-02-19T20:38:34Z",
+      "updated_at": "2026-03-04T09:56:07Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "IF"
     }
   ]
 }

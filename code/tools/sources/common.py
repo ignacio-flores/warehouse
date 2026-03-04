@@ -71,6 +71,8 @@ DEFAULT_REGISTRY = OrderedDict(
             OrderedDict(
                 [
                     ("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"),
+                    ("online_bib_reference_url", ""),
+                    ("online_bib_timeout_seconds", 20),
                     ("dictionary_template", "handmade_tables/dictionary.xlsx"),
                     ("dictionary_output", "handmade_tables/dictionary.xlsx"),
                 ]

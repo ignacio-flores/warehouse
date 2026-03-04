@@ -7,21 +7,29 @@ Then open http://127.0.0.1:8765
 """
 
 import argparse
+import hashlib
 import json
 import re
+import shutil
+import subprocess
 import threading
 import time
+from difflib import unified_diff
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Dict, List
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+from urllib.request import Request, urlopen
 
 from common import load_json_yaml, load_registry, normalize_text, normalize_url, normalize_whitespace, parse_bib_entries, read_sources_sheet, save_registry
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
 YEAR_RE = re.compile(r"^\d{4}$")
+ONLINE_COMPARE_MAX_DIFF_LINES = 400
+ONLINE_COMPARE_MAX_DIFF_CHARS = 60000
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def now_utc() -> str:
@@ -571,6 +579,14 @@ button.secondary { background: #4d5968; }
 button.warn { background: #a03d02; }
 small { color: #5f6977; }
 pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; overflow: auto; }
+#status { white-space: pre-wrap; line-height: 1.35; }
+#status .status-ok { color: #8fd28f; font-weight: 600; }
+#status .status-fail { color: #ff9da4; font-weight: 600; }
+#status .status-warn { color: #f0c674; font-weight: 600; }
+#status .git-file { color: #8ab4f8; }
+#status .git-hunk { color: #c792ea; }
+#status .git-add { color: #8fd28f; }
+#status .git-del { color: #ff9da4; }
 .help { background: #f0f4fa; border: 1px solid #d9e3f0; padding: 10px; border-radius: 8px; color: #334455; font-size: 12px; }
 .req { color: #ad2b2b; }
 .step { font-weight: 700; color: #123a66; margin-bottom: 6px; }
@@ -690,6 +706,11 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='step'>Step 2: Save and regenerate files</div>
     <button class='warn' onclick='applyAndBuild()'>Save entry + regenerate dictionary.xlsx and .bib</button>
   </div>
+  <div class='row'>
+    <div class='step'>Step 3: Compare with online reference (optional)</div>
+    <button class='secondary' onclick='compareOnlineBib()'>Compare local .bib with online reference</button>
+    <small style='display:block; margin-top:6px;'>Online replace action planned.</small>
+  </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
   <datalist id='data_type_opts'></datalist>
@@ -712,6 +733,40 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 <script>
 function v(id){ return document.getElementById(id).value || ''; }
 function setStatus(obj){ document.getElementById('status').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
+function escapeHtml(s){
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function statusClassForLine(line){
+  if (line.startsWith('Overall result: PASSED') || line.startsWith('- Status: up_to_date')) return 'status-ok';
+  if (line.startsWith('Overall result: FAILED') || line.startsWith('- Status: unavailable') || line.startsWith('- Status: not_configured')) return 'status-fail';
+  if (line.startsWith('- Status: different')) return 'status-warn';
+  return '';
+}
+function diffClassForLine(line){
+  if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff --git')) return 'git-file';
+  if (line.startsWith('@@')) return 'git-hunk';
+  if (line.startsWith('+') && !line.startsWith('+++')) return 'git-add';
+  if (line.startsWith('-') && !line.startsWith('---')) return 'git-del';
+  return '';
+}
+function setStatusColored(text){
+  const el = document.getElementById('status');
+  const lines = String(text || '').split('\\n');
+  let inUnifiedDiff = false;
+  el.innerHTML = lines.map((line) => {
+    if (line.startsWith('Unified diff (online -> local):')) {
+      inUnifiedDiff = true;
+    }
+    const cls = inUnifiedDiff ? diffClassForLine(line) : statusClassForLine(line);
+    const body = escapeHtml(line);
+    return cls ? `<span class=\"${cls}\">${body}</span>` : body;
+  }).join('\\n');
+}
 function showErrorWindow(msg){
   alert(`There are validation errors:\\n\\n${msg}`);
 }
@@ -832,6 +887,17 @@ function buildDuplicateGuidance(out){
   return lines.join('\\n');
 }
 
+function formatOnlineCompare(onlineCompare){
+  if (!onlineCompare) return '';
+  const lines = ['Online .bib comparison:'];
+  lines.push(`- Status: ${onlineCompare.status || 'unknown'}`);
+  if (onlineCompare.message) lines.push(`- Message: ${onlineCompare.message}`);
+  if (onlineCompare.reference_url) lines.push(`- Online reference: ${onlineCompare.reference_url}`);
+  if (onlineCompare.local_bib_path) lines.push(`- Local bib: ${onlineCompare.local_bib_path}`);
+  if (onlineCompare.diff_preview) lines.push(`Unified diff (online -> local):\\n${onlineCompare.diff_preview}`);
+  return lines.join('\\n');
+}
+
 function setStatusWithChecks(out, heading){
   const lines = [];
   if (heading) lines.push(heading);
@@ -849,7 +915,9 @@ function setStatusWithChecks(out, heading){
     const details = out.file_change_summary.map(x => `- ${x.file}: ${x.summary}`);
     lines.push(`Modification summary by file:\\n${details.join('\\n')}`);
   }
-  setStatus(lines.join('\\n\\n'));
+  const onlineText = formatOnlineCompare(out.online_compare);
+  if (onlineText) lines.push(onlineText);
+  setStatusColored(lines.join('\\n\\n'));
 }
 
 async function req(path, payload){
@@ -1022,6 +1090,16 @@ async function applyAndBuild(){
   }
 }
 
+async function compareOnlineBib(){
+  try{
+    const out = await req('/api/compare_online_bib', {});
+    setStatusWithChecks(out, 'Online comparison complete.');
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+  }
+}
+
 async function deleteEntry(){
   try{
     if (v('mode') !== 'edit') throw new Error('Delete is available only in edit mode.');
@@ -1103,6 +1181,263 @@ def modified_paths(before: Dict[str, int], after: Dict[str, int]) -> List[str]:
     return sorted([p for p in after.keys() if before.get(p, -1) != after.get(p, -1)])
 
 
+def _coerce_timeout_seconds(value, default: int = 20) -> int:
+    try:
+        timeout = int(value)
+    except (TypeError, ValueError):
+        timeout = default
+    return max(1, min(120, timeout))
+
+
+def _trim_diff_preview(lines: List[str], max_lines: int = ONLINE_COMPARE_MAX_DIFF_LINES, max_chars: int = ONLINE_COMPARE_MAX_DIFF_CHARS) -> Dict[str, object]:
+    shown: List[str] = []
+    total_chars = 0
+    truncated = False
+    for idx, line in enumerate(lines):
+        if idx >= max_lines:
+            truncated = True
+            break
+        next_chars = total_chars + len(line) + 1
+        if next_chars > max_chars:
+            truncated = True
+            break
+        shown.append(line)
+        total_chars = next_chars
+    if truncated:
+        shown.append(f"... [diff truncated: showing {len(shown)} of {len(lines)} lines]")
+    return {"preview": "\n".join(shown), "truncated": truncated}
+
+
+def _normalize_github_repo_url(url: str) -> str:
+    raw = normalize_whitespace(url)
+    if not raw:
+        return ""
+    if raw.startswith("git@github.com:"):
+        raw = "https://github.com/" + raw[len("git@github.com:") :]
+    if raw.startswith("ssh://git@github.com/"):
+        raw = "https://github.com/" + raw[len("ssh://git@github.com/") :]
+    raw = raw.rstrip("/")
+    if raw.endswith(".git"):
+        raw = raw[: -len(".git")]
+    return raw.lower()
+
+
+def _parse_github_raw_reference(reference_url: str) -> Dict[str, str]:
+    parsed = urlparse(reference_url)
+    if parsed.netloc.lower() != "raw.githubusercontent.com":
+        return {}
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 4:
+        return {}
+    owner = parts[0]
+    repo = parts[1]
+    branch = parts[2]
+    path = unquote("/".join(parts[3:]))
+    if not owner or not repo or not branch or not path:
+        return {}
+    return {"owner": owner, "repo": repo, "branch": branch, "path": path}
+
+
+def _run_git(args: List[str], timeout_seconds: int) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git"] + args,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout_seconds,
+        cwd=str(REPO_ROOT),
+    )
+
+
+def _remote_candidates(owner: str, repo: str, timeout_seconds: int) -> List[str]:
+    target = f"https://github.com/{owner}/{repo}".lower()
+    names: List[str] = []
+    try:
+        proc = _run_git(["remote", "-v"], timeout_seconds)
+    except Exception:
+        return []
+    for line in proc.stdout.decode("utf-8", errors="replace").splitlines():
+        parts = line.split()
+        if len(parts) < 3 or parts[2] != "(fetch)":
+            continue
+        name, remote_url = parts[0], parts[1]
+        if _normalize_github_repo_url(remote_url) == target:
+            names.append(name)
+    # Prefer upstream first for canonical repo, then origin.
+    ordered = sorted(set(names), key=lambda x: (0 if x == "upstream" else 1 if x == "origin" else 2, x))
+    return ordered
+
+
+def _fetch_github_raw_via_git(reference_url: str, timeout_seconds: int) -> Dict[str, str]:
+    ref = _parse_github_raw_reference(reference_url)
+    if not ref:
+        raise RuntimeError("URL is not a supported raw.githubusercontent.com path.")
+    owner = ref["owner"]
+    repo = ref["repo"]
+    branch = ref["branch"]
+    path = ref["path"]
+
+    remotes = _remote_candidates(owner, repo, timeout_seconds)
+    if not remotes:
+        raise RuntimeError(f"No git remote matched github.com/{owner}/{repo}.")
+
+    errors: List[str] = []
+    for remote in remotes:
+        spec = f"{remote}/{branch}:{path}"
+        try:
+            proc = _run_git(["show", spec], timeout_seconds)
+            return {"text": proc.stdout.decode("utf-8", errors="replace"), "method": f"git-remote:{remote}/{branch}"}
+        except Exception as show_exc:  # pylint: disable=broad-except
+            errors.append(f"{remote} show failed: {show_exc}")
+
+        # Try to refresh the remote branch, then retry show.
+        try:
+            _run_git(["fetch", "--quiet", remote, branch], timeout_seconds)
+            proc = _run_git(["show", spec], timeout_seconds)
+            return {"text": proc.stdout.decode("utf-8", errors="replace"), "method": f"git-fetch:{remote}/{branch}"}
+        except Exception as fetch_exc:  # pylint: disable=broad-except
+            errors.append(f"{remote} fetch/show failed: {fetch_exc}")
+
+    raise RuntimeError("; ".join(errors) if errors else "git fallback failed")
+
+
+def _fetch_url_text(reference_url: str, timeout_seconds: int) -> Dict[str, str]:
+    req = Request(reference_url, headers={"User-Agent": "SourceRegistryUI/1.0"})
+    try:
+        with urlopen(req, timeout=timeout_seconds) as resp:  # nosec B310 (URL is user-configured reference)
+            remote_raw = resp.read()
+            charset = resp.headers.get_content_charset() or "utf-8"
+        return {"text": remote_raw.decode(charset, errors="replace"), "method": "python-urllib"}
+    except Exception as exc:  # pylint: disable=broad-except
+        msg = str(exc)
+        curl_error = "curl not available"
+        curl_bin = shutil.which("curl")
+        if curl_bin:
+            try:
+                proc = subprocess.run(
+                    [
+                        curl_bin,
+                        "--fail",
+                        "--location",
+                        "--silent",
+                        "--show-error",
+                        "--max-time",
+                        str(timeout_seconds),
+                        reference_url,
+                    ],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                return {"text": proc.stdout.decode("utf-8", errors="replace"), "method": "curl-system-trust"}
+            except Exception as curl_exc:  # pylint: disable=broad-except
+                curl_error = str(curl_exc)
+
+        try:
+            git_fetched = _fetch_github_raw_via_git(reference_url, timeout_seconds)
+            return git_fetched
+        except Exception as git_exc:  # pylint: disable=broad-except
+            raise RuntimeError(
+                f"{msg}. curl fallback failed: {curl_error}. git fallback also failed: {git_exc}"
+            ) from git_exc
+
+
+def compare_local_bib_with_online(registry: dict) -> dict:
+    cfg = registry.get("config", {}) or {}
+    bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    reference_url = normalize_whitespace(str(cfg.get("online_bib_reference_url", "")))
+    timeout_seconds = _coerce_timeout_seconds(cfg.get("online_bib_timeout_seconds", 20), default=20)
+    base = {
+        "reference_url": reference_url,
+        "local_bib_path": str(bib_path),
+        "timeout_seconds": timeout_seconds,
+        "local_hash": "",
+        "remote_hash": "",
+        "diff_preview": "",
+        "diff_line_count": 0,
+        "truncated": False,
+        "fetch_method": "",
+        "compared_at": now_utc(),
+    }
+
+    if not reference_url:
+        return {
+            **base,
+            "ok": False,
+            "status": "not_configured",
+            "message": "online_bib_reference_url is not configured in metadata/sources/sources.yaml.",
+        }
+    if not bib_path.exists():
+        return {
+            **base,
+            "ok": False,
+            "status": "unavailable",
+            "message": f"Local bib artifact is missing: {bib_path}",
+        }
+
+    try:
+        local_text = bib_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pylint: disable=broad-except
+        return {
+            **base,
+            "ok": False,
+            "status": "unavailable",
+            "message": f"Could not read local bib artifact: {exc}",
+        }
+
+    local_hash = hashlib.sha256(local_text.encode("utf-8")).hexdigest()
+    base["local_hash"] = local_hash
+
+    try:
+        fetched = _fetch_url_text(reference_url, timeout_seconds)
+        remote_text = fetched.get("text", "")
+        base["fetch_method"] = fetched.get("method", "")
+    except Exception as exc:  # pylint: disable=broad-except
+        return {
+            **base,
+            "ok": False,
+            "status": "unavailable",
+            "message": f"Could not fetch online reference: {exc}",
+        }
+
+    remote_hash = hashlib.sha256(remote_text.encode("utf-8")).hexdigest()
+    base["remote_hash"] = remote_hash
+
+    if local_text == remote_text:
+        return {
+            **base,
+            "ok": True,
+            "status": "up_to_date",
+            "message": "Local .bib matches the online reference.",
+        }
+
+    diff_lines = list(
+        unified_diff(
+            remote_text.splitlines(),
+            local_text.splitlines(),
+            fromfile=f"online:{reference_url}",
+            tofile=f"local:{bib_path}",
+            lineterm="",
+        )
+    )
+    trimmed = _trim_diff_preview(diff_lines)
+    preview = str(trimmed.get("preview", ""))
+    truncated = bool(trimmed.get("truncated", False))
+    message = "Local .bib differs from the online reference."
+    if truncated:
+        message = message + " Diff preview was truncated."
+
+    return {
+        **base,
+        "ok": True,
+        "status": "different",
+        "message": message,
+        "diff_preview": preview,
+        "diff_line_count": len(diff_lines),
+        "truncated": truncated,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     app: App = None
 
@@ -1164,6 +1499,20 @@ class Handler(BaseHTTPRequestHandler):
                 data = self._read_json()
                 out = parse_bib_paste(data.get("text", ""))
                 self._send_json(out)
+                return
+
+            if self.path == "/api/compare_online_bib":
+                reg = self.app.registry
+                online_compare = compare_local_bib_with_online(reg)
+                self._send_json({
+                    "ok": True,
+                    "operation": "compare_online_bib",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "online_compare": online_compare,
+                    "message": "Online comparison complete",
+                })
                 return
 
             if self.path == "/api/validate_entry":
@@ -1233,11 +1582,13 @@ class Handler(BaseHTTPRequestHandler):
                     sys.argv = argv_orig
 
                 after = file_mtimes(tracked_paths)
+                online_compare = compare_local_bib_with_online(reg)
                 self._send_json({
                     "ok": True,
                     **out,
                     "checks": (out.get("checks", []) + artifact_out.get("checks", [])),
                     "modified_files": modified_paths(before, after),
+                    "online_compare": online_compare,
                     "file_change_summary": build_file_change_summary(
                         modified_paths(before, after),
                         out.get("operation", mode),
@@ -1284,6 +1635,7 @@ class Handler(BaseHTTPRequestHandler):
                     sys.argv = argv_orig
 
                 after = file_mtimes(tracked_paths)
+                online_compare = compare_local_bib_with_online(reg)
                 self._send_json({
                     "ok": True,
                     "record_id": rec_id,
@@ -1291,6 +1643,7 @@ class Handler(BaseHTTPRequestHandler):
                     "changed_fields": deleted_fields,
                     "checks": [{"name": "Delete target resolution", "passed": True, "detail": f"Deleted {rec_id}"}],
                     "modified_files": modified_paths(before, after),
+                    "online_compare": online_compare,
                     "file_change_summary": build_file_change_summary(
                         modified_paths(before, after),
                         "delete",
