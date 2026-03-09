@@ -95,7 +95,7 @@ def validate_candidate(records: List[dict], candidate: dict, mode: str, target_i
     warnings: List[str] = []
     checks: List[dict] = []
 
-    required = ["editor_name", "section", "aggsource", "legend", "source", "citekey", "link"]
+    required = ["section", "aggsource", "legend", "source", "citekey", "link"]
     missing_required = [k for k in required if not normalize_whitespace(str(candidate.get(k, "")))]
     if missing_required:
         for k in missing_required:
@@ -446,7 +446,6 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
     records = registry.get("records", [])
     mode = normalize_whitespace(payload.get("mode", "add")).lower()
     target = normalize_whitespace(payload.get("target", ""))
-    reason = normalize_whitespace(payload.get("change_reason", ""))
     breaking = bool(payload.get("key_rename_confirmed", False))
     candidate = make_candidate(payload)
     editor_name = normalize_whitespace(candidate.get("editor_name", ""))
@@ -457,8 +456,7 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
         raise ValueError("mode must be add or edit")
 
     if mode == "edit":
-        if not reason:
-            raise ValueError("change_reason is required for edit mode")
+        reason = "Edited via local UI"
         hits = find_target(records, target)
         if len(hits) != 1:
             raise ValueError(f"Edit target must match exactly one record; got {len(hits)}")
@@ -514,8 +512,7 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
             "key_renamed": changed_key,
         }
 
-    if not reason:
-        reason = "Added via local UI"
+    reason = "Added via local UI"
 
     newrec = {
         "id": f"src-{re.sub(r'[^A-Za-z0-9]+', '-', candidate.get('source', '').strip()).strip('-').lower()}",
@@ -606,19 +603,10 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
         <option value='edit'>edit (existing source)</option>
       </select>
     </div>
-    <div>
-      <label>Your name <span class='req'>*</span></label>
-      <input id='editor_name' placeholder='Your full name'>
-    </div>
     <div id='editTargetWrap' class='hidden'>
       <label>Edit target (existing Source/Citekey) <span class='req'>*</span></label>
       <input id='target' list='target_opts' placeholder='Start typing an existing source'>
     </div>
-  </div>
-
-  <div id='editReasonWrap' class='row hidden'>
-    <label>Change reason <span class='req'>*</span></label>
-    <input id='change_reason' list='change_reason_opts' placeholder='Select or write a reason'>
   </div>
 
   <div id='editToolsWrap' class='row hidden'>
@@ -706,6 +694,12 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='step'>Step 2: Save and regenerate files</div>
     <button class='warn' onclick='applyAndBuild()'>Save entry + regenerate dictionary.xlsx and .bib</button>
   </div>
+  <details class='row'>
+    <summary><b>Name for audit trail</b> (optional now; asked on save/delete if empty)</summary>
+    <div style='margin-top:8px; max-width:420px;'>
+      <input id='editor_name' placeholder='Your full name'>
+    </div>
+  </details>
   <div class='row'>
     <div class='step'>Step 3: Compare with online reference (optional)</div>
     <button class='secondary' onclick='compareOnlineBib()'>Compare local .bib with online reference</button>
@@ -716,15 +710,6 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
   <datalist id='data_type_opts'></datalist>
   <datalist id='target_opts'></datalist>
   <datalist id='inclusion_in_warehouse_opts'></datalist>
-  <datalist id='change_reason_opts'>
-    <option value='Correct typo/formatting only'></option>
-    <option value='Update metadata fields (section/aggsource/data_type)'></option>
-    <option value='Update bibliographic details (title/author/year/journal)'></option>
-    <option value='Update URL or DOI'></option>
-    <option value='Align Source/Citekey naming convention'></option>
-    <option value='Merge duplicate entry information'></option>
-    <option value='Delete obsolete or duplicate entry'></option>
-  </datalist>
 
   <h3>Status</h3>
   <pre id='status'></pre>
@@ -778,7 +763,7 @@ function clearDirty(){ dirty = false; }
 function onModeChange(){
   const mode = v('mode');
   const isEdit = mode === 'edit';
-  for (const id of ['editTargetWrap','editReasonWrap','editToolsWrap']) {
+  for (const id of ['editTargetWrap','editToolsWrap']) {
     document.getElementById(id).classList.toggle('hidden', !isEdit);
   }
   document.getElementById('loadBtn').disabled = !isEdit;
@@ -786,7 +771,6 @@ function onModeChange(){
   if (!isEdit) {
     loadedSourceKey = '';
     document.getElementById('target').value = '';
-    document.getElementById('change_reason').value = '';
     // In add mode we keep a single URL field and mirror it to bib.url on save.
     document.getElementById('bib_url').value = '';
   }
@@ -830,7 +814,6 @@ function getPayload(){
     mode: v('mode'),
     editor_name: v('editor_name'),
     target: v('target'),
-    change_reason: v('change_reason'),
     key_rename_confirmed: false,
     record: {
       section: v('section'), aggsource: v('aggsource'), legend: v('legend'), source_key: v('source_key'),
@@ -844,6 +827,26 @@ function getPayload(){
       }
     }
   }
+}
+
+function capitalizeFirst(text){
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+async function ensureEditorName(actionLabel){
+  let name = (v('editor_name') || '').trim();
+  if (name) return name;
+  const entered = prompt(`Enter your name to ${actionLabel}.`);
+  if (entered === null) {
+    throw new Error(`${capitalizeFirst(actionLabel)} cancelled. Name was not provided.`);
+  }
+  name = entered.trim();
+  if (!name) {
+    throw new Error('Your name is required to continue.');
+  }
+  document.getElementById('editor_name').value = name;
+  return name;
 }
 
 function formatChecks(out){
@@ -1040,9 +1043,6 @@ async function loadTarget(){
 
 async function validateOnly(){
   try{
-    if (v('mode') === 'edit' && !v('change_reason').trim()) {
-      throw new Error('Change reason is required in edit mode.');
-    }
     const out = await req('/api/validate_entry', getPayload());
     setStatusWithChecks(out, 'Validation run complete.');
     if (!out.ok || (out.errors && out.errors.length)) {
@@ -1057,8 +1057,6 @@ async function validateOnly(){
 
 async function applyAndBuild(){
   try{
-    if (!v('editor_name').trim()) throw new Error('Your name is required before saving.');
-    if (v('mode') === 'edit' && !v('change_reason').trim()) throw new Error('Change reason is required in edit mode before saving.');
     const payload = getPayload();
     if (payload.mode === 'edit') {
       const before = (loadedSourceKey || '').trim();
@@ -1074,6 +1072,7 @@ async function applyAndBuild(){
         payload.key_rename_confirmed = true;
       }
     }
+    payload.editor_name = await ensureEditorName('save this entry');
     const out = await req('/api/apply_and_build', payload);
     setStatusWithChecks(out, 'Save complete.');
     try {
@@ -1104,14 +1103,12 @@ async function deleteEntry(){
   try{
     if (v('mode') !== 'edit') throw new Error('Delete is available only in edit mode.');
     if (!v('target').trim()) throw new Error('Select an entry in Edit target before deleting.');
-    if (!v('editor_name').trim()) throw new Error('Your name is required before deleting.');
     const msg = `Delete entry '${v('target')}'?\\n\\nThis action cannot be undone.`;
     if (!confirm(msg)) return;
 
     const out = await req('/api/delete_entry', {
       target: v('target'),
-      editor_name: v('editor_name'),
-      change_reason: v('change_reason') || 'Deleted via local UI'
+      editor_name: await ensureEditorName('delete this entry')
     });
     setStatusWithChecks(out, 'Delete complete.');
     await loadOptions();
@@ -1520,7 +1517,6 @@ class Handler(BaseHTTPRequestHandler):
                 reg = self.app.registry
                 mode = normalize_whitespace(data.get("mode", "add")).lower()
                 target = normalize_whitespace(data.get("target", ""))
-                reason = normalize_whitespace(data.get("change_reason", ""))
                 records = reg.get("records", [])
 
                 candidate = make_candidate(data)
@@ -1536,20 +1532,10 @@ class Handler(BaseHTTPRequestHandler):
                             "checks": [{"name": "Edit target resolution", "passed": False, "detail": f"Matches found: {len(hits)}"}],
                         })
                         return
-                    if not reason:
-                        self._send_json({
-                            "ok": False,
-                            "errors": ["change_reason is required for edit mode"],
-                            "warnings": [],
-                            "checks": [{"name": "Change reason", "passed": False, "detail": "Missing change_reason"}],
-                        })
-                        return
                     target_id = hits[0].get("id", "")
                     target_check = {"name": "Edit target resolution", "passed": True, "detail": f"Resolved to {target_id}"}
                 out = validate_candidate(records, candidate, mode, target_id)
                 out.setdefault("checks", []).insert(0, target_check)
-                if mode == "edit":
-                    out.setdefault("checks", []).insert(1, {"name": "Change reason", "passed": True, "detail": "Change reason provided"})
                 artifact_out = validate_candidate_against_artifacts(reg, candidate, mode, target)
                 out["errors"] = sorted(set(out.get("errors", []) + artifact_out.get("errors", [])))
                 out["warnings"] = sorted(set(out.get("warnings", []) + artifact_out.get("warnings", [])))
@@ -1604,7 +1590,7 @@ class Handler(BaseHTTPRequestHandler):
                 data = self._read_json()
                 target = normalize_whitespace(data.get("target", ""))
                 editor = normalize_whitespace(data.get("editor_name", ""))
-                reason = normalize_whitespace(data.get("change_reason", "")) or "Deleted via local UI"
+                reason = "Deleted via local UI"
                 if not target:
                     raise ValueError("target is required")
                 if not editor:

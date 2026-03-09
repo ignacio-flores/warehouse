@@ -183,6 +183,22 @@
       "actor": "IF",
       "issue_number": "local-ui",
       "updated_at": "2026-03-04T09:56:07Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Edited via local UI",
+      "actor": "Nacho",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-09T09:25:00Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Deleted via local UI",
+      "actor": "Nacho",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-09T09:26:16Z"
     }
   ]
 }
