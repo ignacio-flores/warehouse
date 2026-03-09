@@ -199,6 +199,14 @@
       "actor": "Nacho",
       "issue_number": "local-ui",
       "updated_at": "2026-03-09T09:26:16Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-09T10:19:37Z"
     }
   ]
 }

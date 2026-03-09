@@ -228,10 +228,17 @@ def validate_change_log(changelog_path: Path) -> None:
                 raise ValidationError(f"change_log.yaml entry #{idx} missing field: {req}")
 
 
-def check_generated_artifacts(registry_path: Path, dictionary: Path, bib: Path) -> None:
+def check_generated_artifacts(
+    registry_path: Path,
+    dictionary: Path,
+    bib: Path,
+    wealth_bib_input: Path,
+    both_bib_output: Path,
+) -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp_dict = Path(td) / "dictionary.xlsx"
         tmp_bib = Path(td) / "data.bib"
+        tmp_both_bib = Path(td) / "both.bib"
         shutil.copy2(dictionary, tmp_dict)
         cmd = [
             sys.executable,
@@ -244,14 +251,22 @@ def check_generated_artifacts(registry_path: Path, dictionary: Path, bib: Path) 
             str(tmp_dict),
             "--bib-output",
             str(tmp_bib),
+            "--wealth-bib-input",
+            str(wealth_bib_input),
+            "--both-bib-output",
+            str(tmp_both_bib),
         ]
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         if not bib.exists():
             raise ValidationError(f"Bib artifact missing: {bib}")
+        if not both_bib_output.exists():
+            raise ValidationError(f"Combined bib artifact missing: {both_bib_output}")
 
         if tmp_bib.read_text(encoding="utf-8") != bib.read_text(encoding="utf-8"):
             raise ValidationError("Generated bib is out of date. Run build_sources_artifacts.py")
+        if tmp_both_bib.read_text(encoding="utf-8") != both_bib_output.read_text(encoding="utf-8"):
+            raise ValidationError("Generated combined bib is out of date. Run build_sources_artifacts.py")
 
         current_rows = read_sources_sheet(dictionary)
         rebuilt_rows = read_sources_sheet(tmp_dict)
@@ -268,6 +283,8 @@ def main() -> int:
     parser.add_argument("--check-generated", action="store_true")
     parser.add_argument("--dictionary", default="handmade_tables/dictionary.xlsx")
     parser.add_argument("--bib", default="documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib")
+    parser.add_argument("--wealth-bib-input", default="documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib")
+    parser.add_argument("--both-bib", default="documentation/BibTeX files/BothLibraries.bib")
     parser.add_argument("--strict", action="store_true", help="Fail on duplicate citekey/url/title-year and URL/DOI format issues")
     args = parser.parse_args()
 
@@ -283,7 +300,13 @@ def main() -> int:
     validate_change_log(changelog_path)
 
     if args.check_generated:
-        check_generated_artifacts(registry_path, Path(args.dictionary), Path(args.bib))
+        check_generated_artifacts(
+            registry_path,
+            Path(args.dictionary),
+            Path(args.bib),
+            Path(args.wealth_bib_input),
+            Path(args.both_bib),
+        )
 
     if warnings:
         print(f"Warnings (non-blocking unless --strict is used): {len(warnings)}")

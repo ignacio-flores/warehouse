@@ -299,7 +299,7 @@ def parse_bib_paste(text: str) -> dict:
     return {
         "source_key": key,
         "bib": {
-            "entry_type": entry.get("entry_type", "misc"),
+            "entry_type": normalize_whitespace(entry.get("entry_type", "")),
             "title": fields.get("title", ""),
             "author": fields.get("author", ""),
             "year": fields.get("year", ""),
@@ -351,7 +351,7 @@ def make_candidate(payload: dict) -> dict:
         "metadatalink": normalize_whitespace(record.get("metadatalink", "")),
         "editor_name": editor_name,
         "bib": {
-            "entry_type": normalize_whitespace(bib.get("entry_type", "misc")) or "misc",
+            "entry_type": normalize_whitespace(bib.get("entry_type", "")),
             "title": normalize_whitespace(bib.get("title", "")),
             "author": normalize_whitespace(bib.get("author", "")),
             "year": normalize_whitespace(bib.get("year", "")),
@@ -372,6 +372,56 @@ def make_candidate(payload: dict) -> dict:
             "extra_fields": bib.get("extra_fields", {}) or {},
         },
     }
+
+
+ADD_RECORD_FIELDS = [
+    "section",
+    "aggsource",
+    "legend",
+    "source_key",
+    "data_type",
+    "link",
+    "ref_link",
+    "inclusion_in_warehouse",
+    "multigeo_reference",
+    "metadata",
+    "metadatalink",
+]
+ADD_BIB_FIELDS = [
+    "entry_type",
+    "title",
+    "author",
+    "year",
+    "month",
+    "journal",
+    "booktitle",
+    "volume",
+    "number",
+    "pages",
+    "institution",
+    "publisher",
+    "doi",
+    "url",
+    "urldate",
+    "keywords",
+    "note",
+    "abstract",
+]
+
+
+def is_empty_add_payload(payload: dict) -> bool:
+    mode = normalize_whitespace(payload.get("mode", "add")).lower()
+    if mode != "add":
+        return False
+    record = payload.get("record", {}) or {}
+    bib = record.get("bib", {}) or {}
+    for key in ADD_RECORD_FIELDS:
+        if normalize_whitespace(record.get(key, "")):
+            return False
+    for key in ADD_BIB_FIELDS:
+        if normalize_whitespace(bib.get(key, "")):
+            return False
+    return True
 
 
 SUMMARY_TOP_FIELDS = [
@@ -419,8 +469,12 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
                 text = f"Updated record {record_id}. Fields changed: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
             elif operation == "add":
                 text = f"Added record {record_id}. Fields populated: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
-            else:
+            elif operation == "delete":
                 text = f"Deleted record {record_id}. Removed fields: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
+            elif operation == "build_only":
+                text = "No source records changed. Build-only run."
+            else:
+                text = "Updated source registry."
             summary.append({"file": p, "summary": text})
             continue
         if p.endswith("metadata/sources/change_log.yaml"):
@@ -645,6 +699,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='row'>
       <label>entry_type <span class='req'>*</span></label>
       <select id='bib_entry_type' onchange='onEntryTypeChange()'>
+        <option value=''>select entry type</option>
         <option value='article'>article</option>
         <option value='book'>book</option>
         <option value='incollection'>incollection</option>
@@ -687,19 +742,17 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 
   <h3>Actions (in order)</h3>
   <div class='row'>
-    <div class='step'>Step 1: Check entry</div>
-    <button class='secondary' onclick='validateOnly()'>Check entry (validation only, no save)</button>
+    <div class='step'>Step 1: Check entry (validation only, no save)</div>
+    <button class='secondary' onclick='validateOnly()'>Check entry</button>
   </div>
   <div class='row'>
-    <div class='step'>Step 2: Save and regenerate files</div>
-    <button class='warn' onclick='applyAndBuild()'>Save entry + regenerate dictionary.xlsx and .bib</button>
+    <div class='step'>Step 2: Save and build (dictionary.xlsx and .bib files)</div>
+    <button class='warn' onclick='applyAndBuild()'>Save and build</button>
   </div>
-  <details class='row'>
-    <summary><b>Name for audit trail</b> (optional now; asked on save/delete if empty)</summary>
-    <div style='margin-top:8px; max-width:420px;'>
-      <input id='editor_name' placeholder='Your full name'>
-    </div>
-  </details>
+  <div class='row' style='max-width:420px;'>
+    <label>your name</label>
+    <input id='editor_name' placeholder='your name'>
+  </div>
   <div class='row'>
     <div class='step'>Step 3: Compare with online reference (optional)</div>
     <button class='secondary' onclick='compareOnlineBib()'>Compare local .bib with online reference</button>
@@ -829,6 +882,29 @@ function getPayload(){
   }
 }
 
+function isEmptyAddPayload(payload){
+  const mode = String(payload.mode || '').trim().toLowerCase();
+  if (mode !== 'add') return false;
+  const record = payload.record || {};
+  const bib = record.bib || {};
+  const recordFields = [
+    'section', 'aggsource', 'legend', 'source_key', 'data_type', 'link',
+    'ref_link', 'inclusion_in_warehouse', 'multigeo_reference', 'metadata', 'metadatalink'
+  ];
+  const bibFields = [
+    'entry_type', 'title', 'author', 'year', 'month', 'journal', 'booktitle',
+    'volume', 'number', 'pages', 'institution', 'publisher', 'doi', 'url',
+    'urldate', 'keywords', 'note', 'abstract'
+  ];
+  for (const key of recordFields) {
+    if (String(record[key] || '').trim() !== '') return false;
+  }
+  for (const key of bibFields) {
+    if (String(bib[key] || '').trim() !== '') return false;
+  }
+  return true;
+}
+
 function capitalizeFirst(text){
   if (!text) return '';
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -906,6 +982,7 @@ function setStatusWithChecks(out, heading){
   if (heading) lines.push(heading);
   const summary = (out.ok || out.status === 'ok') ? 'Overall result: PASSED' : 'Overall result: FAILED';
   lines.push(summary);
+  if (out.message) lines.push(`Message: ${out.message}`);
   const checkText = formatChecks(out);
   if (checkText) lines.push(checkText);
   if (v('mode') === 'add') {
@@ -1058,6 +1135,7 @@ async function validateOnly(){
 async function applyAndBuild(){
   try{
     const payload = getPayload();
+    const emptyAddPayload = isEmptyAddPayload(payload);
     if (payload.mode === 'edit') {
       const before = (loadedSourceKey || '').trim();
       const after = (v('source_key') || '').trim();
@@ -1072,7 +1150,9 @@ async function applyAndBuild(){
         payload.key_rename_confirmed = true;
       }
     }
-    payload.editor_name = await ensureEditorName('save this entry');
+    if (!emptyAddPayload) {
+      payload.editor_name = await ensureEditorName('save this entry');
+    }
     const out = await req('/api/apply_and_build', payload);
     setStatusWithChecks(out, 'Save complete.');
     try {
@@ -1161,7 +1241,8 @@ class App:
         cfg = reg.get("config", {}) or {}
         dictionary_output = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
         bib_output = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
-        return [self.registry_path, self.changelog_path, self.aliases_path, dictionary_output, bib_output]
+        both_bib_output = Path(cfg.get("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"))
+        return [self.registry_path, self.changelog_path, self.aliases_path, dictionary_output, bib_output, both_bib_output]
 
 
 def file_mtimes(paths: List[Path]) -> Dict[str, int]:
@@ -1519,6 +1600,22 @@ class Handler(BaseHTTPRequestHandler):
                 target = normalize_whitespace(data.get("target", ""))
                 records = reg.get("records", [])
 
+                if mode == "add" and is_empty_add_payload(data):
+                    self._send_json({
+                        "ok": True,
+                        "errors": [],
+                        "warnings": [],
+                        "checks": [
+                            {
+                                "name": "Empty add form",
+                                "passed": True,
+                                "detail": "No changes made. Fill fields to validate a new entry.",
+                            }
+                        ],
+                        "message": "No changes made.",
+                    })
+                    return
+
                 candidate = make_candidate(data)
                 target_id = ""
                 target_check = {"name": "Edit target resolution", "passed": True, "detail": "Not applicable for add mode"}
@@ -1548,9 +1645,51 @@ class Handler(BaseHTTPRequestHandler):
                 reg = self.app.registry
                 tracked_paths = self.app.artifact_paths(reg)
                 before = file_mtimes(tracked_paths)
-                candidate = make_candidate(data)
                 mode = normalize_whitespace(data.get("mode", "add")).lower()
                 target = normalize_whitespace(data.get("target", ""))
+                if mode == "add" and is_empty_add_payload(data):
+                    from build_sources_artifacts import main as build_main  # pylint: disable=import-outside-toplevel
+                    import sys  # pylint: disable=import-outside-toplevel
+
+                    argv_orig = sys.argv[:]
+                    try:
+                        sys.argv = ["build_sources_artifacts.py", "--registry", str(self.app.registry_path)]
+                        build_main()
+                    finally:
+                        sys.argv = argv_orig
+
+                    after = file_mtimes(tracked_paths)
+                    changed_files = modified_paths(before, after)
+                    online_compare = compare_local_bib_with_online(reg)
+                    self._send_json({
+                        "ok": True,
+                        "status": "ok",
+                        "operation": "build_only",
+                        "record_id": "",
+                        "changed_fields": [],
+                        "warnings": [],
+                        "errors": [],
+                        "checks": [
+                            {
+                                "name": "Empty add form",
+                                "passed": True,
+                                "detail": "No record changes applied. Artifacts were rebuilt.",
+                            }
+                        ],
+                        "modified_files": changed_files,
+                        "online_compare": online_compare,
+                        "file_change_summary": build_file_change_summary(
+                            changed_files,
+                            "build_only",
+                            "",
+                            [],
+                            False,
+                        ),
+                        "message": "No changes made. Artifacts rebuilt.",
+                    })
+                    return
+
+                candidate = make_candidate(data)
                 artifact_out = validate_candidate_against_artifacts(reg, candidate, mode, target)
                 if artifact_out.get("errors"):
                     raise ValueError("\n".join(artifact_out["errors"]))

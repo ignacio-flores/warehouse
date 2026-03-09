@@ -6,6 +6,7 @@ Canonical records are stored in `metadata/sources/sources.yaml`.
 Generated artifacts:
 - `handmade_tables/dictionary.xlsx` (`Sources` sheet)
 - `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib`
+- `documentation/BibTeX files/BothLibraries.bib` (combined with `GCWealthProject_WealthResearchLibrary.bib`)
 
 ## Contributor Flow
 
@@ -78,8 +79,11 @@ When Source/Citekey is renamed and confirmed in edit mode:
   - `python3 code/tools/sources/bootstrap_registry.py --dictionary handmade_tables/dictionary.xlsx --bib /path/to/file.bib --out metadata/sources/sources.yaml`
 - Build artifacts:
   - `python3 code/tools/sources/build_sources_artifacts.py --registry metadata/sources/sources.yaml`
+  - Optional overrides:
+    - `--wealth-bib-input "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"`
+    - `--both-bib-output "documentation/BibTeX files/BothLibraries.bib"`
 - Validate:
-  - `python3 code/tools/sources/validate_sources.py --registry metadata/sources/sources.yaml --schema metadata/sources/schema.json --aliases metadata/sources/aliases.yaml --change-log metadata/sources/change_log.yaml --check-generated --dictionary handmade_tables/dictionary.xlsx --bib "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"`
+  - `python3 code/tools/sources/validate_sources.py --registry metadata/sources/sources.yaml --schema metadata/sources/schema.json --aliases metadata/sources/aliases.yaml --change-log metadata/sources/change_log.yaml --check-generated --dictionary handmade_tables/dictionary.xlsx --bib "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib" --wealth-bib-input "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib" --both-bib "documentation/BibTeX files/BothLibraries.bib"`
 - Local UI:
   - `python3 code/tools/sources/ui_local.py`
 - Migration reconciliation report:
