@@ -6,7 +6,20 @@ Canonical records are stored in `metadata/sources/sources.yaml`.
 Generated artifacts:
 - `handmade_tables/dictionary.xlsx` (`Sources` sheet)
 - `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib`
+- `documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib` (edited directly in the Wealth Research branch)
 - `documentation/BibTeX files/BothLibraries.bib` (combined with `GCWealthProject_WealthResearchLibrary.bib`)
+
+## UI Branches
+
+- `Data Sources` branch:
+  - Canonical store: `metadata/sources/sources.yaml`
+  - Save regenerates `dictionary.xlsx`, `GCWealthProject_DataSourcesLibrary.bib`, and `BothLibraries.bib`
+  - Audit files: `metadata/sources/change_log.yaml` and `metadata/sources/aliases.yaml`
+- `Wealth Research` branch:
+  - Canonical store: `documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib`
+  - Save regenerates only `BothLibraries.bib`
+  - Audit file: `metadata/sources/wealth_research_change_log.yaml`
+  - Includes live browse/search panel by key/title/author/year in edit mode
 
 ## Contributor Flow
 
@@ -16,13 +29,16 @@ Generated artifacts:
    - Linux: `./code/tools/source_manager_linux.sh`
    - Or Terminal: `python3 code/tools/sources/ui_local.py`
 2. Open `http://127.0.0.1:8765`.
-3. Choose `mode` = `add` or `edit`.
-4. Fill `Your name` (required).
-5. For edit mode, pick an existing target from the suggested list and load it.
-6. Optionally paste a full BibTeX entry and parse it into fields.
-7. Validate in the UI (errors must be fixed before save).
-8. Save and regenerate artifacts locally.
-9. Close the UI tab/window to stop the local server.
+3. Choose branch: `Data Sources` or `Wealth Research`.
+4. Choose `mode` = `add` or `edit`.
+5. Fill `Your name` (required for save/delete).
+6. For edit mode:
+   - Data Sources: pick an existing source target and load it.
+   - Wealth Research: use the search panel, pick a key, then load it.
+7. Optionally paste a full BibTeX entry and parse it into fields.
+8. Validate in the UI (errors must be fixed before save).
+9. Save and regenerate artifacts locally.
+10. Close the UI tab/window to stop the local server.
 
 ## Duplicate Rules
 
@@ -38,6 +54,8 @@ Generated artifacts:
   - `data_type`
 - Existing source keys are suggested for edit targets.
 - Comment columns are not exposed in the UI.
+- Wealth branch blocks key collisions with DataSources for new keys/renames.
+  - Existing overlapping keys are grandfathered and can still be edited without renaming.
 
 ## Field Semantics
 

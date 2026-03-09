@@ -22,7 +22,18 @@ from typing import Dict, List
 from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
-from common import load_json_yaml, load_registry, normalize_text, normalize_url, normalize_whitespace, parse_bib_entries, read_sources_sheet, save_registry
+from common import (
+    BIB_FIELD_ORDER,
+    load_json_yaml,
+    load_registry,
+    normalize_text,
+    normalize_url,
+    normalize_whitespace,
+    parse_bib_entries,
+    read_sources_sheet,
+    save_registry,
+    write_parsed_bib_entries,
+)
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
@@ -30,10 +41,272 @@ YEAR_RE = re.compile(r"^\d{4}$")
 ONLINE_COMPARE_MAX_DIFF_LINES = 400
 ONLINE_COMPARE_MAX_DIFF_CHARS = 60000
 REPO_ROOT = Path(__file__).resolve().parents[3]
+RAW_BIB_KEY_RE = re.compile(r"@\w+\s*\{\s*([^,\n]+)\s*,", re.IGNORECASE)
+WEALTH_ENTRY_TYPES = [
+    "article",
+    "book",
+    "incollection",
+    "inproceedings",
+    "techreport",
+    "misc",
+    "unpublished",
+    "mastersthesis",
+    "phdthesis",
+]
+WEALTH_BIB_FIELDS = list(BIB_FIELD_ORDER)
 
 
 def now_utc() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def _data_bib_path(cfg: dict) -> Path:
+    return Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+
+
+def _wealth_bib_path(cfg: dict) -> Path:
+    return Path(cfg.get("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"))
+
+
+def _both_bib_path(cfg: dict) -> Path:
+    return Path(cfg.get("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"))
+
+
+def _wealth_change_log_path(cfg: dict) -> Path:
+    return Path(cfg.get("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"))
+
+
+def _read_bib_with_duplicate_detection(path: Path) -> dict:
+    if not path.exists():
+        raise FileNotFoundError(f"Bib artifact is missing: {path}")
+    text = path.read_text(encoding="utf-8")
+    parsed = parse_bib_entries(text)
+    keys = [normalize_whitespace(k) for k in RAW_BIB_KEY_RE.findall(text)]
+    counts: Dict[str, int] = {}
+    for key in keys:
+        counts[key] = counts.get(key, 0) + 1
+    duplicates = sorted([k for k, v in counts.items() if v > 1], key=str.lower)
+    entries: Dict[str, dict] = {}
+    for key, entry in parsed.items():
+        trimmed = normalize_whitespace(key)
+        if trimmed:
+            entries[trimmed] = entry
+    return {"entries": entries, "duplicate_keys": duplicates}
+
+
+def _wealth_entry_to_record(key: str, entry: dict) -> dict:
+    fields = entry.get("fields", {}) or {}
+    bib = {field: normalize_whitespace(str(fields.get(field, ""))) for field in WEALTH_BIB_FIELDS}
+    extras = {}
+    for field_name in sorted(fields.keys()):
+        if field_name in WEALTH_BIB_FIELDS:
+            continue
+        val = normalize_whitespace(str(fields.get(field_name, "")))
+        if val:
+            extras[field_name] = val
+    bib["extra_fields"] = extras
+    return {
+        "key": normalize_whitespace(key),
+        "bib": {
+            **bib,
+            "entry_type": normalize_whitespace(str(entry.get("entry_type", ""))).lower() or "misc",
+        },
+    }
+
+
+def _wealth_record_to_entry(record: dict) -> dict:
+    key = normalize_whitespace(record.get("key", ""))
+    bib = record.get("bib", {}) or {}
+    entry_type = normalize_whitespace(str(bib.get("entry_type", ""))).lower() or "misc"
+    fields: Dict[str, str] = {}
+    for field in WEALTH_BIB_FIELDS:
+        value = normalize_whitespace(str(bib.get(field, "")))
+        if value:
+            fields[field] = value
+    extras = bib.get("extra_fields", {}) or {}
+    for field_name, value in sorted(extras.items(), key=lambda x: str(x[0]).lower()):
+        k = normalize_whitespace(str(field_name)).lower()
+        v = normalize_whitespace(str(value))
+        if not k or not v or k in fields:
+            continue
+        fields[k] = v
+    return {"key": key, "entry_type": entry_type, "fields": fields}
+
+
+def _wealth_search_rows(entries: Dict[str, dict]) -> List[dict]:
+    rows: List[dict] = []
+    for key in sorted(entries.keys(), key=str.lower):
+        rec = _wealth_entry_to_record(key, entries[key])
+        bib = rec.get("bib", {}) or {}
+        rows.append(
+            {
+                "key": rec.get("key", ""),
+                "entry_type": bib.get("entry_type", ""),
+                "title": bib.get("title", ""),
+                "author": bib.get("author", ""),
+                "year": bib.get("year", ""),
+            }
+        )
+    return rows
+
+
+def _wealth_candidate_from_payload(payload: dict) -> dict:
+    record = payload.get("record", {}) or {}
+    bib = record.get("bib", {}) or {}
+    bib_clean = {field: normalize_whitespace(str(bib.get(field, ""))) for field in WEALTH_BIB_FIELDS}
+    entry_type = normalize_whitespace(str(bib.get("entry_type", ""))).lower()
+    if entry_type:
+        bib_clean["entry_type"] = entry_type
+    else:
+        bib_clean["entry_type"] = ""
+    extra_fields = bib.get("extra_fields", {}) or {}
+    bib_clean["extra_fields"] = {
+        normalize_whitespace(str(k)).lower(): normalize_whitespace(str(v))
+        for k, v in extra_fields.items()
+        if normalize_whitespace(str(k)) and normalize_whitespace(str(v))
+    }
+    return {
+        "key": normalize_whitespace(record.get("key", "")),
+        "bib": bib_clean,
+    }
+
+
+def _validate_wealth_candidate(
+    candidate: dict,
+    mode: str,
+    target: str,
+    wealth_entries: Dict[str, dict],
+    data_keys: set,
+    duplicate_keys_in_file: List[str],
+) -> Dict[str, List[str]]:
+    errors: List[str] = []
+    warnings: List[str] = []
+    checks: List[dict] = []
+    target_norm = normalize_whitespace(target)
+
+    if duplicate_keys_in_file:
+        errors.append(f"Reference library contains duplicate keys: {', '.join(duplicate_keys_in_file)}")
+    checks.append(
+        {
+            "name": "Current file integrity",
+            "passed": len(duplicate_keys_in_file) == 0,
+            "detail": "No duplicate keys in reference library"
+            if not duplicate_keys_in_file
+            else f"Duplicate keys found: {', '.join(duplicate_keys_in_file)}",
+        }
+    )
+
+    key = normalize_whitespace(candidate.get("key", ""))
+    bib = candidate.get("bib", {}) or {}
+    missing_required = []
+    if not key:
+        missing_required.append("key")
+    for field in ["entry_type", "title", "author", "year"]:
+        if not normalize_whitespace(str(bib.get(field, ""))):
+            missing_required.append(f"bib.{field}")
+    if missing_required:
+        errors.extend([f"Missing required field: {name}" for name in missing_required])
+    checks.append(
+        {
+            "name": "Required fields",
+            "passed": len(missing_required) == 0,
+            "detail": "All required fields present" if not missing_required else f"Missing: {', '.join(missing_required)}",
+        }
+    )
+
+    year = normalize_whitespace(str(bib.get("year", "")))
+    if year and not YEAR_RE.match(year):
+        errors.append(f"Year must be YYYY: {year}")
+    checks.append(
+        {
+            "name": "Year format",
+            "passed": bool(year) and YEAR_RE.match(year) is not None,
+            "detail": "Year uses YYYY" if bool(year) and YEAR_RE.match(year) is not None else "Year must be YYYY",
+        }
+    )
+
+    url = normalize_whitespace(str(bib.get("url", "")))
+    doi = normalize_whitespace(str(bib.get("doi", "")))
+    if url and not URL_RE.match(url):
+        errors.append(f"Invalid URL in bib.url: {url}")
+    checks.append(
+        {
+            "name": "URL format",
+            "passed": (not url) or URL_RE.match(url) is not None,
+            "detail": "URL is empty or valid pattern" if (not url or URL_RE.match(url) is not None) else "Invalid bib.url",
+        }
+    )
+    if doi and not DOI_RE.match(doi):
+        warnings.append(f"DOI format looks unusual: {doi}")
+
+    if mode not in {"add", "edit"}:
+        errors.append("mode must be add or edit")
+    if mode == "edit":
+        if not target_norm:
+            errors.append("Edit target is required in edit mode")
+        elif target_norm not in wealth_entries:
+            errors.append(f"Edit target not found: {target_norm}")
+    checks.append(
+        {
+            "name": "Edit target resolution",
+            "passed": mode == "add" or (target_norm in wealth_entries),
+            "detail": "Not applicable for add mode"
+            if mode == "add"
+            else (f"Resolved to {target_norm}" if target_norm in wealth_entries else "Target not found"),
+        }
+    )
+
+    has_wealth_dup = False
+    if mode == "add":
+        has_wealth_dup = bool(key and key in wealth_entries)
+    elif mode == "edit":
+        has_wealth_dup = bool(key and key != target_norm and key in wealth_entries)
+    if has_wealth_dup:
+        errors.append(f"Duplicate key: {key}")
+    checks.append(
+        {
+            "name": "Key uniqueness",
+            "passed": bool(key) and not has_wealth_dup,
+            "detail": "No duplicate key detected" if (bool(key) and not has_wealth_dup) else "Duplicate key detected",
+        }
+    )
+
+    if key and key in data_keys and (mode == "add" or key != target_norm):
+        errors.append(f"Key conflicts with DataSources library: {key}. Choose a different key.")
+    checks.append(
+        {
+            "name": "Cross-library key collision",
+            "passed": not (key and key in data_keys and (mode == "add" or key != target_norm)),
+            "detail": "No forbidden key collision with DataSources"
+            if not (key and key in data_keys and (mode == "add" or key != target_norm))
+            else "Collision detected",
+        }
+    )
+
+    return {"errors": sorted(set(errors)), "warnings": sorted(set(warnings)), "checks": checks}
+
+
+def _append_wealth_change(changelog_path: Path, op: str, rec_id: str, reason: str, actor: str) -> None:
+    data = load_json_yaml(changelog_path) or {"changes": []}
+    data.setdefault("changes", []).append(
+        {
+            "operation": op,
+            "record_id": rec_id,
+            "reason": reason,
+            "actor": actor,
+            "issue_number": "local-ui",
+            "library": "wealth_research",
+            "updated_at": now_utc(),
+        }
+    )
+    changelog_path.parent.mkdir(parents=True, exist_ok=True)
+    changelog_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _rebuild_both_bib(cfg: dict) -> int:
+    from build_sources_artifacts import merge_bib_libraries  # pylint: disable=import-outside-toplevel
+
+    return merge_bib_libraries(_data_bib_path(cfg), _wealth_bib_path(cfg), _both_bib_path(cfg))
 
 
 def append_change(changelog_path: Path, op: str, rec_id: str, reason: str, actor: str) -> None:
@@ -72,12 +345,27 @@ def suggested_options(records: List[dict]) -> Dict[str, List[str]]:
         return sorted({normalize_whitespace(str(r.get(key, ""))) for r in records if normalize_whitespace(str(r.get(key, "")))})
 
     targets = sorted({normalize_whitespace(str(r.get("source", ""))) for r in records if normalize_whitespace(str(r.get("source", "")))})
+    data_search_rows = []
+    for rec in records:
+        bib = rec.get("bib", {}) or {}
+        data_search_rows.append(
+            {
+                "citekey": normalize_whitespace(str(rec.get("citekey", ""))),
+                "source": normalize_whitespace(str(rec.get("source", ""))),
+                "legend": normalize_whitespace(str(rec.get("legend", ""))),
+                "year": normalize_whitespace(str(bib.get("year", ""))),
+                "title": normalize_whitespace(str(bib.get("title", ""))),
+                "author": normalize_whitespace(str(bib.get("author", ""))),
+            }
+        )
+    data_search_rows = sorted(data_search_rows, key=lambda x: (x.get("citekey", "").lower(), x.get("source", "").lower()))
     return {
         "section": uniq("section"),
         "aggsource": uniq("aggsource"),
         "data_type": uniq("data_type"),
         "inclusion_in_warehouse": uniq("inclusion_in_warehouse"),
         "targets": targets,
+        "data_search_rows": data_search_rows,
     }
 
 
@@ -424,6 +712,29 @@ def is_empty_add_payload(payload: dict) -> bool:
     return True
 
 
+def is_empty_wealth_add_payload(payload: dict) -> bool:
+    mode = normalize_whitespace(payload.get("mode", "add")).lower()
+    if mode != "add":
+        return False
+    record = payload.get("record", {}) or {}
+    bib = record.get("bib", {}) or {}
+    if normalize_whitespace(record.get("key", "")):
+        return False
+    required_scan = ["entry_type", "title", "author", "year", *WEALTH_BIB_FIELDS]
+    seen = set()
+    for key in required_scan:
+        if key in seen:
+            continue
+        seen.add(key)
+        if normalize_whitespace(bib.get(key, "")):
+            return False
+    extra_fields = bib.get("extra_fields", {}) or {}
+    for _, value in extra_fields.items():
+        if normalize_whitespace(str(value)):
+            return False
+    return True
+
+
 SUMMARY_TOP_FIELDS = [
     "section", "aggsource", "legend", "source", "citekey", "data_type", "link", "ref_link",
     "inclusion_in_warehouse", "multigeo_reference", "metadata", "metadatalink",
@@ -479,6 +790,9 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
             continue
         if p.endswith("metadata/sources/change_log.yaml"):
             summary.append({"file": p, "summary": f"Appended {operation} audit entry for {record_id}."})
+            continue
+        if p.endswith("metadata/sources/wealth_research_change_log.yaml"):
+            summary.append({"file": p, "summary": f"Appended {operation} wealth audit entry for {record_id}."})
             continue
         if p.endswith("metadata/sources/aliases.yaml"):
             if key_renamed:
@@ -612,6 +926,48 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
     }
 
 
+def _summarize_wealth_record_all_fields(record: dict) -> List[str]:
+    out = ["key"]
+    bib = record.get("bib", {}) or {}
+    if normalize_whitespace(str(bib.get("entry_type", ""))):
+        out.append("bib.entry_type")
+    for field in WEALTH_BIB_FIELDS:
+        if normalize_whitespace(str(bib.get(field, ""))):
+            out.append(f"bib.{field}")
+    extras = bib.get("extra_fields", {}) or {}
+    for field_name, value in sorted(extras.items(), key=lambda x: str(x[0]).lower()):
+        if normalize_whitespace(str(value)):
+            out.append(f"bib.{field_name}")
+    return out
+
+
+def _summarize_wealth_record_diff(before: dict, after: dict) -> List[str]:
+    changed: List[str] = []
+    if normalize_whitespace(before.get("key", "")) != normalize_whitespace(after.get("key", "")):
+        changed.append("key")
+    bbib = before.get("bib", {}) or {}
+    abib = after.get("bib", {}) or {}
+    if normalize_whitespace(str(bbib.get("entry_type", ""))) != normalize_whitespace(str(abib.get("entry_type", ""))):
+        changed.append("bib.entry_type")
+    for field in WEALTH_BIB_FIELDS:
+        if normalize_whitespace(str(bbib.get(field, ""))) != normalize_whitespace(str(abib.get(field, ""))):
+            changed.append(f"bib.{field}")
+    before_extras = bbib.get("extra_fields", {}) or {}
+    after_extras = abib.get("extra_fields", {}) or {}
+    for field_name in sorted(set(before_extras.keys()) | set(after_extras.keys()), key=str.lower):
+        if normalize_whitespace(str(before_extras.get(field_name, ""))) != normalize_whitespace(str(after_extras.get(field_name, ""))):
+            changed.append(f"bib.{field_name}")
+    return changed
+
+
+def _data_bib_keys(cfg: dict) -> set:
+    data_path = _data_bib_path(cfg)
+    if not data_path.exists():
+        return set()
+    text = data_path.read_text(encoding="utf-8")
+    return {normalize_whitespace(k) for k in parse_bib_entries(text).keys() if normalize_whitespace(k)}
+
+
 HTML = """<!doctype html>
 <html>
 <head>
@@ -630,25 +986,39 @@ button.secondary { background: #4d5968; }
 button.warn { background: #a03d02; }
 small { color: #5f6977; }
 pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; overflow: auto; }
-#status { white-space: pre-wrap; line-height: 1.35; }
-#status .status-ok { color: #8fd28f; font-weight: 600; }
-#status .status-fail { color: #ff9da4; font-weight: 600; }
-#status .status-warn { color: #f0c674; font-weight: 600; }
-#status .git-file { color: #8ab4f8; }
-#status .git-hunk { color: #c792ea; }
-#status .git-add { color: #8fd28f; }
-#status .git-del { color: #ff9da4; }
+#status, #wealth_status { white-space: pre-wrap; line-height: 1.35; }
+#status .status-ok, #wealth_status .status-ok { color: #8fd28f; font-weight: 600; }
+#status .status-fail, #wealth_status .status-fail { color: #ff9da4; font-weight: 600; }
+#status .status-warn, #wealth_status .status-warn { color: #f0c674; font-weight: 600; }
+#status .git-file, #wealth_status .git-file { color: #8ab4f8; }
+#status .git-hunk, #wealth_status .git-hunk { color: #c792ea; }
+#status .git-add, #wealth_status .git-add { color: #8fd28f; }
+#status .git-del, #wealth_status .git-del { color: #ff9da4; }
 .help { background: #f0f4fa; border: 1px solid #d9e3f0; padding: 10px; border-radius: 8px; color: #334455; font-size: 12px; }
 .req { color: #ad2b2b; }
 .step { font-weight: 700; color: #123a66; margin-bottom: 6px; }
 .hidden { display: none; }
+.branch-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.branch-tab { background: #d9dde3; color: #203040; }
+.branch-tab.active { background: #0b57d0; color: #fff; }
+.search-panel { border: 1px solid #d9dde3; border-radius: 8px; padding: 10px; background: #fafbfd; }
+.search-results { max-height: 280px; overflow: auto; border: 1px solid #d9dde3; border-radius: 6px; margin-top: 8px; }
+.search-results table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.search-results th, .search-results td { border-bottom: 1px solid #e3e8ef; padding: 6px; text-align: left; vertical-align: top; }
+.search-results tr:hover { background: #eef4ff; }
+.search-btn { background: transparent; color: #0b57d0; border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; }
 </style>
 </head>
 <body>
 <div class='wrap'>
   <h2>Source Registry Manager (Local)</h2>
-  <p><small>Canonical file: <code>metadata/sources/sources.yaml</code>. This UI validates and writes locally.</small></p>
+  <p><small>This UI validates and writes locally.</small></p>
+  <div class='branch-tabs'>
+    <button id='branch_data_tab' class='branch-tab active' onclick="switchBranch('data')">Data Sources</button>
+    <button id='branch_wealth_tab' class='branch-tab' onclick="switchBranch('wealth')">Wealth Research</button>
+  </div>
 
+  <div id='branch_data'>
   <div class='grid3 row'>
     <div>
       <label>Mode <span class='req'>*</span></label>
@@ -663,14 +1033,24 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </div>
   </div>
 
+  <div id='dataSearchWrap' class='row hidden'>
+    <div class='step'>Browse and search existing references</div>
+    <div class='search-panel'>
+      <label>Search by citekey/source/legend/title/author/year</label>
+      <input id='data_search' placeholder='Type to filter...' oninput='dataRenderSearchResults()'>
+      <div class='search-results' id='data_search_results'></div>
+    </div>
+  </div>
+
   <div id='editToolsWrap' class='row hidden'>
     <div class='step'>Edit tools</div>
     <div style='display:flex; gap:10px; flex-wrap:wrap;'>
       <button id='loadBtn' onclick='loadTarget()'>Load existing entry into form</button>
-      <button class='warn' onclick='deleteEntry()'>Delete entry (requires confirmation)</button>
+      <button class='warn' onclick='deleteEntry()'>Delete entry</button>
     </div>
   </div>
 
+  <div id='dataBibPasteWrap'>
   <details open>
     <summary><b>BibTeX Paste</b></summary>
     <div class='help' style='margin-top:8px;'>
@@ -684,6 +1064,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       <button class='secondary' onclick='parseBib()'>Parse BibTeX and fill fields</button>
     </div>
   </details>
+  </div>
 
   <h3>Core Source Fields</h3>
   <div class='grid3'>
@@ -711,7 +1092,6 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </div>
     <div class='row'><label>author <span class='req'>*</span></label><input id='bib_author' oninput='trySuggestLegend()'></div>
     <div class='row'><label>year <span class='req'>*</span></label><input id='bib_year' oninput='trySuggestLegend()'></div>
-    <div class='row hidden' id='row_bib_url'><label>bib.url (edit only)</label><input id='bib_url'></div>
   </div>
   <div class='row'><label>title <span class='req'>*</span></label><input id='bib_title'></div>
 
@@ -732,6 +1112,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       <div class='row' id='row_bib_institution'><label>institution</label><input id='bib_institution'></div>
       <div class='row' id='row_bib_publisher'><label>publisher</label><input id='bib_publisher'></div>
       <div class='row'><label>doi</label><input id='bib_doi'></div>
+      <div class='row hidden' id='row_bib_url'><label>bib.url</label><input id='bib_url'></div>
       <div class='row'><label>urldate</label><input id='bib_urldate'></div>
       <div class='row'><label>keywords</label><input id='bib_keywords'></div>
       <div class='row'><label>note</label><input id='bib_note'></div>
@@ -740,22 +1121,22 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='row'><label>abstract</label><textarea id='bib_abstract'></textarea></div>
   </details>
 
-  <h3>Actions (in order)</h3>
+  <h3>Actions</h3>
   <div class='row'>
     <div class='step'>Step 1: Check entry (validation only, no save)</div>
     <button class='secondary' onclick='validateOnly()'>Check entry</button>
   </div>
   <div class='row'>
-    <div class='step'>Step 2: Save and build (dictionary.xlsx and .bib files)</div>
+    <div class='step'>Step 2: Save and build files locally</div>
+    <small>dictionary.xlsx, GCWealthProject_DataSourcesLibrary.bib, BothLibraries.bib</small>
+    <div class='row' style='max-width:420px; margin-bottom:8px;'>
+      <input id='editor_name' placeholder='your name'>
+    </div>
     <button class='warn' onclick='applyAndBuild()'>Save and build</button>
-  </div>
-  <div class='row' style='max-width:420px;'>
-    <input id='editor_name' placeholder='your name'>
   </div>
   <div class='row'>
     <div class='step'>Step 3: Compare with online reference (optional)</div>
-    <button class='secondary' onclick='compareOnlineBib()'>Compare local .bib with online reference</button>
-    <small style='display:block; margin-top:6px;'>Online replace action planned.</small>
+    <button class='secondary' onclick='compareOnlineBib()'>Compare</button>
   </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
@@ -765,11 +1146,120 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 
   <h3>Status</h3>
   <pre id='status'></pre>
+  </div>
+
+  <div id='branch_wealth' class='hidden'>
+    <div class='grid3 row'>
+      <div>
+        <label>Mode <span class='req'>*</span></label>
+        <select id='wealth_mode' onchange='wealthOnModeChange()'>
+          <option value='add'>add (new reference)</option>
+          <option value='edit'>edit (existing reference)</option>
+        </select>
+      </div>
+      <div id='wealthEditTargetWrap' class='hidden'>
+        <label>Edit target (existing key) <span class='req'>*</span></label>
+        <input id='wealth_target' list='wealth_target_opts' placeholder='Choose from search results below'>
+      </div>
+    </div>
+
+    <div id='wealthSearchWrap' class='row hidden'>
+      <div class='step'>Browse and search existing references</div>
+      <div class='search-panel'>
+        <label>Search by key/title/author/year</label>
+        <input id='wealth_search' placeholder='Type to filter...' oninput='wealthRenderSearchResults()'>
+        <div class='search-results' id='wealth_search_results'></div>
+      </div>
+    </div>
+
+    <div id='wealthEditToolsWrap' class='row hidden'>
+      <div class='step'>Edit tools</div>
+      <div style='display:flex; gap:10px; flex-wrap:wrap;'>
+        <button id='wealthLoadBtn' onclick='wealthLoadTarget()'>Load selected entry into form</button>
+        <button class='warn' onclick='wealthDeleteEntry()'>Delete entry</button>
+      </div>
+    </div>
+
+    <div id='wealthBibPasteWrap'>
+    <details open>
+      <summary><b>BibTeX Paste</b></summary>
+      <div class='help' style='margin-top:8px;'>
+        Paste a full BibTeX entry, then click <b>Parse BibTeX and fill fields</b>.
+        Parsed values overwrite fields below.
+      </div>
+      <div class='row' style='margin-top:8px;'>
+        <textarea id='wealth_bib_paste' placeholder='@article{Key, ...}'></textarea>
+        <button class='secondary' onclick='wealthParseBib()'>Parse BibTeX and fill fields</button>
+      </div>
+    </details>
+    </div>
+
+    <h3>Bib Fields</h3>
+    <div class='grid3'>
+      <div class='row'><label>Key <span class='req'>*</span></label><input id='wealth_key' placeholder='BibTeX key'></div>
+      <div class='row'>
+        <label>entry_type <span class='req'>*</span></label>
+        <select id='wealth_entry_type' onchange='wealthOnEntryTypeChange()'>
+          <option value=''>select entry type</option>
+          <option value='article'>article</option>
+          <option value='book'>book</option>
+          <option value='incollection'>incollection</option>
+          <option value='inproceedings'>inproceedings</option>
+          <option value='techreport'>techreport</option>
+          <option value='misc'>misc</option>
+          <option value='unpublished'>unpublished</option>
+          <option value='mastersthesis'>mastersthesis</option>
+          <option value='phdthesis'>phdthesis</option>
+        </select>
+      </div>
+      <div class='row'><label>author <span class='req'>*</span></label><input id='wealth_author'></div>
+      <div class='row'><label>year <span class='req'>*</span></label><input id='wealth_year'></div>
+      <div class='row'><label>title <span class='req'>*</span></label><input id='wealth_title'></div>
+      <div class='row'><label>month</label><input id='wealth_month'></div>
+      <div class='row hidden' id='wealth_row_journal'><label>journal</label><input id='wealth_journal'></div>
+      <div class='row hidden' id='wealth_row_booktitle'><label>booktitle</label><input id='wealth_booktitle'></div>
+      <div class='row'><label>volume</label><input id='wealth_volume'></div>
+      <div class='row'><label>number</label><input id='wealth_number'></div>
+      <div class='row'><label>pages</label><input id='wealth_pages'></div>
+      <div class='row hidden' id='wealth_row_institution'><label>institution</label><input id='wealth_institution'></div>
+      <div class='row hidden' id='wealth_row_publisher'><label>publisher</label><input id='wealth_publisher'></div>
+      <div class='row'><label>doi</label><input id='wealth_doi'></div>
+      <div class='row'><label>url</label><input id='wealth_url'></div>
+      <div class='row'><label>urldate</label><input id='wealth_urldate'></div>
+      <div class='row'><label>keywords</label><input id='wealth_keywords'></div>
+      <div class='row'><label>note</label><input id='wealth_note'></div>
+    </div>
+    <div class='row'><label>abstract</label><textarea id='wealth_abstract'></textarea></div>
+    <input id='wealth_extra_fields' type='hidden' value='{}'>
+
+    <h3>Actions</h3>
+    <div class='row'>
+      <div class='step'>Step 1: Check entry (validation only, no save)</div>
+      <button class='secondary' onclick='wealthValidateOnly()'>Check entry</button>
+    </div>
+    <div class='row'>
+      <div class='step'>Step 2: Save and build files locally</div>
+      <small>GCWealthProject_WealthResearchLibrary.bib, BothLibraries.bib</small>
+      <div class='row' style='max-width:420px; margin-bottom:8px;'>
+        <input id='wealth_editor_name' placeholder='your name'>
+      </div>
+      <button class='warn' onclick='wealthApplyAndBuild()'>Save entry and rebuild</button>
+    </div>
+
+    <h3>Status</h3>
+    <pre id='wealth_status'></pre>
+    <datalist id='wealth_target_opts'></datalist>
+  </div>
 </div>
 
 <script>
 function v(id){ return document.getElementById(id).value || ''; }
-function setStatus(obj){ document.getElementById('status').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
+function setStatus(obj, targetId='status'){
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+}
+function wv(id){ return document.getElementById(id).value || ''; }
 function escapeHtml(s){
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -791,8 +1281,9 @@ function diffClassForLine(line){
   if (line.startsWith('-') && !line.startsWith('---')) return 'git-del';
   return '';
 }
-function setStatusColored(text){
-  const el = document.getElementById('status');
+function setStatusColored(text, targetId='status'){
+  const el = document.getElementById(targetId);
+  if (!el) return;
   const lines = String(text || '').split('\\n');
   let inUnifiedDiff = false;
   el.innerHTML = lines.map((line) => {
@@ -807,17 +1298,42 @@ function setStatusColored(text){
 function showErrorWindow(msg){
   alert(`There are validation errors:\\n\\n${msg}`);
 }
+let activeBranch = 'data';
 let dirty = false;
 let loadedSourceKey = '';
 function markDirty(){ dirty = true; }
 function clearDirty(){ dirty = false; }
+let wealthDirty = false;
+let wealthLoadedKey = '';
+let wealthEntries = [];
+let dataEntries = [];
+function markWealthDirty(){ wealthDirty = true; }
+function clearWealthDirty(){ wealthDirty = false; }
+
+function switchBranch(branch){
+  activeBranch = branch === 'wealth' ? 'wealth' : 'data';
+  const isData = activeBranch === 'data';
+  document.getElementById('branch_data').classList.toggle('hidden', !isData);
+  document.getElementById('branch_wealth').classList.toggle('hidden', isData);
+  document.getElementById('branch_data_tab').classList.toggle('active', isData);
+  document.getElementById('branch_wealth_tab').classList.toggle('active', !isData);
+  if (!isData) {
+    wealthOnModeChange();
+    wealthOnEntryTypeChange();
+    wealthLoadOptions().catch((err) => setStatus({ok:false, error:String(err)}, 'wealth_status'));
+  } else {
+    onModeChange();
+    onEntryTypeChange();
+  }
+}
 
 function onModeChange(){
   const mode = v('mode');
   const isEdit = mode === 'edit';
-  for (const id of ['editTargetWrap','editToolsWrap']) {
+  for (const id of ['editTargetWrap','editToolsWrap','dataSearchWrap']) {
     document.getElementById(id).classList.toggle('hidden', !isEdit);
   }
+  document.getElementById('dataBibPasteWrap').classList.toggle('hidden', isEdit);
   document.getElementById('loadBtn').disabled = !isEdit;
   document.getElementById('row_bib_url').classList.toggle('hidden', !isEdit);
   if (!isEdit) {
@@ -976,7 +1492,11 @@ function formatOnlineCompare(onlineCompare){
   return lines.join('\\n');
 }
 
-function setStatusWithChecks(out, heading){
+function setStatusWithChecks(out, heading, opts={}){
+  const targetId = opts.targetId || 'status';
+  const modeValue = opts.modeValue || v('mode');
+  const includeOnlineCompare = opts.includeOnlineCompare !== false;
+  const includeDuplicateGuidance = opts.includeDuplicateGuidance !== false;
   const lines = [];
   if (heading) lines.push(heading);
   const summary = (out.ok || out.status === 'ok') ? 'Overall result: PASSED' : 'Overall result: FAILED';
@@ -984,7 +1504,7 @@ function setStatusWithChecks(out, heading){
   if (out.message) lines.push(`Message: ${out.message}`);
   const checkText = formatChecks(out);
   if (checkText) lines.push(checkText);
-  if (v('mode') === 'add') {
+  if (includeDuplicateGuidance && modeValue === 'add') {
     const dupGuidance = buildDuplicateGuidance(out);
     if (dupGuidance) lines.push(dupGuidance);
   }
@@ -994,9 +1514,11 @@ function setStatusWithChecks(out, heading){
     const details = out.file_change_summary.map(x => `- ${x.file}: ${x.summary}`);
     lines.push(`Modification summary by file:\\n${details.join('\\n')}`);
   }
-  const onlineText = formatOnlineCompare(out.online_compare);
-  if (onlineText) lines.push(onlineText);
-  setStatusColored(lines.join('\\n\\n'));
+  if (includeOnlineCompare) {
+    const onlineText = formatOnlineCompare(out.online_compare);
+    if (onlineText) lines.push(onlineText);
+  }
+  setStatusColored(lines.join('\\n\\n'), targetId);
 }
 
 async function req(path, payload){
@@ -1030,6 +1552,49 @@ async function loadOptions(){
     dl.innerHTML = '';
     vals.forEach(val => { const opt = document.createElement('option'); opt.value = val; dl.appendChild(opt); });
   }
+  dataEntries = j.data_search_rows || [];
+  dataRenderSearchResults();
+}
+
+function dataRenderSearchResults(){
+  const holder = document.getElementById('data_search_results');
+  const q = (v('data_search') || '').trim().toLowerCase();
+  const filtered = dataEntries.filter((row) => {
+    if (!q) return true;
+    return [row.citekey, row.source, row.legend, row.year, row.title, row.author]
+      .map(x => String(x || '').toLowerCase())
+      .some(x => x.includes(q));
+  }).slice(0, 250);
+
+  if (!filtered.length) {
+    holder.innerHTML = '<small>No entries match your search.</small>';
+    return;
+  }
+  const rows = filtered.map((row) => `
+    <tr>
+      <td><button class='search-btn' data-key="${escapeHtml(row.citekey || '')}">${escapeHtml(row.citekey || '')}</button></td>
+      <td>${escapeHtml(row.source || '')}</td>
+      <td>${escapeHtml(row.legend || '')}</td>
+      <td>${escapeHtml(row.year || '')}</td>
+      <td>${escapeHtml(String(row.title || '').slice(0, 120))}</td>
+    </tr>
+  `).join('');
+  holder.innerHTML = `
+    <table>
+      <thead><tr><th>Citekey</th><th>Source</th><th>Legend</th><th>Year</th><th>Title</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+  holder.querySelectorAll('button[data-key]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-key') || '';
+      document.getElementById('target').value = key;
+      loadTarget().catch((err) => {
+        setStatus({ok:false, error:String(err)});
+        showErrorWindow(String(err));
+      });
+    });
+  });
 }
 
 async function parseBib(){
@@ -1198,16 +1763,332 @@ async function deleteEntry(){
   }
 }
 
+function wealthOnModeChange(){
+  const mode = wv('wealth_mode');
+  const isEdit = mode === 'edit';
+  for (const id of ['wealthEditTargetWrap', 'wealthEditToolsWrap', 'wealthSearchWrap']) {
+    document.getElementById(id).classList.toggle('hidden', !isEdit);
+  }
+  document.getElementById('wealthBibPasteWrap').classList.toggle('hidden', isEdit);
+  document.getElementById('wealthLoadBtn').disabled = !isEdit;
+  if (!isEdit) {
+    wealthLoadedKey = '';
+    document.getElementById('wealth_target').value = '';
+    document.getElementById('wealth_extra_fields').value = '{}';
+  }
+}
+
+function wealthOnEntryTypeChange(){
+  const t = wv('wealth_entry_type');
+  const show = (id, flag) => document.getElementById(id).classList.toggle('hidden', !flag);
+  show('wealth_row_journal', t === 'article');
+  show('wealth_row_booktitle', t === 'incollection' || t === 'inproceedings');
+  show('wealth_row_publisher', t === 'book' || t === 'incollection' || t === 'inproceedings');
+  show('wealth_row_institution', t === 'techreport');
+}
+
+function wealthGetPayload(){
+  let extraFields = {};
+  try {
+    extraFields = JSON.parse(wv('wealth_extra_fields') || '{}') || {};
+  } catch (err) {
+    extraFields = {};
+  }
+  return {
+    mode: wv('wealth_mode'),
+    target: wv('wealth_target'),
+    editor_name: wv('wealth_editor_name'),
+    key_rename_confirmed: false,
+    record: {
+      key: wv('wealth_key'),
+      bib: {
+        entry_type: wv('wealth_entry_type'),
+        title: wv('wealth_title'),
+        author: wv('wealth_author'),
+        year: wv('wealth_year'),
+        month: wv('wealth_month'),
+        journal: wv('wealth_journal'),
+        booktitle: wv('wealth_booktitle'),
+        volume: wv('wealth_volume'),
+        number: wv('wealth_number'),
+        pages: wv('wealth_pages'),
+        institution: wv('wealth_institution'),
+        publisher: wv('wealth_publisher'),
+        doi: wv('wealth_doi'),
+        url: wv('wealth_url'),
+        urldate: wv('wealth_urldate'),
+        keywords: wv('wealth_keywords'),
+        note: wv('wealth_note'),
+        abstract: wv('wealth_abstract'),
+        extra_fields: extraFields
+      }
+    }
+  };
+}
+
+function wealthIsEmptyAddPayload(payload){
+  const mode = String(payload.mode || '').trim().toLowerCase();
+  if (mode !== 'add') return false;
+  const record = payload.record || {};
+  const bib = record.bib || {};
+  if (String(record.key || '').trim() !== '') return false;
+  const fields = [
+    'entry_type', 'title', 'author', 'year', 'month', 'journal', 'booktitle',
+    'volume', 'number', 'pages', 'institution', 'publisher', 'doi', 'url',
+    'urldate', 'keywords', 'note', 'abstract'
+  ];
+  for (const key of fields) {
+    if (String(bib[key] || '').trim() !== '') return false;
+  }
+  return true;
+}
+
+async function wealthEnsureEditorName(actionLabel){
+  let name = (wv('wealth_editor_name') || '').trim();
+  if (name) return name;
+  const entered = prompt(`Enter your name to ${actionLabel}.`);
+  if (entered === null) {
+    throw new Error(`${capitalizeFirst(actionLabel)} cancelled. Name was not provided.`);
+  }
+  name = entered.trim();
+  if (!name) {
+    throw new Error('Your name is required to continue.');
+  }
+  document.getElementById('wealth_editor_name').value = name;
+  return name;
+}
+
+async function wealthLoadOptions(){
+  let r;
+  try {
+    r = await fetch('/api/wealth/options');
+  } catch (err) {
+    throw new Error('Could not reach local server for wealth options refresh.');
+  }
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || `Failed to load wealth options (HTTP ${r.status}).`);
+  wealthEntries = j.entries || [];
+  const citekeys = j.citekeys || wealthEntries.map(x => x.key).filter(Boolean);
+  const dl = document.getElementById('wealth_target_opts');
+  dl.innerHTML = '';
+  [...new Set(citekeys)].sort((a, b) => String(a).localeCompare(String(b))).forEach((val) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    dl.appendChild(opt);
+  });
+  wealthRenderSearchResults();
+}
+
+function wealthRenderSearchResults(){
+  const holder = document.getElementById('wealth_search_results');
+  const q = (wv('wealth_search') || '').trim().toLowerCase();
+  const filtered = wealthEntries.filter((row) => {
+    if (!q) return true;
+    return [row.key, row.title, row.author, row.year, row.entry_type]
+      .map(x => String(x || '').toLowerCase())
+      .some(x => x.includes(q));
+  }).slice(0, 250);
+
+  if (!filtered.length) {
+    holder.innerHTML = '<small>No entries match your search.</small>';
+    return;
+  }
+  const rows = filtered.map((row) => `
+    <tr>
+      <td><button class='search-btn' data-key="${escapeHtml(row.key)}">${escapeHtml(row.key)}</button></td>
+      <td>${escapeHtml(row.year || '')}</td>
+      <td>${escapeHtml(row.author || '')}</td>
+      <td>${escapeHtml(row.title || '')}</td>
+      <td>${escapeHtml(row.entry_type || '')}</td>
+    </tr>
+  `).join('');
+  holder.innerHTML = `
+    <table>
+      <thead><tr><th>Key</th><th>Year</th><th>Author</th><th>Title</th><th>Type</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+  holder.querySelectorAll('button[data-key]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-key') || '';
+      document.getElementById('wealth_target').value = key;
+      wealthLoadTarget().catch((err) => {
+        setStatus({ok:false, error:String(err)}, 'wealth_status');
+        showErrorWindow(String(err));
+      });
+    });
+  });
+}
+
+async function wealthParseBib(){
+  try {
+    const j = await req('/api/parse_bib', {text: document.getElementById('wealth_bib_paste').value});
+    const b = j.bib || {};
+    document.getElementById('wealth_entry_type').value = b.entry_type || '';
+    document.getElementById('wealth_title').value = b.title || '';
+    document.getElementById('wealth_author').value = b.author || '';
+    document.getElementById('wealth_year').value = b.year || '';
+    document.getElementById('wealth_month').value = b.month || '';
+    document.getElementById('wealth_journal').value = b.journal || '';
+    document.getElementById('wealth_booktitle').value = b.booktitle || '';
+    document.getElementById('wealth_volume').value = b.volume || '';
+    document.getElementById('wealth_number').value = b.number || '';
+    document.getElementById('wealth_pages').value = b.pages || '';
+    document.getElementById('wealth_institution').value = b.institution || '';
+    document.getElementById('wealth_publisher').value = b.publisher || '';
+    document.getElementById('wealth_doi').value = b.doi || '';
+    document.getElementById('wealth_url').value = b.url || '';
+    document.getElementById('wealth_urldate').value = b.urldate || '';
+    document.getElementById('wealth_keywords').value = b.keywords || '';
+    document.getElementById('wealth_note').value = b.note || '';
+    document.getElementById('wealth_abstract').value = b.abstract || '';
+    document.getElementById('wealth_extra_fields').value = JSON.stringify(b.extra_fields || {});
+    if (!wv('wealth_key') && j.source_key) document.getElementById('wealth_key').value = j.source_key;
+    wealthOnEntryTypeChange();
+    markWealthDirty();
+    setStatus({ok:true, message:'BibTeX parsed for entry.'}, 'wealth_status');
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'wealth_status');
+  }
+}
+
+async function wealthLoadTarget(){
+  if (!wv('wealth_target').trim()) {
+    throw new Error('Please choose a target key from search results or type one.');
+  }
+  let r;
+  try {
+    r = await fetch('/api/wealth/record?target=' + encodeURIComponent(wv('wealth_target')));
+  } catch (err) {
+    throw new Error('Could not reach local server while loading entry.');
+  }
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || `Load failed (HTTP ${r.status}).`);
+  const rec = j.record || {};
+  const b = rec.bib || {};
+  document.getElementById('wealth_key').value = rec.key || '';
+  wealthLoadedKey = rec.key || '';
+  document.getElementById('wealth_entry_type').value = b.entry_type || '';
+  document.getElementById('wealth_title').value = b.title || '';
+  document.getElementById('wealth_author').value = b.author || '';
+  document.getElementById('wealth_year').value = b.year || '';
+  document.getElementById('wealth_month').value = b.month || '';
+  document.getElementById('wealth_journal').value = b.journal || '';
+  document.getElementById('wealth_booktitle').value = b.booktitle || '';
+  document.getElementById('wealth_volume').value = b.volume || '';
+  document.getElementById('wealth_number').value = b.number || '';
+  document.getElementById('wealth_pages').value = b.pages || '';
+  document.getElementById('wealth_institution').value = b.institution || '';
+  document.getElementById('wealth_publisher').value = b.publisher || '';
+  document.getElementById('wealth_doi').value = b.doi || '';
+  document.getElementById('wealth_url').value = b.url || '';
+  document.getElementById('wealth_urldate').value = b.urldate || '';
+  document.getElementById('wealth_keywords').value = b.keywords || '';
+  document.getElementById('wealth_note').value = b.note || '';
+  document.getElementById('wealth_abstract').value = b.abstract || '';
+  document.getElementById('wealth_extra_fields').value = JSON.stringify(b.extra_fields || {});
+  wealthOnEntryTypeChange();
+  clearWealthDirty();
+  setStatus({ok:true, loaded: rec.key || ''}, 'wealth_status');
+}
+
+async function wealthValidateOnly(){
+  try {
+    const out = await req('/api/wealth/validate_entry', wealthGetPayload());
+    setStatusWithChecks(out, 'Validation run complete.', {
+      targetId: 'wealth_status',
+      modeValue: wv('wealth_mode'),
+      includeDuplicateGuidance: false,
+      includeOnlineCompare: false
+    });
+    if (!out.ok || (out.errors && out.errors.length)) {
+      showErrorWindow((out.errors || []).join('\\n') || 'Validation failed.');
+    }
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'wealth_status');
+    showErrorWindow(String(err));
+  }
+}
+
+async function wealthApplyAndBuild(){
+  try {
+    const payload = wealthGetPayload();
+    const emptyAddPayload = wealthIsEmptyAddPayload(payload);
+    if (payload.mode === 'edit') {
+      const before = (wealthLoadedKey || '').trim();
+      const after = (wv('wealth_key') || '').trim();
+      if (before && after && before !== after) {
+        const ok = confirm(
+          `You are renaming key from '${before}' to '${after}'.\\n\\n` +
+          `This affects the bibliography key. Continue?`
+        );
+        if (!ok) {
+          throw new Error('Save cancelled. Key rename was not confirmed.');
+        }
+        payload.key_rename_confirmed = true;
+      }
+    }
+    if (!emptyAddPayload) {
+      payload.editor_name = await wealthEnsureEditorName('save this entry');
+    }
+    const out = await req('/api/wealth/apply_and_build', payload);
+    setStatusWithChecks(out, 'Save complete.', {
+      targetId: 'wealth_status',
+      modeValue: wv('wealth_mode'),
+      includeDuplicateGuidance: false,
+      includeOnlineCompare: false
+    });
+    await wealthLoadOptions();
+    clearWealthDirty();
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'wealth_status');
+    showErrorWindow(String(err));
+  }
+}
+
+async function wealthDeleteEntry(){
+  try{
+    if (wv('wealth_mode') !== 'edit') throw new Error('Delete is available only in edit mode.');
+    if (!wv('wealth_target').trim()) throw new Error('Select an entry target before deleting.');
+    const msg = `Delete entry '${wv('wealth_target')}'?\\n\\nThis action cannot be undone.`;
+    if (!confirm(msg)) return;
+
+    const out = await req('/api/wealth/delete_entry', {
+      target: wv('wealth_target'),
+      editor_name: await wealthEnsureEditorName('delete this entry')
+    });
+    setStatusWithChecks(out, 'Delete complete.', {
+      targetId: 'wealth_status',
+      modeValue: wv('wealth_mode'),
+      includeDuplicateGuidance: false,
+      includeOnlineCompare: false
+    });
+    await wealthLoadOptions();
+    clearWealthDirty();
+  }catch(err){
+    setStatus({ok:false, error:String(err)}, 'wealth_status');
+    showErrorWindow(String(err));
+  }
+}
+
 loadOptions();
 onModeChange();
 onEntryTypeChange();
+wealthOnModeChange();
+wealthOnEntryTypeChange();
+switchBranch('data');
 document.getElementById('legend').addEventListener('input', () => { document.getElementById('legend').dataset.userEdited = '1'; });
 document.querySelectorAll('input, textarea, select').forEach(el => {
-  el.addEventListener('input', markDirty);
-  el.addEventListener('change', markDirty);
+  if ((el.id || '').startsWith('wealth_')) {
+    el.addEventListener('input', markWealthDirty);
+    el.addEventListener('change', markWealthDirty);
+  } else {
+    el.addEventListener('input', markDirty);
+    el.addEventListener('change', markDirty);
+  }
 });
 window.addEventListener('beforeunload', (e) => {
-  if (!dirty) return;
+  if (!dirty && !wealthDirty) return;
   e.preventDefault();
   e.returnValue = '';
 });
@@ -1239,9 +2120,13 @@ class App:
     def artifact_paths(self, reg: dict) -> List[Path]:
         cfg = reg.get("config", {}) or {}
         dictionary_output = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
-        bib_output = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
-        both_bib_output = Path(cfg.get("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"))
+        bib_output = _data_bib_path(cfg)
+        both_bib_output = _both_bib_path(cfg)
         return [self.registry_path, self.changelog_path, self.aliases_path, dictionary_output, bib_output, both_bib_output]
+
+    def wealth_artifact_paths(self, reg: dict) -> List[Path]:
+        cfg = reg.get("config", {}) or {}
+        return [_wealth_bib_path(cfg), _both_bib_path(cfg), _wealth_change_log_path(cfg)]
 
 
 def file_mtimes(paths: List[Path]) -> Dict[str, int]:
@@ -1551,6 +2436,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(suggested_options(reg.get("records", [])))
             return
 
+        if parsed.path == "/api/wealth/options":
+            try:
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                wealth_blob = _read_bib_with_duplicate_detection(_wealth_bib_path(cfg))
+                self._send_json(
+                    {
+                        "entries": _wealth_search_rows(wealth_blob.get("entries", {})),
+                        "citekeys": sorted(wealth_blob.get("entries", {}).keys(), key=str.lower),
+                        "entry_types": WEALTH_ENTRY_TYPES,
+                        "duplicate_keys": wealth_blob.get("duplicate_keys", []),
+                    }
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                self._send_json({"error": str(exc)}, 400)
+            return
+
         if parsed.path == "/api/ping":
             self.app.last_ping = time.time()
             self._send_json({"ok": True})
@@ -1567,6 +2469,22 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"record": hits[0]})
             return
 
+        if parsed.path == "/api/wealth/record":
+            try:
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                qs = parse_qs(parsed.query)
+                target = normalize_whitespace((qs.get("target") or [""])[0])
+                wealth_blob = _read_bib_with_duplicate_detection(_wealth_bib_path(cfg))
+                entries = wealth_blob.get("entries", {})
+                if target not in entries:
+                    self._send_json({"error": f"target must match exactly one wealth record; got 0"}, 400)
+                    return
+                self._send_json({"record": _wealth_entry_to_record(target, entries[target])})
+            except Exception as exc:  # pylint: disable=broad-except
+                self._send_json({"error": str(exc)}, 400)
+            return
+
         self._send_json({"error": "Not found"}, 404)
 
     def do_POST(self):
@@ -1576,6 +2494,211 @@ class Handler(BaseHTTPRequestHandler):
                 data = self._read_json()
                 out = parse_bib_paste(data.get("text", ""))
                 self._send_json(out)
+                return
+
+            if self.path == "/api/wealth/validate_entry":
+                data = self._read_json()
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                mode = normalize_whitespace(data.get("mode", "add")).lower()
+                target = normalize_whitespace(data.get("target", ""))
+
+                if mode == "add" and is_empty_wealth_add_payload(data):
+                    self._send_json(
+                        {
+                            "ok": True,
+                            "errors": [],
+                            "warnings": [],
+                            "checks": [
+                                {
+                                    "name": "Empty add form",
+                                    "passed": True,
+                                    "detail": "No changes made. Fill fields to validate a new entry.",
+                                }
+                            ],
+                            "message": "No changes made.",
+                        }
+                    )
+                    return
+
+                wealth_blob = _read_bib_with_duplicate_detection(_wealth_bib_path(cfg))
+                candidate = _wealth_candidate_from_payload(data)
+                out = _validate_wealth_candidate(
+                    candidate,
+                    mode,
+                    target,
+                    wealth_blob.get("entries", {}),
+                    _data_bib_keys(cfg),
+                    wealth_blob.get("duplicate_keys", []),
+                )
+                self._send_json({"ok": len(out.get("errors", [])) == 0, **out})
+                return
+
+            if self.path == "/api/wealth/apply_and_build":
+                data = self._read_json()
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                tracked_paths = self.app.wealth_artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                mode = normalize_whitespace(data.get("mode", "add")).lower()
+                target = normalize_whitespace(data.get("target", ""))
+                editor = normalize_whitespace(data.get("editor_name", ""))
+                key_rename_confirmed = bool(data.get("key_rename_confirmed", False))
+
+                if mode == "add" and is_empty_wealth_add_payload(data):
+                    _rebuild_both_bib(cfg)
+                    after = file_mtimes(tracked_paths)
+                    changed_files = modified_paths(before, after)
+                    self._send_json(
+                        {
+                            "ok": True,
+                            "status": "ok",
+                            "operation": "build_only",
+                            "record_id": "",
+                            "changed_fields": [],
+                            "warnings": [],
+                            "errors": [],
+                            "checks": [
+                                {
+                                    "name": "Empty add form",
+                                    "passed": True,
+                                    "detail": "No record changes applied. BothLibraries.bib was rebuilt.",
+                                }
+                            ],
+                            "modified_files": changed_files,
+                            "file_change_summary": build_file_change_summary(changed_files, "build_only", "", [], False),
+                            "message": "No changes made. BothLibraries.bib rebuilt.",
+                        }
+                    )
+                    return
+
+                if not editor:
+                    raise ValueError("editor_name is required")
+
+                wealth_path = _wealth_bib_path(cfg)
+                wealth_log_path = _wealth_change_log_path(cfg)
+                wealth_blob = _read_bib_with_duplicate_detection(wealth_path)
+                wealth_entries = wealth_blob.get("entries", {})
+                candidate = _wealth_candidate_from_payload(data)
+
+                validation = _validate_wealth_candidate(
+                    candidate,
+                    mode,
+                    target,
+                    wealth_entries,
+                    _data_bib_keys(cfg),
+                    wealth_blob.get("duplicate_keys", []),
+                )
+                if validation.get("errors"):
+                    raise ValueError("\n".join(validation["errors"]))
+
+                out: dict = {"status": "ok", "warnings": validation.get("warnings", []), "checks": validation.get("checks", [])}
+                if mode == "add":
+                    new_entry = _wealth_record_to_entry(candidate)
+                    new_key = new_entry.get("key", "")
+                    wealth_entries[new_key] = {"entry_type": new_entry.get("entry_type", "misc"), "fields": new_entry.get("fields", {})}
+                    write_parsed_bib_entries(wealth_path, wealth_entries, field_order=WEALTH_BIB_FIELDS)
+                    _append_wealth_change(wealth_log_path, "add", new_key, "Added via local UI", editor)
+                    out.update(
+                        {
+                            "operation": "add",
+                            "record_id": new_key,
+                            "changed_fields": _summarize_wealth_record_all_fields(
+                                _wealth_entry_to_record(new_key, wealth_entries[new_key])
+                            ),
+                            "key_renamed": False,
+                        }
+                    )
+                elif mode == "edit":
+                    if target not in wealth_entries:
+                        raise ValueError(f"Edit target must match exactly one record; got 0")
+                    new_entry = _wealth_record_to_entry(candidate)
+                    new_key = new_entry.get("key", "")
+                    changed_key = target != new_key
+                    if changed_key and not key_rename_confirmed:
+                        raise ValueError("You changed key. Confirm key rename in the save confirmation prompt.")
+
+                    before_rec = _wealth_entry_to_record(target, wealth_entries[target])
+                    if changed_key:
+                        del wealth_entries[target]
+                    wealth_entries[new_key] = {"entry_type": new_entry.get("entry_type", "misc"), "fields": new_entry.get("fields", {})}
+                    write_parsed_bib_entries(wealth_path, wealth_entries, field_order=WEALTH_BIB_FIELDS)
+                    _append_wealth_change(wealth_log_path, "edit", new_key, "Edited via local UI", editor)
+                    after_rec = _wealth_entry_to_record(new_key, wealth_entries[new_key])
+                    out.update(
+                        {
+                            "operation": "edit",
+                            "record_id": new_key,
+                            "changed_fields": _summarize_wealth_record_diff(before_rec, after_rec),
+                            "key_renamed": changed_key,
+                        }
+                    )
+                else:
+                    raise ValueError("mode must be add or edit")
+
+                _rebuild_both_bib(cfg)
+                after = file_mtimes(tracked_paths)
+                changed = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        **out,
+                        "modified_files": changed,
+                        "file_change_summary": build_file_change_summary(
+                            changed,
+                            out.get("operation", mode),
+                            out.get("record_id", ""),
+                            out.get("changed_fields", []),
+                            out.get("key_renamed", False),
+                        ),
+                        "message": "Entry saved and BothLibraries.bib rebuilt",
+                    }
+                )
+                return
+
+            if self.path == "/api/wealth/delete_entry":
+                data = self._read_json()
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                target = normalize_whitespace(data.get("target", ""))
+                editor = normalize_whitespace(data.get("editor_name", ""))
+                if not target:
+                    raise ValueError("target is required")
+                if not editor:
+                    raise ValueError("editor_name is required")
+
+                tracked_paths = self.app.wealth_artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                wealth_path = _wealth_bib_path(cfg)
+                wealth_log_path = _wealth_change_log_path(cfg)
+                wealth_blob = _read_bib_with_duplicate_detection(wealth_path)
+                if wealth_blob.get("duplicate_keys"):
+                    raise ValueError(f"Reference library contains duplicate keys: {', '.join(wealth_blob['duplicate_keys'])}")
+                wealth_entries = wealth_blob.get("entries", {})
+                if target not in wealth_entries:
+                    raise ValueError("Delete target must match exactly one record; got 0")
+
+                before_rec = _wealth_entry_to_record(target, wealth_entries[target])
+                deleted_fields = _summarize_wealth_record_all_fields(before_rec)
+                del wealth_entries[target]
+                write_parsed_bib_entries(wealth_path, wealth_entries, field_order=WEALTH_BIB_FIELDS)
+                _append_wealth_change(wealth_log_path, "delete", target, "Deleted via local UI", editor)
+                _rebuild_both_bib(cfg)
+
+                after = file_mtimes(tracked_paths)
+                changed = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        "record_id": target,
+                        "operation": "delete",
+                        "changed_fields": deleted_fields,
+                        "checks": [{"name": "Delete target resolution", "passed": True, "detail": f"Deleted {target}"}],
+                        "modified_files": changed,
+                        "file_change_summary": build_file_change_summary(changed, "delete", target, deleted_fields, False),
+                        "message": "Entry deleted and BothLibraries.bib rebuilt",
+                    }
+                )
                 return
 
             if self.path == "/api/compare_online_bib":

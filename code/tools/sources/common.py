@@ -63,6 +63,26 @@ CANONICAL_KEYS = [
     "updated_at",
 ]
 
+BIB_FIELD_ORDER = [
+    "title",
+    "author",
+    "year",
+    "month",
+    "journal",
+    "booktitle",
+    "volume",
+    "number",
+    "pages",
+    "institution",
+    "publisher",
+    "doi",
+    "url",
+    "urldate",
+    "abstract",
+    "keywords",
+    "note",
+]
+
 DEFAULT_REGISTRY = OrderedDict(
     [
         ("version", 1),
@@ -73,6 +93,7 @@ DEFAULT_REGISTRY = OrderedDict(
                     ("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"),
                     ("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"),
                     ("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"),
+                    ("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"),
                     ("online_bib_reference_url", ""),
                     ("online_bib_timeout_seconds", 20),
                     ("dictionary_template", "handmade_tables/dictionary.xlsx"),
@@ -281,6 +302,41 @@ def render_bib_entry(key: str, record: dict) -> str:
         lines.append(f"  {name} = {format_bib_value(value)}{tail}")
     lines.append("}")
     return "\n".join(lines)
+
+
+def render_parsed_bib_entry(key: str, entry: dict, field_order: List[str] = None) -> str:
+    order = field_order or BIB_FIELD_ORDER
+    entry_type = normalize_whitespace(str(entry.get("entry_type", "misc"))).lower() or "misc"
+    source_fields = entry.get("fields", {}) or {}
+
+    ordered_fields = OrderedDict()
+    for field_name in order:
+        value = normalize_whitespace(str(source_fields.get(field_name, "")))
+        if value:
+            ordered_fields[field_name] = value
+
+    for field_name in sorted(source_fields.keys()):
+        if field_name in ordered_fields or field_name in order:
+            continue
+        value = normalize_whitespace(str(source_fields.get(field_name, "")))
+        if value:
+            ordered_fields[field_name] = value
+
+    lines = [f"@{entry_type}{{{key},"]
+    last_idx = len(ordered_fields) - 1
+    for idx, (name, value) in enumerate(ordered_fields.items()):
+        tail = "," if idx != last_idx else ""
+        lines.append(f"  {name} = {format_bib_value(value)}{tail}")
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def write_parsed_bib_entries(path: Path, entries: Dict[str, dict], field_order: List[str] = None) -> None:
+    rendered = []
+    for key in sorted(entries.keys(), key=lambda k: k.lower()):
+        rendered.append(render_parsed_bib_entry(key, entries[key], field_order=field_order))
+    ensure_parent(path)
+    path.write_text("\n\n".join(rendered).strip() + "\n", encoding="utf-8")
 
 
 def records_sorted(records: List[dict]) -> List[dict]:

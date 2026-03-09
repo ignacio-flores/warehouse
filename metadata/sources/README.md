@@ -6,7 +6,9 @@ This folder is the canonical home for source metadata.
 - `schema.json`: schema contract
 - `aliases.yaml`: old->new key mappings for breaking renames
 - `change_log.yaml`: intake audit entries
+- `wealth_research_change_log.yaml`: Wealth Research branch audit entries
 - `documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib`: generated bibliography artifact
+- `documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib`: Wealth Research canonical bibliography (edited directly by UI branch)
 - `reconciliation_report.md`: migration reconciliation report
 
 ## Policy
@@ -15,6 +17,7 @@ This folder is the canonical home for source metadata.
 - `handmade_tables/dictionary.xlsx` (`Sources` sheet) and `.bib` are generated artifacts.
 - Add/edit operations should go through the local Source Registry UI.
 - Comment-only dictionary columns are intentionally omitted from the UI and kept blank in generated outputs.
+- Wealth Research branch saves rebuild `BothLibraries.bib` only.
 
 ## Commands
 
@@ -68,6 +71,9 @@ If that fails, install Python 3 from:
 
 ## UI Behavior Notes
 
+- The UI has two branches at the top:
+  - `Data Sources` (current registry workflow)
+  - `Wealth Research` (direct `.bib` editing with search/browse panel)
 - Fields with `*` are mandatory.
 - `keywords` is optional (recommended).
 - Legend suggestion in add mode uses citation style:
@@ -84,6 +90,8 @@ If that fails, install Python 3 from:
 - For **existing entries (edit mode)**, `bib.url` can still be reviewed/adjusted separately when needed.
 - `id` is internal and not shown in the form.
 - `Your name` is required and saved in change logs; add/edit records also keep `created_by` / `updated_by`.
+- Wealth Research branch requires `Your name` for save/delete and writes to `wealth_research_change_log.yaml`.
+- Wealth Research branch blocks new/renamed keys that collide with DataSources keys (existing overlaps are grandfathered if key is unchanged).
 - BibTeX paste behavior:
   - Clicking **Parse BibTeX and fill fields** overwrites the mapped fields below.
   - Editing the paste box alone does nothing until Parse is clicked again.
