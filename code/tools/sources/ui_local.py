@@ -750,7 +750,6 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <button class='warn' onclick='applyAndBuild()'>Save and build</button>
   </div>
   <div class='row' style='max-width:420px;'>
-    <label>your name</label>
     <input id='editor_name' placeholder='your name'>
   </div>
   <div class='row'>

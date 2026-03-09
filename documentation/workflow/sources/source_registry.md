@@ -13,6 +13,7 @@ Generated artifacts:
 1. Launch local UI:
    - Mac double-click: `code/tools/source_manager_mac.command`
    - Windows double-click: `code/tools/source_manager_win.bat`
+   - Linux: `./code/tools/source_manager_linux.sh`
    - Or Terminal: `python3 code/tools/sources/ui_local.py`
 2. Open `http://127.0.0.1:8765`.
 3. Choose `mode` = `add` or `edit`.
