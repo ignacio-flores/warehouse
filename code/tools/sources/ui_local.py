@@ -54,6 +54,8 @@ WEALTH_ENTRY_TYPES = [
     "phdthesis",
 ]
 WEALTH_BIB_FIELDS = list(BIB_FIELD_ORDER)
+DUPLICATE_ERROR_PREFIXES = ("Exact duplicate", "Dictionary duplicate", "Bib duplicate")
+ARTIFACT_DUPLICATE_ERROR_PREFIXES = ("Dictionary duplicate", "Bib duplicate")
 
 
 def now_utc() -> str:
@@ -62,6 +64,10 @@ def now_utc() -> str:
 
 def _data_bib_path(cfg: dict) -> Path:
     return Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+
+
+def _dictionary_output_path(cfg: dict) -> Path:
+    return Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
 
 
 def _wealth_bib_path(cfg: dict) -> Path:
@@ -74,6 +80,48 @@ def _both_bib_path(cfg: dict) -> Path:
 
 def _wealth_change_log_path(cfg: dict) -> Path:
     return Path(cfg.get("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"))
+
+
+def _is_duplicate_error(msg: str) -> bool:
+    return any(msg.startswith(prefix) for prefix in DUPLICATE_ERROR_PREFIXES)
+
+
+def _is_artifact_duplicate_error(msg: str) -> bool:
+    return any(msg.startswith(prefix) for prefix in ARTIFACT_DUPLICATE_ERROR_PREFIXES)
+
+
+def _is_artifact_only_duplicate_failure(canonical_errors: List[str], artifact_errors: List[str]) -> bool:
+    if canonical_errors or not artifact_errors:
+        return False
+    if any(not _is_duplicate_error(msg) for msg in artifact_errors):
+        return False
+    return all(_is_artifact_duplicate_error(msg) for msg in artifact_errors)
+
+
+def _generated_data_artifact_paths(cfg: dict) -> List[Path]:
+    return [_dictionary_output_path(cfg), _data_bib_path(cfg), _both_bib_path(cfg)]
+
+
+def _stale_artifact_payload(registry: dict, registry_path: Path, artifact_errors: List[str]) -> dict:
+    cfg = registry.get("config", {}) or {}
+    stale_paths = [str(path) for path in _generated_data_artifact_paths(cfg)]
+    unique_artifact_errors = sorted(set(artifact_errors))
+    message = "Generated artifacts appear stale relative to the canonical registry. Rebuild artifacts, then retry."
+    return {
+        "error_code": "stale_artifacts",
+        "message": message,
+        "errors": [message],
+        "artifact_duplicate_errors": unique_artifact_errors,
+        "stale_artifact_paths": stale_paths,
+        "rebuild_hint": f"python3 code/tools/sources/build_sources_artifacts.py --registry {registry_path}",
+        "checks": [
+            {
+                "name": "Stale artifact guard",
+                "passed": False,
+                "detail": "Artifact duplicates were detected while canonical registry checks passed.",
+            }
+        ],
+    }
 
 
 def _read_bib_with_duplicate_detection(path: Path) -> dict:
@@ -499,7 +547,7 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
     warnings: List[str] = []
     checks: List[dict] = []
     cfg = registry.get("config", {}) or {}
-    dictionary_path = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
+    dictionary_path = _dictionary_output_path(cfg)
     bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
     target_norm = normalize_whitespace(target)
 
@@ -1481,6 +1529,23 @@ function buildDuplicateGuidance(out){
   return lines.join('\\n');
 }
 
+function buildStaleArtifactGuidance(out){
+  if (!out || out.error_code !== 'stale_artifacts') return '';
+  const lines = [
+    'Generated artifacts are out of sync with the canonical registry.',
+  ];
+  if (out.rebuild_hint) lines.push(`Rebuild command: ${out.rebuild_hint}`);
+  const files = Array.isArray(out.stale_artifact_paths) ? out.stale_artifact_paths : [];
+  if (files.length) {
+    lines.push('Files to refresh:');
+    lines.push(`- ${files.join('\\n- ')}`);
+  }
+  if (out.artifact_duplicate_errors && out.artifact_duplicate_errors.length) {
+    lines.push(`Duplicate hits in artifacts:\\n- ${out.artifact_duplicate_errors.join('\\n- ')}`);
+  }
+  return lines.join('\\n');
+}
+
 function formatOnlineCompare(onlineCompare){
   if (!onlineCompare) return '';
   const lines = ['Online .bib comparison:'];
@@ -1508,6 +1573,8 @@ function setStatusWithChecks(out, heading, opts={}){
     const dupGuidance = buildDuplicateGuidance(out);
     if (dupGuidance) lines.push(dupGuidance);
   }
+  const staleGuidance = buildStaleArtifactGuidance(out);
+  if (staleGuidance) lines.push(staleGuidance);
   if (out.warnings && out.warnings.length) lines.push(`Warnings:\\n- ${out.warnings.join('\\n- ')}`);
   if (out.errors && out.errors.length) lines.push(`Errors:\\n- ${out.errors.join('\\n- ')}`);
   if (out.file_change_summary && out.file_change_summary.length) {
@@ -1534,7 +1601,21 @@ async function req(path, payload){
   } catch (err) {
     throw new Error(`Server returned an unreadable response for ${path} (HTTP ${r.status}).`);
   }
-  if(!r.ok){ throw new Error(j.error || ('HTTP '+r.status)); }
+  if(!r.ok){
+    const messageLines = [j.error || ('HTTP ' + r.status)];
+    if (j.error_code === 'stale_artifacts') {
+      if (j.rebuild_hint) messageLines.push(`Rebuild command: ${j.rebuild_hint}`);
+      const files = Array.isArray(j.stale_artifact_paths) ? j.stale_artifact_paths : [];
+      if (files.length) {
+        messageLines.push(`Files to refresh:\\n- ${files.join('\\n- ')}`);
+      }
+    }
+    const err = new Error(messageLines.join('\\n\\n'));
+    if (j && typeof j === 'object') {
+      Object.assign(err, j);
+    }
+    throw err;
+  }
   return j;
 }
 
@@ -1747,7 +1828,15 @@ async function deleteEntry(){
   try{
     if (v('mode') !== 'edit') throw new Error('Delete is available only in edit mode.');
     if (!v('target').trim()) throw new Error('Select an entry in Edit target before deleting.');
-    const msg = `Delete entry '${v('target')}'?\\n\\nThis action cannot be undone.`;
+    const preview = await req('/api/delete_preview', {target: v('target')});
+    const files = Array.isArray(preview.would_modify_files) ? preview.would_modify_files : [];
+    const resolved = preview.record_id ? `Resolved record: ${preview.record_id}\\n\\n` : '';
+    const fileList = files.length ? `- ${files.join('\\n- ')}` : '- (no files reported)';
+    const msg =
+      `Delete entry '${v('target')}'?\\n\\n` +
+      `${resolved}` +
+      `This will modify:\\n${fileList}\\n\\n` +
+      `This action cannot be undone.`;
     if (!confirm(msg)) return;
 
     const out = await req('/api/delete_entry', {
@@ -2119,10 +2208,14 @@ class App:
 
     def artifact_paths(self, reg: dict) -> List[Path]:
         cfg = reg.get("config", {}) or {}
-        dictionary_output = Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
+        dictionary_output = _dictionary_output_path(cfg)
         bib_output = _data_bib_path(cfg)
         both_bib_output = _both_bib_path(cfg)
         return [self.registry_path, self.changelog_path, self.aliases_path, dictionary_output, bib_output, both_bib_output]
+
+    def delete_preview_paths(self, reg: dict) -> List[Path]:
+        cfg = reg.get("config", {}) or {}
+        return [self.registry_path, self.changelog_path, _dictionary_output_path(cfg), _data_bib_path(cfg), _both_bib_path(cfg)]
 
     def wealth_artifact_paths(self, reg: dict) -> List[Path]:
         cfg = reg.get("config", {}) or {}
@@ -2756,6 +2849,28 @@ class Handler(BaseHTTPRequestHandler):
                 out = validate_candidate(records, candidate, mode, target_id)
                 out.setdefault("checks", []).insert(0, target_check)
                 artifact_out = validate_candidate_against_artifacts(reg, candidate, mode, target)
+                canonical_errors = out.get("errors", [])
+                artifact_errors = artifact_out.get("errors", [])
+                if _is_artifact_only_duplicate_failure(canonical_errors, artifact_errors):
+                    stale = _stale_artifact_payload(reg, self.app.registry_path, artifact_errors)
+                    self._send_json(
+                        {
+                            "ok": False,
+                            "error_code": stale["error_code"],
+                            "message": stale["message"],
+                            "errors": stale["errors"],
+                            "artifact_duplicate_errors": stale["artifact_duplicate_errors"],
+                            "stale_artifact_paths": stale["stale_artifact_paths"],
+                            "rebuild_hint": stale["rebuild_hint"],
+                            "warnings": sorted(set(out.get("warnings", []) + artifact_out.get("warnings", []))),
+                            "checks": (
+                                out.get("checks", [])
+                                + artifact_out.get("checks", [])
+                                + stale.get("checks", [])
+                            ),
+                        }
+                    )
+                    return
                 out["errors"] = sorted(set(out.get("errors", []) + artifact_out.get("errors", [])))
                 out["warnings"] = sorted(set(out.get("warnings", []) + artifact_out.get("warnings", [])))
                 out.setdefault("checks", []).extend(artifact_out.get("checks", []))
@@ -2814,6 +2929,32 @@ class Handler(BaseHTTPRequestHandler):
                 candidate = make_candidate(data)
                 artifact_out = validate_candidate_against_artifacts(reg, candidate, mode, target)
                 if artifact_out.get("errors"):
+                    records = reg.get("records", [])
+                    target_id = ""
+                    if mode == "edit":
+                        hits = find_target(records, target)
+                        if len(hits) == 1:
+                            target_id = hits[0].get("id", "")
+                    canonical_out = validate_candidate(records, candidate, mode, target_id)
+                    if _is_artifact_only_duplicate_failure(canonical_out.get("errors", []), artifact_out["errors"]):
+                        stale = _stale_artifact_payload(reg, self.app.registry_path, artifact_out["errors"])
+                        self._send_json(
+                            {
+                                "error": stale["message"],
+                                "error_code": stale["error_code"],
+                                "errors": stale["errors"],
+                                "artifact_duplicate_errors": stale["artifact_duplicate_errors"],
+                                "stale_artifact_paths": stale["stale_artifact_paths"],
+                                "rebuild_hint": stale["rebuild_hint"],
+                                "checks": (
+                                    canonical_out.get("checks", [])
+                                    + artifact_out.get("checks", [])
+                                    + stale.get("checks", [])
+                                ),
+                            },
+                            status=409,
+                        )
+                        return
                     raise ValueError("\n".join(artifact_out["errors"]))
                 out = apply_payload(reg, data, self.app.aliases_path, self.app.changelog_path)
                 self.app.save(reg)
@@ -2847,6 +2988,32 @@ class Handler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if self.path == "/api/delete_preview":
+                data = self._read_json()
+                target = normalize_whitespace(data.get("target", ""))
+                if not target:
+                    raise ValueError("target is required")
+
+                reg = self.app.registry
+                records = reg.get("records", [])
+                hits = find_target(records, target)
+                if len(hits) != 1:
+                    raise ValueError(f"Delete target must match exactly one record; got {len(hits)}")
+
+                rec = hits[0]
+                self._send_json(
+                    {
+                        "ok": True,
+                        "operation": "delete_preview",
+                        "record_id": rec.get("id", ""),
+                        "resolved_target": normalize_whitespace(rec.get("source", "")) or normalize_whitespace(rec.get("citekey", "")),
+                        "checks": [{"name": "Delete target resolution", "passed": True, "detail": f"Resolved to {rec.get('id', '')}"}],
+                        "would_modify_files": [str(path) for path in self.app.delete_preview_paths(reg)],
+                        "message": "Delete will remove this record and regenerate Data Sources artifacts.",
+                    }
+                )
+                return
+
             if self.path == "/api/delete_entry":
                 data = self._read_json()
                 target = normalize_whitespace(data.get("target", ""))
@@ -2859,7 +3026,7 @@ class Handler(BaseHTTPRequestHandler):
 
                 reg = self.app.registry
                 records = reg.get("records", [])
-                tracked_paths = self.app.artifact_paths(reg)
+                tracked_paths = self.app.delete_preview_paths(reg)
                 before = file_mtimes(tracked_paths)
                 hits = find_target(records, target)
                 if len(hits) != 1:

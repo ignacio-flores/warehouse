@@ -207,6 +207,38 @@
       "actor": "Ignacio",
       "issue_number": "local-ui",
       "updated_at": "2026-03-09T10:19:37Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Deleted via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-13T09:04:52Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-13T09:23:08Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Deleted via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-13T09:24:47Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-13T09:27:15Z"
     }
   ]
 }
