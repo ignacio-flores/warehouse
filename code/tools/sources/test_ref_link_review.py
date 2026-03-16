@@ -4,6 +4,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from common import DEFAULT_REGISTRY
 
@@ -231,6 +232,18 @@ class RefLinkReviewScanTests(unittest.TestCase):
         out = self.mod.apply_selected_ref_links(registry, [], {"missing-proposal"})
         self.assertEqual(out["applied_ids"], [])
         self.assertEqual(out["missing_proposal_ids"], ["missing-proposal"])
+
+    def test_fetch_text_falls_back_to_curl_when_urllib_fails(self):
+        class FakeCompletedProcess:
+            stdout = b"fetched-via-curl"
+            stderr = b""
+
+        with mock.patch.object(self.mod, "urlopen", side_effect=RuntimeError("ssl boom")), \
+             mock.patch.object(self.mod.shutil, "which", return_value="/usr/bin/curl"), \
+             mock.patch.object(self.mod.subprocess, "run", return_value=FakeCompletedProcess()):
+            out = self.mod._fetch_text("https://example.org/data.bib", 9)
+        self.assertEqual(out["text"], "fetched-via-curl")
+        self.assertEqual(out["method"], "curl-system-trust")
 
 
 if __name__ == "__main__":

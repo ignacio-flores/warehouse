@@ -1,10 +1,12 @@
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Dict, List
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from common import normalize_url, normalize_whitespace, now_utc
 
@@ -77,9 +79,34 @@ def build_bibbase_show_url(profile_source_url: str) -> str:
 
 
 def _fetch_text(reference_url: str, timeout_seconds: int) -> dict:
-    with urlopen(reference_url, timeout=timeout_seconds) as response:
-        text = response.read().decode("utf-8", errors="replace")
-    return {"text": text, "method": "urllib"}
+    req = Request(reference_url, headers={"User-Agent": "SourceRegistryUI/1.0"})
+    try:
+        with urlopen(req, timeout=timeout_seconds) as response:
+            text = response.read().decode("utf-8", errors="replace")
+        return {"text": text, "method": "python-urllib"}
+    except Exception as exc:  # pylint: disable=broad-except
+        curl_bin = shutil.which("curl")
+        if curl_bin:
+            try:
+                proc = subprocess.run(
+                    [
+                        curl_bin,
+                        "--fail",
+                        "--location",
+                        "--silent",
+                        "--show-error",
+                        "--max-time",
+                        str(timeout_seconds),
+                        reference_url,
+                    ],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                return {"text": proc.stdout.decode("utf-8", errors="replace"), "method": "curl-system-trust"}
+            except Exception as curl_exc:  # pylint: disable=broad-except
+                raise RuntimeError(f"{exc}. curl fallback failed: {curl_exc}") from curl_exc
+        raise
 
 
 def fetch_and_scan_registry_ref_links(registry: dict, fetch_text=None) -> dict:
