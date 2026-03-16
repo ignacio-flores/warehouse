@@ -1020,7 +1020,7 @@ HTML = """<!doctype html>
 <html>
 <head>
 <meta charset='utf-8' />
-<title>Source Registry UI</title>
+<title>ADAM SSM - Sleepless Source Manager</title>
 <style>
 body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; background: #f6f7f9; }
 .wrap { max-width: 1180px; margin: 0 auto; background: #fff; border: 1px solid #d9dde3; border-radius: 10px; padding: 20px; }
@@ -1059,8 +1059,8 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 </head>
 <body>
 <div class='wrap'>
-  <h2>Source Registry Manager (Local)</h2>
-  <p><small>This UI validates and writes locally.</small></p>
+  <h1>ADAM SSM - Sleepless Source Manager</h1>
+  <p class='app-subtitle'><small>This UI validates and writes locally.</small></p>
   <div class='branch-tabs'>
     <button id='branch_data_tab' class='branch-tab active' onclick="switchBranch('data')">Data Sources</button>
     <button id='branch_wealth_tab' class='branch-tab' onclick="switchBranch('wealth')">Wealth Research</button>
