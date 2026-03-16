@@ -15,6 +15,11 @@ Generated artifacts:
   - Canonical store: `metadata/sources/sources.yaml`
   - Save regenerates `dictionary.xlsx`, `GCWealthProject_DataSourcesLibrary.bib`, and `BothLibraries.bib`
   - Audit files: `metadata/sources/change_log.yaml` and `metadata/sources/aliases.yaml`
+  - Optional review action: `Review ref_link proposals`
+    - Available without saving first
+    - Scans the full Data Sources registry against live BibBase entries
+    - Groups results into `Ready to apply`, `Needs review`, and `Dismissed`
+    - `Apply selected` updates only `ref_link`, appends audit entries, and rebuilds Data Sources artifacts
 - `Wealth Research` branch:
   - Canonical store: `documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib`
   - Save regenerates only `BothLibraries.bib`
@@ -82,6 +87,8 @@ Generated artifacts:
 
 1. Check entry (validation only, no save).
 2. Save entry and regenerate artifacts.
+3. Review `ref_link` proposals (optional, available at any time in the Data Sources branch).
+4. Apply selected `ref_link` proposals (optional, explicit write step).
 Edit-only helper: Load existing entry.
 If validation/save fails, the UI shows an error popup and full details in the status panel.
 In edit mode, delete is available with a required confirmation prompt.
