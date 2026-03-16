@@ -20,11 +20,11 @@ if %errorlevel%==0 (
   )
 )
 
-echo Starting Source Registry UI...
+echo Starting ADAM SSM - Sleepless Source Manager...
 echo URL: http://127.0.0.1:8765
 start "" http://127.0.0.1:8765
 %PY% code\tools\sources\ui_local.py
 
 echo.
-echo Source Registry UI stopped.
+echo ADAM SSM - Sleepless Source Manager stopped.
 pause

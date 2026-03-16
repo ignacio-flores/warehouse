@@ -3149,7 +3149,7 @@ def main() -> int:
 
     threading.Thread(target=idle_guard, daemon=True).start()
 
-    print(f"Source Registry UI running at http://{args.host}:{args.port}")
+    print(f"ADAM SSM - Sleepless Source Manager running at http://{args.host}:{args.port}")
     print("The server stops automatically when the UI window/tab closes.")
     try:
         httpd.serve_forever()

@@ -13,7 +13,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Starting Source Registry UI..."
+echo "Starting ADAM SSM - Sleepless Source Manager..."
 echo "URL: http://127.0.0.1:8765"
 echo
 
@@ -30,4 +30,4 @@ echo
 python3 code/tools/sources/ui_local.py
 
 echo
-read -r -p "Source Registry UI stopped. Press Enter to close..."
+read -r -p "ADAM SSM - Sleepless Source Manager stopped. Press Enter to close..."
