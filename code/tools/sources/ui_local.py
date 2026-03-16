@@ -34,6 +34,7 @@ from common import (
     save_registry,
     write_parsed_bib_entries,
 )
+from ref_link_review import apply_selected_ref_links, fetch_and_scan_registry_ref_links
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
@@ -858,6 +859,27 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
     return summary
 
 
+def build_ref_link_review_file_change_summary(modified_files: List[str], applied_ids: List[str]) -> List[dict]:
+    count = len(applied_ids)
+    summary: List[dict] = []
+    for fp in modified_files:
+        p = str(fp)
+        if p.endswith("metadata/sources/sources.yaml"):
+            summary.append({"file": p, "summary": f"Updated ref_link for {count} record(s)."})
+            continue
+        if p.endswith("metadata/sources/change_log.yaml"):
+            summary.append({"file": p, "summary": f"Appended {count} ref_link review audit entr{'y' if count == 1 else 'ies'}."})
+            continue
+        if p.endswith("handmade_tables/dictionary.xlsx"):
+            summary.append({"file": p, "summary": "Regenerated Sources sheet from canonical registry."})
+            continue
+        if p.endswith(".bib"):
+            summary.append({"file": p, "summary": "Regenerated BibTeX artifact after ref_link updates."})
+            continue
+        summary.append({"file": p, "summary": "File updated."})
+    return summary
+
+
 def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_path: Path) -> dict:
     records = registry.get("records", [])
     mode = normalize_whitespace(payload.get("mode", "add")).lower()
@@ -1414,8 +1436,156 @@ let wealthDirty = false;
 let wealthLoadedKey = '';
 let wealthEntries = [];
 let dataEntries = [];
+function emptyRefLinkReviewState(){
+  return {
+    ready_to_apply: [],
+    needs_review: [],
+    dismissed: [],
+    summary: {},
+    scan_metadata: {},
+    selected: new Set(),
+  };
+}
+let refLinkReviewState = emptyRefLinkReviewState();
 function markWealthDirty(){ wealthDirty = true; }
 function clearWealthDirty(){ wealthDirty = false; }
+
+function allRefLinkReviewRows(){
+  return [
+    ...(refLinkReviewState.ready_to_apply || []),
+    ...(refLinkReviewState.needs_review || []),
+    ...(refLinkReviewState.dismissed || []),
+  ];
+}
+
+function hydrateRefLinkReviewState(review){
+  const ready = Array.isArray(review.ready_to_apply) ? review.ready_to_apply : [];
+  const needs = Array.isArray(review.needs_review) ? review.needs_review : [];
+  const selected = new Set();
+  [...ready, ...needs].forEach((row) => {
+    if (row && row.selected && row.proposal_id) selected.add(row.proposal_id);
+  });
+  return {
+    ready_to_apply: ready,
+    needs_review: needs,
+    dismissed: [],
+    summary: review.summary || {},
+    scan_metadata: review.scan_metadata || {},
+    selected,
+  };
+}
+
+function toggleRefLinkReviewSelection(proposalId, checked){
+  if (!proposalId) return;
+  if (checked) refLinkReviewState.selected.add(proposalId);
+  else refLinkReviewState.selected.delete(proposalId);
+  renderRefLinkReviewPanel();
+}
+
+function selectAllReadyRefLinkReview(){
+  (refLinkReviewState.ready_to_apply || []).forEach((row) => {
+    if (row && row.proposal_id) refLinkReviewState.selected.add(row.proposal_id);
+  });
+  renderRefLinkReviewPanel();
+}
+
+function clearRefLinkReviewSelection(){
+  refLinkReviewState.selected.clear();
+  renderRefLinkReviewPanel();
+}
+
+function dismissRefLinkReviewProposal(proposalId){
+  if (!proposalId) return;
+  const buckets = ['ready_to_apply', 'needs_review'];
+  for (const bucket of buckets) {
+    const rows = refLinkReviewState[bucket] || [];
+    const idx = rows.findIndex((row) => row.proposal_id === proposalId);
+    if (idx >= 0) {
+      const [row] = rows.splice(idx, 1);
+      refLinkReviewState.dismissed.push(row);
+      refLinkReviewState.selected.delete(proposalId);
+      break;
+    }
+  }
+  renderRefLinkReviewPanel();
+}
+
+function dismissSelectedRefLinkReview(){
+  const ids = [...refLinkReviewState.selected];
+  ids.forEach((proposalId) => dismissRefLinkReviewProposal(proposalId));
+  renderRefLinkReviewPanel();
+}
+
+function renderRefLinkReviewGroup(title, rows, allowSelection){
+  if (!rows.length) {
+    return `<div class="row"><div class="step">${escapeHtml(title)}</div><small>No proposals in this group.</small></div>`;
+  }
+  const header = `<div class="step">${escapeHtml(title)} (${rows.length})</div>`;
+  const body = rows.map((row) => {
+    const checked = row.proposal_id && refLinkReviewState.selected.has(row.proposal_id) ? 'checked' : '';
+    const reasonFlags = Array.isArray(row.reason_flags) ? row.reason_flags.join('; ') : '';
+    const selectCell = allowSelection
+      ? `<td><input type="checkbox" ${checked} onchange="toggleRefLinkReviewSelection('${escapeHtml(row.proposal_id || '')}', this.checked)"></td>`
+      : '<td></td>';
+    const dismissButton = row.proposal_id
+      ? `<button class="search-btn" onclick="dismissRefLinkReviewProposal('${escapeHtml(row.proposal_id || '')}')">Dismiss</button>`
+      : '';
+    return `
+      <tr>
+        ${selectCell}
+        <td>${escapeHtml(row.citekey || row.record_id || '')}</td>
+        <td>${escapeHtml(row.current_ref_link || '(blank)')}</td>
+        <td>${escapeHtml(row.proposed_ref_link || '')}</td>
+        <td>${escapeHtml(row.confidence || '')}</td>
+        <td>${escapeHtml(reasonFlags)}</td>
+        <td>${dismissButton}</td>
+      </tr>
+    `;
+  }).join('');
+  return `
+    <div class="row">
+      ${header}
+      <div class="search-results">
+        <table>
+          <thead>
+            <tr>
+              <th>Select</th>
+              <th>Citekey</th>
+              <th>Current ref_link</th>
+              <th>Proposed ref_link</th>
+              <th>Confidence</th>
+              <th>Reason</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderRefLinkReviewPanel(){
+  const panel = document.getElementById('ref_link_review_panel');
+  const summaryEl = document.getElementById('ref_link_review_summary');
+  const groupsEl = document.getElementById('ref_link_review_groups');
+  if (!panel || !summaryEl || !groupsEl) return;
+  const readyCount = (refLinkReviewState.ready_to_apply || []).length;
+  const reviewCount = (refLinkReviewState.needs_review || []).length;
+  const dismissedCount = (refLinkReviewState.dismissed || []).length;
+  const selectedCount = refLinkReviewState.selected.size;
+  const staleText = refLinkReviewState.scan_metadata && refLinkReviewState.scan_metadata.hosted_bib_is_stale
+    ? '<br><small>Hosted BibBase appears stale relative to the local generated .bib.</small>'
+    : '';
+  summaryEl.innerHTML =
+    `<div class="help">Ready to apply: ${readyCount} | Needs review: ${reviewCount} | Dismissed: ${dismissedCount} | Selected: ${selectedCount}${staleText}</div>`;
+  groupsEl.innerHTML = [
+    renderRefLinkReviewGroup('Ready to apply', refLinkReviewState.ready_to_apply || [], true),
+    renderRefLinkReviewGroup('Needs review', refLinkReviewState.needs_review || [], true),
+    renderRefLinkReviewGroup('Dismissed', refLinkReviewState.dismissed || [], false),
+  ].join('');
+  panel.classList.remove('hidden');
+}
 
 function switchBranch(branch){
   activeBranch = branch === 'wealth' ? 'wealth' : 'data';
@@ -1884,25 +2054,48 @@ async function compareOnlineBib(){
 }
 
 async function scanRefLinkReview(){
-  const scanPath = '/api/ref_link_review_scan';
-  throw new Error(`Ref_link review is not wired yet: ${scanPath}`);
+  try {
+    const out = await req('/api/ref_link_review_scan', {});
+    refLinkReviewState = hydrateRefLinkReviewState(out);
+    renderRefLinkReviewPanel();
+    setStatusWithChecks(out, 'Ref_link review scan complete.', { includeOnlineCompare: false });
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+  }
 }
 
 async function applySelectedRefLinkReview(){
-  const applyPath = '/api/ref_link_review_apply';
-  throw new Error(`Ref_link review apply is not wired yet: ${applyPath}`);
-}
-
-function selectAllReadyRefLinkReview(){
-  throw new Error('Ref_link review is not wired yet.');
-}
-
-function clearRefLinkReviewSelection(){
-  throw new Error('Ref_link review is not wired yet.');
-}
-
-function dismissSelectedRefLinkReview(){
-  throw new Error('Ref_link review is not wired yet.');
+  try {
+    const selectedProposalIds = [...refLinkReviewState.selected];
+    if (!selectedProposalIds.length) {
+      throw new Error('Select at least one proposal to apply.');
+    }
+    const dismissedCount = (refLinkReviewState.dismissed || []).length;
+    const fileList = [
+      'metadata/sources/sources.yaml',
+      'metadata/sources/change_log.yaml',
+      'handmade_tables/dictionary.xlsx',
+      'documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib',
+      'documentation/BibTeX files/BothLibraries.bib',
+    ];
+    const msg =
+      `Apply ${selectedProposalIds.length} selected ref_link proposal(s)?\n\n` +
+      `Dismissed this session: ${dismissedCount}\n\n` +
+      `This will modify:\n- ${fileList.join('\n- ')}`;
+    if (!confirm(msg)) return;
+    const editorName = await ensureEditorName('apply selected ref_link proposals');
+    const out = await req('/api/ref_link_review_apply', {
+      selected_proposal_ids: selectedProposalIds,
+      editor_name: editorName,
+    });
+    refLinkReviewState = hydrateRefLinkReviewState(out);
+    renderRefLinkReviewPanel();
+    setStatusWithChecks(out, 'Ref_link proposals applied.', { includeOnlineCompare: false });
+  } catch (err) {
+    setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+  }
 }
 
 async function deleteEntry(){
@@ -2887,6 +3080,123 @@ class Handler(BaseHTTPRequestHandler):
                     "online_compare": online_compare,
                     "message": "Online comparison complete",
                 })
+                return
+
+            if self.path == "/api/ref_link_review_scan":
+                reg = self.app.registry
+                review = fetch_and_scan_registry_ref_links(reg)
+                if not review.get("ok"):
+                    self._send_json(review, 400)
+                    return
+                self._send_json(
+                    {
+                        **review,
+                        "operation": "ref_link_review_scan",
+                        "checks": [
+                            {
+                                "name": "Registry-wide ref_link review scan",
+                                "passed": True,
+                                "detail": (
+                                    f"Ready to apply: {review.get('summary', {}).get('ready_to_apply', 0)}, "
+                                    f"Needs review: {review.get('summary', {}).get('needs_review', 0)}"
+                                ),
+                            }
+                        ],
+                        "warnings": [],
+                        "errors": [],
+                        "message": "Ref_link proposal scan complete.",
+                    }
+                )
+                return
+
+            if self.path == "/api/ref_link_review_apply":
+                data = self._read_json()
+                selected_ids = set(data.get("selected_proposal_ids", []))
+                editor = normalize_whitespace(data.get("editor_name", ""))
+                if not selected_ids:
+                    raise ValueError("selected_proposal_ids is required")
+                if not editor:
+                    raise ValueError("editor_name is required")
+
+                reg = self.app.registry
+                review = fetch_and_scan_registry_ref_links(reg)
+                if not review.get("ok"):
+                    self._send_json(review, 400)
+                    return
+                proposals = list(review.get("ready_to_apply", [])) + list(review.get("needs_review", []))
+                tracked_paths = self.app.artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                apply_out = apply_selected_ref_links(reg, proposals, selected_ids)
+                if apply_out["applied_ids"]:
+                    records_by_id = {rec.get("id", ""): rec for rec in reg.get("records", [])}
+                    timestamp = now_utc()
+                    for record_id in apply_out["applied_ids"]:
+                        record = records_by_id.get(record_id)
+                        if not record:
+                            continue
+                        record["updated_at"] = timestamp
+                        record["updated_by"] = editor
+                        append_change(
+                            self.app.changelog_path,
+                            "edit",
+                            record_id,
+                            "Applied ref_link proposal from local UI review",
+                            editor,
+                        )
+                    self.app.save(reg)
+
+                    from build_sources_artifacts import main as build_main  # pylint: disable=import-outside-toplevel
+                    import sys  # pylint: disable=import-outside-toplevel
+
+                    argv_orig = sys.argv[:]
+                    try:
+                        sys.argv = ["build_sources_artifacts.py", "--registry", str(self.app.registry_path)]
+                        build_main()
+                    finally:
+                        sys.argv = argv_orig
+
+                after = file_mtimes(tracked_paths)
+                try:
+                    refreshed = fetch_and_scan_registry_ref_links(reg)
+                except Exception:  # pylint: disable=broad-except
+                    refreshed = review
+                modified = modified_paths(before, after)
+                self._send_json(
+                    {
+                        **refreshed,
+                        "ok": True,
+                        "operation": "ref_link_review_apply",
+                        "applied_ids": apply_out["applied_ids"],
+                        "skipped_ids": apply_out["skipped_ids"],
+                        "stale_ids": apply_out["stale_ids"],
+                        "missing_proposal_ids": apply_out["missing_proposal_ids"],
+                        "checks": [
+                            {
+                                "name": "Selected proposal count",
+                                "passed": True,
+                                "detail": f"Selected {len(selected_ids)} proposal(s).",
+                            },
+                            {
+                                "name": "Apply selected ref_link proposals",
+                                "passed": True,
+                                "detail": (
+                                    f"Applied {len(apply_out['applied_ids'])}, "
+                                    f"skipped {len(apply_out['skipped_ids'])}, "
+                                    f"stale {len(apply_out['stale_ids']) + len(apply_out['missing_proposal_ids'])}."
+                                ),
+                            },
+                        ],
+                        "warnings": [],
+                        "errors": [],
+                        "modified_files": modified,
+                        "file_change_summary": build_ref_link_review_file_change_summary(modified, apply_out["applied_ids"]),
+                        "message": (
+                            "Ref_link proposals applied."
+                            if apply_out["applied_ids"]
+                            else "No ref_link proposals were applied."
+                        ),
+                    }
+                )
                 return
 
             if self.path == "/api/validate_entry":
