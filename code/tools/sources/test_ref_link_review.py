@@ -116,6 +116,66 @@ class RefLinkReviewScanTests(unittest.TestCase):
         self.assertEqual(scan["summary"]["needs_review"], 1)
         self.assertIn("hosted BibBase may be stale", scan["needs_review"][0]["reason_flags"])
 
+    def test_apply_selected_ref_links_updates_only_blank_records(self):
+        registry = {
+            "records": [
+                {"id": "src-a", "citekey": "A2024", "ref_link": "", "source": "A2024", "bib": {"title": "A", "year": "2024"}},
+                {
+                    "id": "src-b",
+                    "citekey": "B2024",
+                    "ref_link": "https://bibbase.org/network/publication/b-old",
+                    "source": "B2024",
+                    "bib": {"title": "B", "year": "2024"},
+                },
+            ]
+        }
+        proposals = [
+            {
+                "proposal_id": "p-a",
+                "record_id": "src-a",
+                "current_ref_link": "",
+                "proposed_ref_link": "https://bibbase.org/network/publication/a-new",
+                "selected": True,
+            },
+            {
+                "proposal_id": "p-b",
+                "record_id": "src-b",
+                "current_ref_link": "https://bibbase.org/network/publication/b-old",
+                "proposed_ref_link": "https://bibbase.org/network/publication/b-new",
+                "selected": True,
+            },
+        ]
+        out = self.mod.apply_selected_ref_links(registry, proposals, {"p-a", "p-b"})
+        self.assertEqual(out["applied_ids"], ["src-a"])
+        self.assertEqual(out["skipped_ids"], ["src-b"])
+        self.assertEqual(registry["records"][0]["ref_link"], "https://bibbase.org/network/publication/a-new")
+        self.assertEqual(registry["records"][1]["ref_link"], "https://bibbase.org/network/publication/b-old")
+
+    def test_apply_selected_ref_links_skips_stale_proposals(self):
+        registry = {
+            "records": [
+                {
+                    "id": "src-a",
+                    "citekey": "A2024",
+                    "ref_link": "https://bibbase.org/network/publication/already-set",
+                    "source": "A2024",
+                    "bib": {"title": "A", "year": "2024"},
+                }
+            ]
+        }
+        proposals = [
+            {
+                "proposal_id": "p-a",
+                "record_id": "src-a",
+                "current_ref_link": "",
+                "proposed_ref_link": "https://bibbase.org/network/publication/a-new",
+                "selected": True,
+            }
+        ]
+        out = self.mod.apply_selected_ref_links(registry, proposals, {"p-a"})
+        self.assertEqual(out["applied_ids"], [])
+        self.assertEqual(out["stale_ids"], ["src-a"])
+
 
 if __name__ == "__main__":
     unittest.main()

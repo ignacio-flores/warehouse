@@ -59,6 +59,36 @@ def _proposal_id(record_id: str, proposed_ref_link: str) -> str:
     return hashlib.sha256(f"{record_id}|{proposed_ref_link}".encode("utf-8")).hexdigest()
 
 
+def apply_selected_ref_links(registry: dict, proposals: List[dict], selected_ids) -> dict:
+    proposal_map = {proposal["proposal_id"]: proposal for proposal in proposals if proposal.get("proposal_id")}
+    records_by_id = {record.get("id", ""): record for record in registry.get("records", [])}
+    applied_ids = []
+    skipped_ids = []
+    stale_ids = []
+    for proposal_id in selected_ids:
+        proposal = proposal_map.get(proposal_id)
+        if not proposal:
+            continue
+        record = records_by_id.get(proposal.get("record_id", ""))
+        if not record:
+            continue
+        current_ref_link = normalize_url(record.get("ref_link", ""))
+        expected_current = normalize_url(proposal.get("current_ref_link", ""))
+        if current_ref_link != expected_current:
+            stale_ids.append(record["id"])
+            continue
+        if current_ref_link:
+            skipped_ids.append(record["id"])
+            continue
+        record["ref_link"] = proposal["proposed_ref_link"]
+        applied_ids.append(record["id"])
+    return {
+        "applied_ids": sorted(applied_ids),
+        "skipped_ids": sorted(skipped_ids),
+        "stale_ids": sorted(stale_ids),
+    }
+
+
 def scan_registry_ref_links(registry: dict, show_payload_text: str, hosted_bib_text: str, local_bib_text: str) -> dict:
     hosted_bib_is_stale = hosted_bib_text != local_bib_text
     entries = parse_bibbase_show_payload(show_payload_text)
