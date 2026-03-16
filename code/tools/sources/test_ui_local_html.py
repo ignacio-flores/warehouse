@@ -23,6 +23,14 @@ class UiLocalHtmlTests(unittest.TestCase):
         self.assertIn("ADAM SSM - Sleepless Source Manager", self.html)
         self.assertIn("<title>ADAM SSM - Sleepless Source Manager</title>", self.html)
 
+    def test_editorial_theme_tokens_are_defined(self):
+        self.assertIn("--bg-page:", self.html)
+        self.assertIn("--bg-panel:", self.html)
+        self.assertIn("--accent-ink:", self.html)
+        self.assertIn("--border-soft:", self.html)
+        self.assertIn(".app-shell", self.html)
+        self.assertIn(".app-subtitle", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()

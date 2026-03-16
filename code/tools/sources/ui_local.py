@@ -1022,17 +1022,32 @@ HTML = """<!doctype html>
 <meta charset='utf-8' />
 <title>ADAM SSM - Sleepless Source Manager</title>
 <style>
-body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; background: #f6f7f9; }
-.wrap { max-width: 1180px; margin: 0 auto; background: #fff; border: 1px solid #d9dde3; border-radius: 10px; padding: 20px; }
+:root {
+  --bg-page: #efe6d6;
+  --bg-panel: #fffdf8;
+  --bg-input: #fffaf2;
+  --accent-ink: #17324d;
+  --accent-soft: #d7c5a4;
+  --border-soft: #d8d1c3;
+  --text-main: #1f2933;
+  --text-muted: #5f6772;
+}
+* { box-sizing: border-box; }
+body { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif; margin: 24px; background: radial-gradient(circle at top, #f7f1e7 0%, var(--bg-page) 58%, #e7ddcc 100%); color: var(--text-main); }
+.wrap { max-width: 1180px; margin: 0 auto; background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 10px; padding: 20px; }
+.app-shell { box-shadow: 0 22px 60px rgba(41, 37, 30, 0.12); }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-label { font-size: 12px; color: #4d5663; font-weight: 600; display: block; margin-bottom: 6px; }
-input, textarea, select { width: 100%; padding: 10px; border: 1px solid #cfd6e0; border-radius: 6px; font-size: 13px; }
+label { font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
+input, textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border-soft); border-radius: 6px; font-size: 13px; background: var(--bg-input); color: var(--text-main); font-family: "Avenir Next", "Segoe UI", sans-serif; }
 textarea { min-height: 86px; }
 .row { margin-bottom: 16px; }
-button { background: #0b57d0; color: white; border: 0; border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+button { background: var(--accent-ink); color: white; border: 0; border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
 button.secondary { background: #4d5968; }
 button.warn { background: #a03d02; }
-small { color: #5f6977; }
+h1, h2, h3 { font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); letter-spacing: 0.01em; }
+h1 { margin: 0 0 6px; font-size: 2.1rem; line-height: 1.05; }
+small { color: var(--text-muted); }
+.app-subtitle { margin: 0 0 20px; font-size: 0.95rem; color: var(--text-muted); }
 pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; overflow: auto; }
 #status, #wealth_status { white-space: pre-wrap; line-height: 1.35; }
 #status .status-ok, #wealth_status .status-ok { color: #8fd28f; font-weight: 600; }
@@ -1058,7 +1073,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 </style>
 </head>
 <body>
-<div class='wrap'>
+<div class='wrap app-shell'>
   <h1>ADAM SSM - Sleepless Source Manager</h1>
   <p class='app-subtitle'><small>This UI validates and writes locally.</small></p>
   <div class='branch-tabs'>
