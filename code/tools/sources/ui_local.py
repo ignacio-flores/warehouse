@@ -1052,8 +1052,8 @@ small { color: var(--text-muted); }
 .app-subtitle { margin: 0 0 20px; font-size: 0.95rem; color: var(--text-muted); }
 .panel { margin-bottom: 18px; padding: 18px; border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 20px; background: linear-gradient(180deg, rgba(255, 253, 248, 0.96) 0%, rgba(250, 245, 236, 0.92) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7); }
 .section-heading { margin: 0 0 14px; font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; }
-pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; overflow: auto; }
-#status, #wealth_status { white-space: pre-wrap; line-height: 1.35; }
+pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8efe8; padding: 16px; border-radius: 16px; overflow: auto; border: 1px solid rgba(132, 145, 160, 0.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+#status, #wealth_status { white-space: pre-wrap; line-height: 1.5; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 12px; }
 #status .status-ok, #wealth_status .status-ok { color: #8fd28f; font-weight: 600; }
 #status .status-fail, #wealth_status .status-fail { color: #ff9da4; font-weight: 600; }
 #status .status-warn, #wealth_status .status-warn { color: #f0c674; font-weight: 600; }
@@ -1068,14 +1068,23 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 .branch-tabs { display: inline-flex; gap: 8px; margin-bottom: 20px; padding: 6px; border-radius: 999px; background: rgba(23, 50, 77, 0.08); border: 1px solid rgba(23, 50, 77, 0.08); }
 .branch-tab { background: transparent; color: var(--accent-ink); box-shadow: none; }
 .branch-tab.active { background: var(--accent-ink); color: #fff; }
-.search-panel { border: 1px solid #d9dde3; border-radius: 8px; padding: 10px; background: #fafbfd; }
-.search-results { max-height: 280px; overflow: auto; border: 1px solid #d9dde3; border-radius: 6px; margin-top: 8px; }
+.search-panel { border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 16px; padding: 14px; background: rgba(255, 251, 244, 0.84); }
+.search-results { max-height: 280px; overflow: auto; border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 12px; margin-top: 10px; background: rgba(255, 253, 248, 0.94); }
 .search-results table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.search-results th, .search-results td { border-bottom: 1px solid #e3e8ef; padding: 6px; text-align: left; vertical-align: top; }
-.search-results tr:hover { background: #eef4ff; }
-.search-btn { background: transparent; color: #0b57d0; border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; }
+.search-results th, .search-results td { border-bottom: 1px solid rgba(109, 95, 74, 0.12); padding: 10px 8px; text-align: left; vertical-align: top; }
+.search-results th { font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); background: rgba(239, 230, 214, 0.48); position: sticky; top: 0; }
+.search-results tr:hover { background: rgba(23, 50, 77, 0.06); }
+.search-btn { background: transparent; color: var(--accent-ink); border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; box-shadow: none; border-radius: 0; }
 details { border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 16px; background: rgba(255, 251, 244, 0.82); padding: 14px 16px; }
 summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); letter-spacing: 0.05em; text-transform: uppercase; }
+@media (max-width: 960px) {
+  body { margin: 14px; }
+  .wrap { padding: 16px; }
+  .grid3 { grid-template-columns: 1fr; gap: 12px; }
+  .panel { padding: 14px; border-radius: 16px; }
+  .branch-tabs { display: flex; width: 100%; }
+  .branch-tab { flex: 1; justify-content: center; }
+}
 </style>
 </head>
 <body>

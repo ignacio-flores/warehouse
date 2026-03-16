@@ -45,6 +45,19 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_status_search_and_responsive_hooks_exist(self):
+        for marker in [
+            ".search-panel",
+            ".search-results",
+            "#status",
+            "#wealth_status",
+            ".status-ok",
+            ".status-fail",
+            ".status-warn",
+            "@media (max-width:",
+        ]:
+            self.assertIn(marker, self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
