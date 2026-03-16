@@ -60,9 +60,7 @@ def _proposal_id(record_id: str, proposed_ref_link: str) -> str:
 
 
 def scan_registry_ref_links(registry: dict, show_payload_text: str, hosted_bib_text: str, local_bib_text: str) -> dict:
-    del hosted_bib_text
-    del local_bib_text
-
+    hosted_bib_is_stale = hosted_bib_text != local_bib_text
     entries = parse_bibbase_show_payload(show_payload_text)
     by_citekey: Dict[str, List[str]] = {}
     for entry in entries:
@@ -80,17 +78,43 @@ def scan_registry_ref_links(registry: dict, show_payload_text: str, hosted_bib_t
         candidates = by_citekey.get(citekey, [])
         if not candidates:
             continue
-        if not current and len(candidates) == 1:
-            ready_to_apply.append(
+        if current and current != candidates[0]:
+            reason_flags = ["stored ref_link differs from live BibBase"]
+            if hosted_bib_is_stale:
+                reason_flags.append("hosted BibBase may be stale")
+            needs_review.append(
                 {
                     "proposal_id": _proposal_id(record["id"], candidates[0]),
                     "record_id": record["id"],
                     "citekey": citekey,
                     "current_ref_link": current,
                     "proposed_ref_link": candidates[0],
-                    "selected": True,
-                    "confidence": "high",
-                    "reason_flags": ["blank ref_link, exact citekey match"],
+                    "selected": False,
+                    "confidence": "medium",
+                    "reason_flags": reason_flags,
+                }
+            )
+            continue
+        if not current and len(candidates) == 1:
+            reason_flags = ["blank ref_link, exact citekey match"]
+            bucket = ready_to_apply
+            selected = True
+            confidence = "high"
+            if hosted_bib_is_stale:
+                reason_flags.append("hosted BibBase may be stale")
+                bucket = needs_review
+                selected = False
+                confidence = "medium"
+            bucket.append(
+                {
+                    "proposal_id": _proposal_id(record["id"], candidates[0]),
+                    "record_id": record["id"],
+                    "citekey": citekey,
+                    "current_ref_link": current,
+                    "proposed_ref_link": candidates[0],
+                    "selected": selected,
+                    "confidence": confidence,
+                    "reason_flags": reason_flags,
                 }
             )
 
@@ -104,6 +128,7 @@ def scan_registry_ref_links(registry: dict, show_payload_text: str, hosted_bib_t
         "needs_review": needs_review,
         "scan_metadata": {
             "compared_at": now_utc(),
-            "hosted_bib_matches_local": True,
+            "hosted_bib_matches_local": not hosted_bib_is_stale,
+            "hosted_bib_is_stale": hosted_bib_is_stale,
         },
     }

@@ -64,6 +64,58 @@ class RefLinkReviewScanTests(unittest.TestCase):
         )
         self.assertIn("blank ref_link, exact citekey match", proposal["reason_flags"])
 
+    def test_existing_ref_link_mismatch_stays_in_needs_review(self):
+        registry = {
+            "config": {"bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"},
+            "records": [
+                {
+                    "id": "src-example",
+                    "source": "Example2024",
+                    "citekey": "Example2024",
+                    "ref_link": "https://bibbase.org/network/publication/example-old-2023",
+                    "link": "https://example.org/source",
+                    "bib": {"title": "Example Title", "author": "Example, Eve", "year": "2024"},
+                }
+            ],
+        }
+        scan = self.mod.scan_registry_ref_links(
+            registry,
+            show_payload_text=make_show_payload("Example2024", "example-new-2024"),
+            hosted_bib_text="@article{Example2024,}\n",
+            local_bib_text="@article{Example2024,}\n",
+        )
+        self.assertEqual(scan["summary"]["ready_to_apply"], 0)
+        self.assertEqual(scan["summary"]["needs_review"], 1)
+        proposal = scan["needs_review"][0]
+        self.assertEqual(proposal["confidence"], "medium")
+        self.assertIn("stored ref_link differs from live BibBase", proposal["reason_flags"])
+        self.assertFalse(proposal["selected"])
+
+    def test_hosted_bibbase_drift_downgrades_exact_match_to_needs_review(self):
+        registry = {
+            "config": {"bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"},
+            "records": [
+                {
+                    "id": "src-example",
+                    "source": "Example2024",
+                    "citekey": "Example2024",
+                    "ref_link": "",
+                    "link": "https://example.org/source",
+                    "bib": {"title": "Example Title", "author": "Example, Eve", "year": "2024"},
+                }
+            ],
+        }
+        scan = self.mod.scan_registry_ref_links(
+            registry,
+            show_payload_text=make_show_payload("Example2024", "example-new-2024"),
+            hosted_bib_text="@article{OldKey2023,}\n",
+            local_bib_text="@article{Example2024,}\n",
+        )
+        self.assertTrue(scan["scan_metadata"]["hosted_bib_is_stale"])
+        self.assertEqual(scan["summary"]["ready_to_apply"], 0)
+        self.assertEqual(scan["summary"]["needs_review"], 1)
+        self.assertIn("hosted BibBase may be stale", scan["needs_review"][0]["reason_flags"])
+
 
 if __name__ == "__main__":
     unittest.main()
