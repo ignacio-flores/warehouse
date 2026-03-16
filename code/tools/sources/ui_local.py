@@ -1038,16 +1038,20 @@ body { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Geor
 .app-shell { box-shadow: 0 22px 60px rgba(41, 37, 30, 0.12); }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 label { font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
-input, textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border-soft); border-radius: 6px; font-size: 13px; background: var(--bg-input); color: var(--text-main); font-family: "Avenir Next", "Segoe UI", sans-serif; }
+input, textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border-soft); border-radius: 10px; font-size: 13px; background: var(--bg-input); color: var(--text-main); font-family: "Avenir Next", "Segoe UI", sans-serif; transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent-ink); box-shadow: 0 0 0 3px rgba(23, 50, 77, 0.12); background: #fffdf8; }
 textarea { min-height: 86px; }
 .row { margin-bottom: 16px; }
-button { background: var(--accent-ink); color: white; border: 0; border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
-button.secondary { background: #4d5968; }
-button.warn { background: #a03d02; }
+button { background: var(--accent-ink); color: white; border: 0; border-radius: 999px; padding: 11px 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; cursor: pointer; font-family: "Avenir Next", "Segoe UI", sans-serif; transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease; box-shadow: 0 10px 18px rgba(23, 50, 77, 0.16); }
+button:hover { transform: translateY(-1px); }
+button.secondary { background: #5c6670; box-shadow: 0 10px 18px rgba(73, 81, 89, 0.14); }
+button.warn { background: #8e4520; box-shadow: 0 10px 18px rgba(142, 69, 32, 0.14); }
 h1, h2, h3 { font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); letter-spacing: 0.01em; }
 h1 { margin: 0 0 6px; font-size: 2.1rem; line-height: 1.05; }
 small { color: var(--text-muted); }
 .app-subtitle { margin: 0 0 20px; font-size: 0.95rem; color: var(--text-muted); }
+.panel { margin-bottom: 18px; padding: 18px; border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 20px; background: linear-gradient(180deg, rgba(255, 253, 248, 0.96) 0%, rgba(250, 245, 236, 0.92) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7); }
+.section-heading { margin: 0 0 14px; font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; }
 pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; overflow: auto; }
 #status, #wealth_status { white-space: pre-wrap; line-height: 1.35; }
 #status .status-ok, #wealth_status .status-ok { color: #8fd28f; font-weight: 600; }
@@ -1057,19 +1061,21 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
 #status .git-hunk, #wealth_status .git-hunk { color: #c792ea; }
 #status .git-add, #wealth_status .git-add { color: #8fd28f; }
 #status .git-del, #wealth_status .git-del { color: #ff9da4; }
-.help { background: #f0f4fa; border: 1px solid #d9e3f0; padding: 10px; border-radius: 8px; color: #334455; font-size: 12px; }
+.help { background: rgba(248, 243, 233, 0.95); border: 1px solid rgba(109, 95, 74, 0.18); padding: 12px; border-radius: 14px; color: #4b5662; font-size: 12px; line-height: 1.55; }
 .req { color: #ad2b2b; }
-.step { font-weight: 700; color: #123a66; margin-bottom: 6px; }
+.step { font-weight: 700; color: var(--accent-ink); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.78rem; }
 .hidden { display: none; }
-.branch-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.branch-tab { background: #d9dde3; color: #203040; }
-.branch-tab.active { background: #0b57d0; color: #fff; }
+.branch-tabs { display: inline-flex; gap: 8px; margin-bottom: 20px; padding: 6px; border-radius: 999px; background: rgba(23, 50, 77, 0.08); border: 1px solid rgba(23, 50, 77, 0.08); }
+.branch-tab { background: transparent; color: var(--accent-ink); box-shadow: none; }
+.branch-tab.active { background: var(--accent-ink); color: #fff; }
 .search-panel { border: 1px solid #d9dde3; border-radius: 8px; padding: 10px; background: #fafbfd; }
 .search-results { max-height: 280px; overflow: auto; border: 1px solid #d9dde3; border-radius: 6px; margin-top: 8px; }
 .search-results table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .search-results th, .search-results td { border-bottom: 1px solid #e3e8ef; padding: 6px; text-align: left; vertical-align: top; }
 .search-results tr:hover { background: #eef4ff; }
 .search-btn { background: transparent; color: #0b57d0; border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; }
+details { border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 16px; background: rgba(255, 251, 244, 0.82); padding: 14px 16px; }
+summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); letter-spacing: 0.05em; text-transform: uppercase; }
 </style>
 </head>
 <body>
@@ -1082,7 +1088,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
   </div>
 
   <div id='branch_data'>
-  <div class='grid3 row'>
+  <div class='grid3 row panel'>
     <div>
       <label>Mode <span class='req'>*</span></label>
       <select id='mode' onchange='onModeChange()'>
@@ -1096,7 +1102,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </div>
   </div>
 
-  <div id='dataSearchWrap' class='row hidden'>
+  <div id='dataSearchWrap' class='row hidden panel'>
     <div class='step'>Browse and search existing references</div>
     <div class='search-panel'>
       <label>Search by citekey/source/legend/title/author/year</label>
@@ -1105,7 +1111,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </div>
   </div>
 
-  <div id='editToolsWrap' class='row hidden'>
+  <div id='editToolsWrap' class='row hidden panel'>
     <div class='step'>Edit tools</div>
     <div style='display:flex; gap:10px; flex-wrap:wrap;'>
       <button id='loadBtn' onclick='loadTarget()'>Load existing entry into form</button>
@@ -1113,7 +1119,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </div>
   </div>
 
-  <div id='dataBibPasteWrap'>
+  <div id='dataBibPasteWrap' class='panel'>
   <details open>
     <summary><b>BibTeX Paste</b></summary>
     <div class='help' style='margin-top:8px;'>
@@ -1129,7 +1135,8 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
   </details>
   </div>
 
-  <h3>Core Source Fields</h3>
+  <div class='panel'>
+  <h3 class='section-heading'>Core Source Fields</h3>
   <div class='grid3'>
     <div class='row'><label>Section <span class='req'>*</span></label><input id='section' list='section_opts'></div>
     <div class='row'><label>Aggsource <span class='req'>*</span></label><input id='aggsource' list='aggsource_opts'></div>
@@ -1137,8 +1144,10 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='row'><label>Source / Citekey <span class='req'>*</span></label><input id='source_key' placeholder='Same value used as Source and citekey'></div>
     <div class='row'><label>URL / Link <span class='req'>*</span></label><input id='link'></div>
   </div>
+  </div>
 
-  <h3>Bib Fields</h3>
+  <div class='panel'>
+  <h3 class='section-heading'>Bib Fields</h3>
   <div class='grid3'>
     <div class='row'>
       <label>entry_type <span class='req'>*</span></label>
@@ -1183,8 +1192,10 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='row'><label>Metadata</label><textarea id='metadata'></textarea></div>
     <div class='row'><label>abstract</label><textarea id='bib_abstract'></textarea></div>
   </details>
+  </div>
 
-  <h3>Actions</h3>
+  <div class='panel'>
+  <h3 class='section-heading'>Actions</h3>
   <div class='row'>
     <div class='step'>Step 1: Check entry (validation only, no save)</div>
     <button class='secondary' onclick='validateOnly()'>Check entry</button>
@@ -1201,18 +1212,21 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     <div class='step'>Step 3: Compare with online reference (optional)</div>
     <button class='secondary' onclick='compareOnlineBib()'>Compare</button>
   </div>
+  </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
   <datalist id='data_type_opts'></datalist>
   <datalist id='target_opts'></datalist>
   <datalist id='inclusion_in_warehouse_opts'></datalist>
 
-  <h3>Status</h3>
+  <div class='panel'>
+  <h3 class='section-heading'>Status</h3>
   <pre id='status'></pre>
+  </div>
   </div>
 
   <div id='branch_wealth' class='hidden'>
-    <div class='grid3 row'>
+    <div class='grid3 row panel'>
       <div>
         <label>Mode <span class='req'>*</span></label>
         <select id='wealth_mode' onchange='wealthOnModeChange()'>
@@ -1226,7 +1240,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       </div>
     </div>
 
-    <div id='wealthSearchWrap' class='row hidden'>
+    <div id='wealthSearchWrap' class='row hidden panel'>
       <div class='step'>Browse and search existing references</div>
       <div class='search-panel'>
         <label>Search by key/title/author/year</label>
@@ -1235,7 +1249,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       </div>
     </div>
 
-    <div id='wealthEditToolsWrap' class='row hidden'>
+    <div id='wealthEditToolsWrap' class='row hidden panel'>
       <div class='step'>Edit tools</div>
       <div style='display:flex; gap:10px; flex-wrap:wrap;'>
         <button id='wealthLoadBtn' onclick='wealthLoadTarget()'>Load selected entry into form</button>
@@ -1243,7 +1257,7 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       </div>
     </div>
 
-    <div id='wealthBibPasteWrap'>
+    <div id='wealthBibPasteWrap' class='panel'>
     <details open>
       <summary><b>BibTeX Paste</b></summary>
       <div class='help' style='margin-top:8px;'>
@@ -1257,7 +1271,8 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
     </details>
     </div>
 
-    <h3>Bib Fields</h3>
+    <div class='panel'>
+    <h3 class='section-heading'>Bib Fields</h3>
     <div class='grid3'>
       <div class='row'><label>Key <span class='req'>*</span></label><input id='wealth_key' placeholder='BibTeX key'></div>
       <div class='row'>
@@ -1293,9 +1308,11 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       <div class='row'><label>note</label><input id='wealth_note'></div>
     </div>
     <div class='row'><label>abstract</label><textarea id='wealth_abstract'></textarea></div>
+    </div>
     <input id='wealth_extra_fields' type='hidden' value='{}'>
 
-    <h3>Actions</h3>
+    <div class='panel'>
+    <h3 class='section-heading'>Actions</h3>
     <div class='row'>
       <div class='step'>Step 1: Check entry (validation only, no save)</div>
       <button class='secondary' onclick='wealthValidateOnly()'>Check entry</button>
@@ -1308,9 +1325,12 @@ pre { background: #0e1116; color: #dce4ef; padding: 12px; border-radius: 8px; ov
       </div>
       <button class='warn' onclick='wealthApplyAndBuild()'>Save entry and rebuild</button>
     </div>
+    </div>
 
-    <h3>Status</h3>
+    <div class='panel'>
+    <h3 class='section-heading'>Status</h3>
     <pre id='wealth_status'></pre>
+    </div>
     <datalist id='wealth_target_opts'></datalist>
   </div>
 </div>

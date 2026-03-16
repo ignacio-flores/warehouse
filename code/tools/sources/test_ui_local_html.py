@@ -31,6 +31,20 @@ class UiLocalHtmlTests(unittest.TestCase):
         self.assertIn(".app-shell", self.html)
         self.assertIn(".app-subtitle", self.html)
 
+    def test_shared_component_classes_exist(self):
+        for marker in [
+            ".branch-tabs",
+            ".branch-tab.active",
+            ".panel",
+            ".section-heading",
+            ".help",
+            "details",
+            "summary",
+            "button.secondary",
+            "button.warn",
+        ]:
+            self.assertIn(marker, self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
