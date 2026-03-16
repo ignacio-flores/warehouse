@@ -58,6 +58,18 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_ref_link_review_action_and_panel_hooks_exist(self):
+        for marker in [
+            "Review ref_link proposals",
+            "ref_link_review_panel",
+            "Apply selected",
+            "Select all ready",
+            "Dismiss selected",
+            "/api/ref_link_review_scan",
+            "/api/ref_link_review_apply",
+        ]:
+            self.assertIn(marker, self.html)
+
 
 if __name__ == "__main__":
     unittest.main()

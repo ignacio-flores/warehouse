@@ -1221,6 +1221,21 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     <div class='step'>Step 3: Compare with online reference (optional)</div>
     <button class='secondary' onclick='compareOnlineBib()'>Compare</button>
   </div>
+  <div class='row'>
+    <div class='step'>Step 4: Review full-registry ref_link proposals (optional)</div>
+    <button class='secondary' onclick='scanRefLinkReview()'>Review ref_link proposals</button>
+  </div>
+  <div id='ref_link_review_panel' class='panel hidden'>
+    <h3 class='section-heading'>Ref_link review</h3>
+    <div id='ref_link_review_summary'></div>
+    <div class='row'>
+      <button class='secondary' onclick='selectAllReadyRefLinkReview()'>Select all ready</button>
+      <button class='secondary' onclick='clearRefLinkReviewSelection()'>Clear selection</button>
+      <button class='secondary' onclick='dismissSelectedRefLinkReview()'>Dismiss selected</button>
+      <button class='warn' onclick='applySelectedRefLinkReview()'>Apply selected</button>
+    </div>
+    <div id='ref_link_review_groups'></div>
+  </div>
   </div>
   <datalist id='section_opts'></datalist>
   <datalist id='aggsource_opts'></datalist>
@@ -1866,6 +1881,28 @@ async function compareOnlineBib(){
     setStatus({ok:false, error:String(err)});
     showErrorWindow(String(err));
   }
+}
+
+async function scanRefLinkReview(){
+  const scanPath = '/api/ref_link_review_scan';
+  throw new Error(`Ref_link review is not wired yet: ${scanPath}`);
+}
+
+async function applySelectedRefLinkReview(){
+  const applyPath = '/api/ref_link_review_apply';
+  throw new Error(`Ref_link review apply is not wired yet: ${applyPath}`);
+}
+
+function selectAllReadyRefLinkReview(){
+  throw new Error('Ref_link review is not wired yet.');
+}
+
+function clearRefLinkReviewSelection(){
+  throw new Error('Ref_link review is not wired yet.');
+}
+
+function dismissSelectedRefLinkReview(){
+  throw new Error('Ref_link review is not wired yet.');
 }
 
 async function deleteEntry(){
