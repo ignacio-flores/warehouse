@@ -5,6 +5,8 @@
     "wealth_bib_input": "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib",
     "both_bib_output": "documentation/BibTeX files/BothLibraries.bib",
     "wealth_change_log": "metadata/sources/wealth_research_change_log.yaml",
+    "bibbase_profile_source_url": "https://bibbase.org/f/nKAPSyp34A9azBzJd/GCWealthProject_DataSourcesLibrary.bib",
+    "bibbase_timeout_seconds": 20,
     "web_bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary_web.bib",
     "online_bib_reference_url": "https://raw.githubusercontent.com/ignacio-flores/warehouse/main/documentation/BibTeX%20files/GCWealthProject_DataSourcesLibrary.bib",
     "online_bib_timeout_seconds": 20,

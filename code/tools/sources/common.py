@@ -94,6 +94,8 @@ DEFAULT_REGISTRY = OrderedDict(
                     ("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"),
                     ("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"),
                     ("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"),
+                    ("bibbase_profile_source_url", ""),
+                    ("bibbase_timeout_seconds", 20),
                     ("online_bib_reference_url", ""),
                     ("online_bib_timeout_seconds", 20),
                     ("dictionary_template", "handmade_tables/dictionary.xlsx"),

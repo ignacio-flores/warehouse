@@ -4,6 +4,8 @@ import pathlib
 import sys
 import unittest
 
+from common import DEFAULT_REGISTRY
+
 
 def load_ref_link_review_module():
     path = pathlib.Path("code/tools/sources/ref_link_review.py").resolve()
@@ -175,6 +177,11 @@ class RefLinkReviewScanTests(unittest.TestCase):
         out = self.mod.apply_selected_ref_links(registry, proposals, {"p-a"})
         self.assertEqual(out["applied_ids"], [])
         self.assertEqual(out["stale_ids"], ["src-a"])
+
+    def test_default_registry_exposes_bibbase_review_config(self):
+        config = DEFAULT_REGISTRY["config"]
+        self.assertIn("bibbase_profile_source_url", config)
+        self.assertIn("bibbase_timeout_seconds", config)
 
 
 if __name__ == "__main__":
