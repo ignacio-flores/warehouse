@@ -91,6 +91,21 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_ref_link_review_progress_details_override_and_resize_hooks_exist(self):
+        for marker in [
+            "ref_link_review_scan_status",
+            "ref_link_review_scan_progress",
+            "ref_link_review_scan_progress_label",
+            "ref_link_review_scan_progress_fill",
+            "toggleRefLinkReviewDetails",
+            "updateRefLinkReviewOverride",
+            "ref_link_review_override_input",
+            "beginRefLinkReviewColumnResize",
+            "ref_link_review_resize_handle",
+            "/api/ref_link_review_scan_status",
+        ]:
+            self.assertIn(marker, self.html)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -120,6 +120,38 @@ class RefLinkReviewScanTests(unittest.TestCase):
         self.assertEqual(scan["summary"]["needs_review"], 1)
         self.assertIn("hosted BibBase may be stale", scan["needs_review"][0]["reason_flags"])
 
+    def test_scan_registry_ref_links_reports_progress_and_identity_fields(self):
+        registry = {
+            "config": {"bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"},
+            "records": [
+                {
+                    "id": "src-example",
+                    "source": "Example2024",
+                    "citekey": "Example2024",
+                    "legend": "Example (2024)",
+                    "ref_link": "",
+                    "link": "https://example.org/source",
+                    "bib": {"title": "Example Title", "author": "Example, Eve", "year": "2024"},
+                }
+            ],
+        }
+        progress = []
+
+        scan = self.mod.scan_registry_ref_links(
+            registry,
+            show_payload_text=make_show_payload("Example2024", "example-exampletitle-2024"),
+            hosted_bib_text="@article{Example2024,}\n",
+            local_bib_text="@article{Example2024,}\n",
+            progress_callback=lambda checked, total, record_id: progress.append((checked, total, record_id)),
+        )
+
+        self.assertEqual(progress, [(1, 1, "src-example")])
+        proposal = scan["ready_to_apply"][0]
+        self.assertEqual(proposal["title"], "Example Title")
+        self.assertEqual(proposal["author"], "Example, Eve")
+        self.assertEqual(proposal["year"], "2024")
+        self.assertEqual(proposal["legend"], "Example (2024)")
+
     def test_apply_selected_ref_links_updates_only_blank_records(self):
         registry = {
             "records": [
@@ -179,6 +211,55 @@ class RefLinkReviewScanTests(unittest.TestCase):
         out = self.mod.apply_selected_ref_links(registry, proposals, {"p-a"})
         self.assertEqual(out["applied_ids"], [])
         self.assertEqual(out["stale_ids"], ["src-a"])
+
+    def test_apply_selected_ref_links_uses_valid_override_url(self):
+        registry = {
+            "records": [
+                {"id": "src-a", "citekey": "A2024", "ref_link": "", "source": "A2024", "bib": {"title": "A", "year": "2024"}}
+            ]
+        }
+        proposals = [
+            {
+                "proposal_id": "p-a",
+                "record_id": "src-a",
+                "current_ref_link": "",
+                "proposed_ref_link": "https://bibbase.org/network/publication/a-new",
+                "selected": True,
+            }
+        ]
+        out = self.mod.apply_selected_ref_links(
+            registry,
+            proposals,
+            {"p-a"},
+            overrides={"p-a": "https://override.example/ref-link"},
+        )
+        self.assertEqual(out["applied_ids"], ["src-a"])
+        self.assertEqual(registry["records"][0]["ref_link"], "https://override.example/ref-link")
+
+    def test_apply_selected_ref_links_rejects_invalid_override_url(self):
+        registry = {
+            "records": [
+                {"id": "src-a", "citekey": "A2024", "ref_link": "", "source": "A2024", "bib": {"title": "A", "year": "2024"}}
+            ]
+        }
+        proposals = [
+            {
+                "proposal_id": "p-a",
+                "record_id": "src-a",
+                "current_ref_link": "",
+                "proposed_ref_link": "https://bibbase.org/network/publication/a-new",
+                "selected": True,
+            }
+        ]
+        out = self.mod.apply_selected_ref_links(
+            registry,
+            proposals,
+            {"p-a"},
+            overrides={"p-a": "not-a-valid-url"},
+        )
+        self.assertEqual(out["applied_ids"], [])
+        self.assertEqual(out["invalid_override_ids"], ["p-a"])
+        self.assertEqual(registry["records"][0]["ref_link"], "")
 
     def test_default_registry_exposes_bibbase_review_config(self):
         config = DEFAULT_REGISTRY["config"]
