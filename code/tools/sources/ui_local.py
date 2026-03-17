@@ -2082,7 +2082,7 @@ async function applySelectedRefLinkReview(){
     const msg =
       `Apply ${selectedProposalIds.length} selected ref_link proposal(s)?\n\n` +
       `Dismissed this session: ${dismissedCount}\n\n` +
-      `This will modify:\n- ${fileList.join('\n- ')}`;
+      `This will modify:\n- ${fileList.join('\\n- ')}`;
     if (!confirm(msg)) return;
     const editorName = await ensureEditorName('apply selected ref_link proposals');
     const out = await req('/api/ref_link_review_apply', {

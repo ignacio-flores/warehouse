@@ -70,6 +70,10 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_ref_link_review_apply_message_keeps_escaped_newlines(self):
+        self.assertIn("fileList.join('\\n- ')", self.html)
+        self.assertNotIn("fileList.join('\n- ')", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
