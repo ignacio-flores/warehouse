@@ -61,9 +61,10 @@ class UiLocalHtmlTests(unittest.TestCase):
     def test_ref_link_review_action_and_panel_hooks_exist(self):
         for marker in [
             "Review ref_link proposals",
+            "ref_link_review_modal",
             "ref_link_review_panel",
             "Apply selected",
-            "Select all ready",
+            "Refresh scan",
             "Dismiss selected",
             "/api/ref_link_review_scan",
             "/api/ref_link_review_apply",
@@ -73,6 +74,22 @@ class UiLocalHtmlTests(unittest.TestCase):
     def test_ref_link_review_apply_message_keeps_escaped_newlines(self):
         self.assertIn("fileList.join('\\n- ')", self.html)
         self.assertNotIn("fileList.join('\n- ')", self.html)
+
+    def test_ref_link_review_modal_filter_and_restore_hooks_exist(self):
+        for marker in [
+            "ref_link_review_modal",
+            "ref_link_review_close",
+            "ref_link_review_confidence_filters",
+            "ref_link_review_reason_filters",
+            "Clear filters",
+            "Select filtered",
+            "Unselect filtered",
+            "Restore selected",
+            "toggleRefLinkReviewFilter",
+            "filteredRefLinkReviewRows",
+            "renderRefLinkReviewUrl",
+        ]:
+            self.assertIn(marker, self.html)
 
 
 if __name__ == "__main__":
