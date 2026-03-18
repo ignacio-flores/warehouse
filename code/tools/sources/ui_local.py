@@ -1099,33 +1099,34 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 .search-results tr:hover { background: rgba(23, 50, 77, 0.06); }
 .search-btn { background: transparent; color: var(--accent-ink); border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; box-shadow: none; border-radius: 0; }
 .ref-link-review-modal { position: fixed; inset: 0; z-index: 999; background: rgba(16, 23, 31, 0.62); padding: 24px; overflow: auto; }
-.ref-link-review-dialog { width: min(96vw, 1500px); max-height: 88vh; margin: 0 auto; border-radius: 24px; border: 1px solid rgba(109, 95, 74, 0.18); background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); box-shadow: 0 28px 90px rgba(17, 23, 31, 0.28); display: flex; flex-direction: column; overflow: hidden; }
+.ref-link-review-dialog { width: min(96vw, 1500px); max-height: 92vh; margin: 0 auto; border-radius: 24px; border: 1px solid rgba(109, 95, 74, 0.18); background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); box-shadow: 0 28px 90px rgba(17, 23, 31, 0.28); display: flex; flex-direction: column; overflow: hidden; }
 .ref-link-review-sticky { position: sticky; top: 0; z-index: 2; background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); }
-.ref-link-review-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 20px 22px 12px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
+.ref-link-review-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 16px 18px 8px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
 .ref-link-review-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-.ref-link-review-scan-status { margin-top: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(109, 95, 74, 0.14); background: rgba(255, 251, 244, 0.84); }
+.ref-link-review-scan-status { margin-top: 8px; padding: 8px 10px; border-radius: 14px; border: 1px solid rgba(109, 95, 74, 0.14); background: rgba(255, 251, 244, 0.84); }
 .ref-link-review-scan-status.loading { background: rgba(255, 248, 234, 0.92); }
 .ref-link-review-scan-status.failed { background: rgba(255, 241, 237, 0.94); border-color: rgba(160, 69, 32, 0.22); }
 .ref-link-review-scan-status.complete { background: rgba(248, 252, 247, 0.94); }
 .ref-link-review-scan-meta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-.ref-link-review-scan-progress { height: 10px; margin-top: 10px; border-radius: 999px; overflow: hidden; background: rgba(23, 50, 77, 0.10); }
+.ref-link-review-scan-progress { height: 8px; margin-top: 8px; border-radius: 999px; overflow: hidden; background: rgba(23, 50, 77, 0.10); }
 .ref-link-review-scan-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #234a74 0%, #b4692d 100%); transition: width 0.18s ease; }
 .ref-link-review-scan-progress-label { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
-.ref-link-review-toolbar { display: flex; flex-direction: column; gap: 14px; padding: 14px 22px 16px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
-.ref-link-review-intro { margin: 0; }
-.ref-link-review-benchmark-panel { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 16px; padding: 14px; background: rgba(255, 251, 244, 0.88); }
-.ref-link-review-benchmark-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.ref-link-review-toolbar { display: flex; flex-direction: column; gap: 8px; padding: 10px 18px 12px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
+.ref-link-review-toolbar-note { color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.ref-link-review-benchmark-panel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; padding: 8px 10px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; background: rgba(255, 251, 244, 0.88); }
+.ref-link-review-benchmark-panel label { margin: 0; white-space: nowrap; }
+.ref-link-review-benchmark-inputs { display: contents; }
 .ref-link-review-benchmark-inputs button { white-space: nowrap; }
-.ref-link-review-benchmark-panel small { display: block; margin-top: 8px; line-height: 1.5; }
-.ref-link-review-toolbar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
+.ref-link-review-benchmark-meta { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
+.ref-link-review-toolbar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; }
 .ref-link-review-toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; }
 .ref-link-review-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.ref-link-review-filter-group { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 16px; padding: 12px; background: rgba(255, 251, 244, 0.86); }
-.ref-link-review-filter-group label { margin-bottom: 8px; }
-.ref-link-review-filter-group select { min-height: 104px; background: #fffdf8; border-radius: 14px; }
-.ref-link-review-filter-group small { display: block; margin-top: 8px; line-height: 1.45; }
+.ref-link-review-filter-group { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; padding: 8px 10px; background: rgba(255, 251, 244, 0.86); }
+.ref-link-review-filter-group label { margin-bottom: 6px; }
+.ref-link-review-filter-group select { min-height: 78px; padding: 6px 8px; background: #fffdf8; border-radius: 12px; }
+.ref-link-review-toolbar-summary { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .ref-link-review-visible-summary { margin: 0; }
-.ref-link-review-body { padding: 18px 22px 22px; overflow: auto; }
+.ref-link-review-body { padding: 12px 18px 18px; overflow: auto; }
 .ref-link-review-bucket { margin-bottom: 18px; padding: 16px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 18px; background: rgba(255, 253, 248, 0.84); }
 .ref-link-review-bucket-header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
 .ref-link-review-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -1171,7 +1172,8 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   .ref-link-review-dialog { width: 100%; max-height: 92vh; }
   .ref-link-review-header, .ref-link-review-toolbar, .ref-link-review-body { padding-left: 14px; padding-right: 14px; }
   .ref-link-review-toolbar-row { grid-template-columns: 1fr; }
-  .ref-link-review-benchmark-inputs { grid-template-columns: 1fr; }
+  .ref-link-review-benchmark-panel { grid-template-columns: 1fr; }
+  .ref-link-review-benchmark-panel label { white-space: normal; }
   .ref-link-review-toolbar-actions { justify-content: flex-start; }
   .ref-link-review-filters { grid-template-columns: 1fr; }
   .ref-link-review-details { grid-template-columns: 1fr; }
@@ -1463,14 +1465,12 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
         </div>
       </div>
       <div class='ref-link-review-toolbar'>
-        <div class='help ref-link-review-intro'>
+        <div class='ref-link-review-toolbar-note'>
           This window compares stored registry <b>ref_link</b> values against a benchmark BibBase profile.
-          Filter the observations you want to see, open details only when needed, optionally override a proposal inline,
-          and then apply the selected proposals. Bulk actions apply only to the rows currently visible.
+          Bulk actions apply only to the rows currently visible.
         </div>
         <div class='ref-link-review-benchmark-panel'>
-          <div class='step'>Benchmark source</div>
-          <label for='ref_link_review_benchmark_url'>Benchmark BibBase URL (session only)</label>
+          <label for='ref_link_review_benchmark_url'>Benchmark URL</label>
           <div class='ref-link-review-benchmark-inputs'>
             <input
               id='ref_link_review_benchmark_url'
@@ -1480,24 +1480,21 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
             >
             <button class='secondary' onclick='resetRefLinkReviewBenchmarkUrl()'>Use configured benchmark</button>
           </div>
-          <small id='ref_link_review_benchmark_note'></small>
+          <div id='ref_link_review_benchmark_note' class='ref-link-review-benchmark-meta'></div>
         </div>
         <div class='ref-link-review-toolbar-row'>
           <div class='ref-link-review-filters'>
             <div class='ref-link-review-filter-group'>
               <label for='ref_link_review_status_filters'>Status</label>
               <select id='ref_link_review_status_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("status", this)'></select>
-              <small id='ref_link_review_status_filters_summary'></small>
             </div>
             <div class='ref-link-review-filter-group'>
               <label for='ref_link_review_confidence_filters'>Confidence</label>
               <select id='ref_link_review_confidence_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("confidence", this)'></select>
-              <small id='ref_link_review_confidence_filters_summary'></small>
             </div>
             <div class='ref-link-review-filter-group'>
               <label for='ref_link_review_reason_filters'>Reason</label>
               <select id='ref_link_review_reason_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("reason", this)'></select>
-              <small id='ref_link_review_reason_filters_summary'></small>
             </div>
           </div>
           <div class='ref-link-review-toolbar-actions'>
@@ -1508,7 +1505,7 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
             <button id='ref_link_review_restore_button' class='secondary' onclick='restoreSelectedRefLinkReview()'>Restore selected</button>
           </div>
         </div>
-        <div id='ref_link_review_visible_summary' class='help ref-link-review-visible-summary'></div>
+        <div id='ref_link_review_visible_summary' class='ref-link-review-toolbar-summary ref-link-review-visible-summary'></div>
       </div>
     </div>
     <div id='ref_link_review_panel' class='ref-link-review-body'>
@@ -2173,16 +2170,13 @@ function renderRefLinkReviewPanel(){
   const statusFilterEl = document.getElementById('ref_link_review_status_filters');
   const confidenceEl = document.getElementById('ref_link_review_confidence_filters');
   const reasonEl = document.getElementById('ref_link_review_reason_filters');
-  const statusSummaryEl = document.getElementById('ref_link_review_status_filters_summary');
-  const confidenceSummaryEl = document.getElementById('ref_link_review_confidence_filters_summary');
-  const reasonSummaryEl = document.getElementById('ref_link_review_reason_filters_summary');
   const refreshButton = document.getElementById('ref_link_review_refresh_button');
   const applyButton = document.getElementById('ref_link_review_apply_button');
   const selectVisibleButton = document.getElementById('ref_link_review_select_visible_button');
   const unselectVisibleButton = document.getElementById('ref_link_review_unselect_visible_button');
   const dismissButton = document.getElementById('ref_link_review_dismiss_button');
   const restoreButton = document.getElementById('ref_link_review_restore_button');
-  if (!modal || !panel || !summaryEl || !scanStatusEl || !workspaceEl || !benchmarkInput || !benchmarkNoteEl || !visibleSummaryEl || !statusFilterEl || !confidenceEl || !reasonEl || !statusSummaryEl || !confidenceSummaryEl || !reasonSummaryEl) return;
+  if (!modal || !panel || !summaryEl || !scanStatusEl || !workspaceEl || !benchmarkInput || !benchmarkNoteEl || !visibleSummaryEl || !statusFilterEl || !confidenceEl || !reasonEl) return;
   if (!refLinkReviewState.modal_open) {
     closeRefLinkReviewModal();
     return;
@@ -2193,9 +2187,9 @@ function renderRefLinkReviewPanel(){
   renderRefLinkReviewSelectOptions(statusFilterEl, 'status', statusValues, refLinkReviewStatusLabel);
   renderRefLinkReviewSelectOptions(confidenceEl, 'confidence', confidenceValues);
   renderRefLinkReviewSelectOptions(reasonEl, 'reason', reasonValues);
-  statusSummaryEl.textContent = renderRefLinkReviewFilterSummary('status', statusValues);
-  confidenceSummaryEl.textContent = renderRefLinkReviewFilterSummary('confidence', confidenceValues);
-  reasonSummaryEl.textContent = renderRefLinkReviewFilterSummary('reason', reasonValues);
+  statusFilterEl.title = renderRefLinkReviewFilterSummary('status', statusValues);
+  confidenceEl.title = renderRefLinkReviewFilterSummary('confidence', confidenceValues);
+  reasonEl.title = renderRefLinkReviewFilterSummary('reason', reasonValues);
   pruneRefLinkReviewSelectionToVisible();
   const readyCount = (refLinkReviewState.ready_to_apply || []).length;
   const reviewCount = (refLinkReviewState.needs_review || []).length;
@@ -2232,19 +2226,22 @@ function renderRefLinkReviewPanel(){
   const staleText = refLinkReviewState.scan_metadata && refLinkReviewState.scan_metadata.hosted_bib_is_stale
     ? '<br><small>Hosted BibBase appears stale relative to the local generated .bib.</small>'
     : '';
-  const currentBenchmarkValue = String(refLinkReviewState.benchmark_url || '');
+  const currentBenchmarkValue = String(refLinkReviewState.benchmark_url || '').trim();
   const lastScanBenchmark = String((refLinkReviewState.scan_metadata || {}).profile_source_url || '').trim();
   const defaultBenchmark = String(refLinkReviewState.default_benchmark_url || '').trim();
   benchmarkInput.value = currentBenchmarkValue;
-  let benchmarkNote = 'Used only for this browser session. Paste a different BibBase-hosted .bib URL, then run or refresh the scan to compare against it.';
-  if (defaultBenchmark) benchmarkNote += ` Configured default: ${renderRefLinkReviewUrl(defaultBenchmark)}.`;
-  if (lastScanBenchmark) benchmarkNote += ` Last scan used: ${renderRefLinkReviewUrl(lastScanBenchmark)}.`;
-  if (currentBenchmarkValue.trim() && lastScanBenchmark && currentBenchmarkValue.trim() !== lastScanBenchmark) {
-    benchmarkNote += ' <span class="ref-link-review-inline-warning">The field changed after the last scan. Run Refresh scan to use the updated benchmark.</span>';
+  const benchmarkDisplayValue = currentBenchmarkValue || defaultBenchmark || lastScanBenchmark;
+  let benchmarkNote = `Benchmark: ${renderRefLinkReviewUrl(benchmarkDisplayValue)}`;
+  if (lastScanBenchmark && benchmarkDisplayValue && lastScanBenchmark !== benchmarkDisplayValue) {
+    benchmarkNote += ` &bull; Last scan used: ${renderRefLinkReviewUrl(lastScanBenchmark)}`;
+  }
+  benchmarkNote += ' &bull; Session only. Refresh scan after editing the URL.';
+  if (currentBenchmarkValue && lastScanBenchmark && currentBenchmarkValue !== lastScanBenchmark) {
+    benchmarkNote += ' <span class="ref-link-review-inline-warning">Refresh scan to use the edited URL.</span>';
   }
   benchmarkNoteEl.innerHTML = benchmarkNote;
   summaryEl.innerHTML =
-    `<div class="help">Ready to apply: ${readyCount} | Needs review: ${reviewCount} | Dismissed: ${dismissedCount} | Visible: ${visibleRows.length} | Selected visible: ${selectedCount} | Status filters: ${statusFilters} | Confidence filters: ${confidenceFilters} | Reason filters: ${reasonFilters}${staleText}</div>`;
+    `<div class="ref-link-review-toolbar-summary">Ready: ${readyCount} | Review: ${reviewCount} | Dismissed: ${dismissedCount} | Visible: ${visibleRows.length} | Selected: ${selectedCount} | Filters: ${statusFilters + confidenceFilters + reasonFilters}${staleText}</div>`;
   scanStatusEl.className = scanClasses.join(' ');
   scanStatusEl.innerHTML = `
     <div class="ref-link-review-scan-meta">
@@ -2264,7 +2261,7 @@ function renderRefLinkReviewPanel(){
   if (unselectVisibleButton) unselectVisibleButton.disabled = visibleSelectedRows.length === 0;
   if (dismissButton) dismissButton.disabled = actionableSelectedVisibleCount === 0;
   if (restoreButton) restoreButton.disabled = restorableSelectedVisibleCount === 0;
-  visibleSummaryEl.innerHTML = `Bulk actions apply only to the rows currently visible. Showing <b>${visibleRows.length}</b> row(s); <b>${visibleSelectedRows.length}</b> visible row(s) are selected.`;
+  visibleSummaryEl.innerHTML = `Showing ${visibleRows.length} row(s); ${visibleSelectedRows.length} visible row(s) selected. Use Command/Ctrl inside the filter boxes to change multiple selections.`;
   if (!readyCount && !reviewCount && !dismissedCount) {
     const emptyMessage = isScanning
       ? 'Scan in progress. Results will appear here when the comparison finishes.'

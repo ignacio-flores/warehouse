@@ -113,6 +113,17 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_ref_link_review_compact_benchmark_and_toolbar_hooks_exist(self):
+        for marker in [
+            "ref-link-review-toolbar-note",
+            "ref-link-review-benchmark-meta",
+            "ref-link-review-toolbar-summary",
+            "Benchmark:",
+            "Last scan used:",
+        ]:
+            self.assertIn(marker, self.html)
+        self.assertNotIn("Configured default:", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
