@@ -115,11 +115,19 @@ def fetch_and_scan_registry_ref_links(
     fetch_text=None,
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
     stage_callback: Optional[Callable[[str, str], None]] = None,
+    benchmark_url_override: str = "",
 ) -> dict:
     cfg = registry.get("config", {}) or {}
     profile_source_url = normalize_whitespace(cfg.get("bibbase_profile_source_url", ""))
+    benchmark_source_url = normalize_whitespace(benchmark_url_override or profile_source_url)
     timeout_seconds = int(cfg.get("bibbase_timeout_seconds", 20) or 20)
-    if not profile_source_url:
+    if benchmark_url_override and not HTTP_URL_RE.match(benchmark_source_url):
+        return {
+            "ok": False,
+            "status": "invalid_benchmark_url",
+            "message": "Benchmark URL must start with http:// or https://.",
+        }
+    if not benchmark_source_url:
         return {
             "ok": False,
             "status": "not_configured",
@@ -130,8 +138,8 @@ def fetch_and_scan_registry_ref_links(
     fetch_impl = fetch_text or _fetch_text
     if stage_callback:
         stage_callback("fetching_live_bibbase", "Fetching live BibBase...")
-    hosted_bib = fetch_impl(profile_source_url, timeout_seconds)
-    show_payload = fetch_impl(build_bibbase_show_url(profile_source_url), timeout_seconds)
+    hosted_bib = fetch_impl(benchmark_source_url, timeout_seconds)
+    show_payload = fetch_impl(build_bibbase_show_url(benchmark_source_url), timeout_seconds)
     if stage_callback:
         total = len(registry.get("records", []))
         stage_callback("comparing_registry", f"Comparing registry records (0 / {total})")
@@ -142,7 +150,7 @@ def fetch_and_scan_registry_ref_links(
         local_bib_text,
         progress_callback=progress_callback,
     )
-    scan["scan_metadata"]["profile_source_url"] = profile_source_url
+    scan["scan_metadata"]["profile_source_url"] = benchmark_source_url
     scan["scan_metadata"]["fetch_method"] = hosted_bib.get("method", "")
     return {"ok": True, "status": "ok", **scan}
 
@@ -191,11 +199,20 @@ def apply_selected_ref_links(registry: dict, proposals: List[dict], selected_ids
     }
 
 
-def _proposal_row(record: dict, current: str, proposed: str, selected: bool, confidence: str, reason_flags: List[str]) -> dict:
+def _proposal_row(
+    record: dict,
+    current: str,
+    proposed: str,
+    selected: bool,
+    confidence: str,
+    reason_flags: List[str],
+    status: str,
+) -> dict:
     bib = record.get("bib", {}) or {}
     return {
         "proposal_id": _proposal_id(record["id"], proposed),
         "record_id": record["id"],
+        "status": status,
         "citekey": normalize_whitespace(record.get("citekey", "")),
         "legend": normalize_whitespace(record.get("legend", "")),
         "title": normalize_whitespace(bib.get("title", "")),
@@ -242,7 +259,17 @@ def scan_registry_ref_links(
             reason_flags = ["stored ref_link differs from live BibBase"]
             if hosted_bib_is_stale:
                 reason_flags.append("hosted BibBase may be stale")
-            needs_review.append(_proposal_row(record, current, candidates[0], False, "medium", reason_flags))
+            needs_review.append(
+                _proposal_row(
+                    record,
+                    current,
+                    candidates[0],
+                    False,
+                    "medium",
+                    reason_flags,
+                    "needs_review",
+                )
+            )
             if progress_callback:
                 progress_callback(idx, total_records, record.get("id", ""))
             continue
@@ -256,7 +283,17 @@ def scan_registry_ref_links(
                 bucket = needs_review
                 selected = False
                 confidence = "medium"
-            bucket.append(_proposal_row(record, current, candidates[0], selected, confidence, reason_flags))
+            bucket.append(
+                _proposal_row(
+                    record,
+                    current,
+                    candidates[0],
+                    selected,
+                    confidence,
+                    reason_flags,
+                    "ready_to_apply" if bucket is ready_to_apply else "needs_review",
+                )
+            )
         if progress_callback:
             progress_callback(idx, total_records, record.get("id", ""))
 
