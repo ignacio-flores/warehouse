@@ -75,21 +75,28 @@ class UiLocalHtmlTests(unittest.TestCase):
         self.assertIn("fileList.join('\\n- ')", self.html)
         self.assertNotIn("fileList.join('\n- ')", self.html)
 
-    def test_ref_link_review_modal_filter_and_restore_hooks_exist(self):
+    def test_ref_link_review_simplified_workspace_hooks_exist(self):
         for marker in [
             "ref_link_review_modal",
             "ref_link_review_close",
+            "ref_link_review_benchmark_url",
+            "ref_link_review_status_filters",
             "ref_link_review_confidence_filters",
             "ref_link_review_reason_filters",
             "Clear filters",
-            "Select filtered",
-            "Unselect filtered",
+            "Select visible",
+            "Unselect visible",
+            "Bulk actions apply only to the rows currently visible",
             "Restore selected",
-            "toggleRefLinkReviewFilter",
+            "setRefLinkReviewMultiSelectValues",
             "filteredRefLinkReviewRows",
             "renderRefLinkReviewUrl",
         ]:
             self.assertIn(marker, self.html)
+
+    def test_ref_link_review_repeated_bucket_actions_are_removed(self):
+        self.assertNotIn("Select filtered", self.html)
+        self.assertNotIn("Unselect filtered", self.html)
 
     def test_ref_link_review_progress_details_override_and_resize_hooks_exist(self):
         for marker in [
