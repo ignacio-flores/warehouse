@@ -80,9 +80,9 @@ class UiLocalHtmlTests(unittest.TestCase):
             "ref_link_review_modal",
             "ref_link_review_close",
             "ref_link_review_benchmark_url",
-            "ref_link_review_status_filters",
-            "ref_link_review_confidence_filters",
-            "ref_link_review_reason_filters",
+            "ref_link_review_filter_button_status",
+            "ref_link_review_filter_button_confidence",
+            "ref_link_review_filter_button_reason",
             "Clear filters",
             "Select visible",
             "Unselect visible",
@@ -117,12 +117,67 @@ class UiLocalHtmlTests(unittest.TestCase):
         for marker in [
             "ref-link-review-toolbar-note",
             "ref-link-review-benchmark-meta",
+            "ref-link-review-benchmark-actions",
             "ref-link-review-toolbar-summary",
             "Benchmark:",
             "Last scan used:",
         ]:
             self.assertIn(marker, self.html)
         self.assertNotIn("Configured default:", self.html)
+
+    def test_ref_link_review_tray_shell_hooks_exist(self):
+        for marker in [
+            "ref_link_review_topbar",
+            "ref_link_review_topbar_summary",
+            "ref_link_review_tray",
+            "ref_link_review_tray_resize_handle",
+            "ref_link_review_tray_sections",
+            "ref_link_review_tray_section_filters",
+            "ref_link_review_tray_section_benchmark",
+            "ref_link_review_tray_section_actions",
+            "ref_link_review_tray_section_help",
+        ]:
+            self.assertIn(marker, self.html)
+
+    def test_ref_link_review_tray_interaction_hooks_exist(self):
+        for marker in [
+            "toggleRefLinkReviewTraySection",
+            "ref_link_review_tray_section_header_filters",
+            "ref_link_review_tray_section_header_benchmark",
+            "ref_link_review_tray_section_header_actions",
+            "ref_link_review_tray_section_header_help",
+            "toggleRefLinkReviewFilterPopover",
+            "ref_link_review_filter_popover_status",
+            "ref_link_review_filter_popover_confidence",
+            "ref_link_review_filter_popover_reason",
+            "ref-link-review-filter-popover",
+            "refLinkReviewReasonLabel",
+            "ref-link-review-topbar-status-line",
+        ]:
+            self.assertIn(marker, self.html)
+
+    def test_ref_link_review_tray_resize_and_responsive_hooks_exist(self):
+        for marker in [
+            "beginRefLinkReviewTrayResize",
+            "applyRefLinkReviewTrayWidth",
+            "refLinkReviewClampTrayWidth",
+            "toggleRefLinkReviewTrayOpen",
+            "ref_link_review_tray_toggle_button",
+            "beginRefLinkReviewModalResize",
+            "applyRefLinkReviewModalSize",
+            "ref_link_review_modal_resize_handle",
+        ]:
+            self.assertIn(marker, self.html)
+
+    def test_ref_link_review_compact_topbar_scan_hooks_exist(self):
+        for marker in [
+            "ref-link-review-scan-status-compact",
+            "ref-link-review-title-line",
+            "height = refLinkReviewClampModalHeight",
+            "repeat(auto-fit, minmax(132px, 1fr))",
+            "min-width: max(100%, 240px)",
+        ]:
+            self.assertIn(marker, self.html)
 
 
 if __name__ == "__main__":

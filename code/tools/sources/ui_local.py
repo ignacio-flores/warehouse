@@ -1099,25 +1099,31 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 .search-results tr:hover { background: rgba(23, 50, 77, 0.06); }
 .search-btn { background: transparent; color: var(--accent-ink); border: 0; padding: 0; cursor: pointer; text-align: left; font-size: 12px; box-shadow: none; border-radius: 0; }
 .ref-link-review-modal { position: fixed; inset: 0; z-index: 999; background: rgba(16, 23, 31, 0.62); padding: 24px; overflow: auto; }
-.ref-link-review-dialog { width: min(96vw, 1500px); max-height: 92vh; margin: 0 auto; border-radius: 24px; border: 1px solid rgba(109, 95, 74, 0.18); background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); box-shadow: 0 28px 90px rgba(17, 23, 31, 0.28); display: flex; flex-direction: column; overflow: hidden; }
+.ref-link-review-dialog { position: relative; width: min(96vw, 1500px); max-height: 92vh; margin: 0 auto; border-radius: 24px; border: 1px solid rgba(109, 95, 74, 0.18); background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); box-shadow: 0 28px 90px rgba(17, 23, 31, 0.28); display: flex; flex-direction: column; overflow: hidden; }
 .ref-link-review-sticky { position: sticky; top: 0; z-index: 2; background: linear-gradient(180deg, rgba(255, 253, 248, 0.99) 0%, rgba(247, 240, 227, 0.98) 100%); }
+.ref-link-review-topbar { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 12px 18px 10px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
+.ref-link-review-topbar-summary { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; min-width: 0; }
+.ref-link-review-title-line { margin: 0; font-size: 0.98rem; letter-spacing: 0.05em; }
+.ref-link-review-tray-toggle { display: inline-flex; }
 .ref-link-review-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 16px 18px 8px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
 .ref-link-review-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-.ref-link-review-scan-status { margin-top: 8px; padding: 8px 10px; border-radius: 14px; border: 1px solid rgba(109, 95, 74, 0.14); background: rgba(255, 251, 244, 0.84); }
+.ref-link-review-scan-status { margin-top: 0; padding: 6px 8px; border-radius: 12px; border: 1px solid rgba(109, 95, 74, 0.14); background: rgba(255, 251, 244, 0.84); min-width: min(260px, 100%); }
+.ref-link-review-scan-status-compact { display: grid; gap: 4px; }
 .ref-link-review-scan-status.loading { background: rgba(255, 248, 234, 0.92); }
 .ref-link-review-scan-status.failed { background: rgba(255, 241, 237, 0.94); border-color: rgba(160, 69, 32, 0.22); }
 .ref-link-review-scan-status.complete { background: rgba(248, 252, 247, 0.94); }
-.ref-link-review-scan-meta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-.ref-link-review-scan-progress { height: 8px; margin-top: 8px; border-radius: 999px; overflow: hidden; background: rgba(23, 50, 77, 0.10); }
+.ref-link-review-scan-meta { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ref-link-review-scan-progress { height: 6px; margin-top: 0; border-radius: 999px; overflow: hidden; background: rgba(23, 50, 77, 0.10); }
 .ref-link-review-scan-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #234a74 0%, #b4692d 100%); transition: width 0.18s ease; }
-.ref-link-review-scan-progress-label { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+.ref-link-review-scan-progress-label { margin-top: 0; color: var(--text-muted); font-size: 12px; }
 .ref-link-review-toolbar { display: flex; flex-direction: column; gap: 8px; padding: 10px 18px 12px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
 .ref-link-review-toolbar-note { color: var(--text-muted); font-size: 12px; line-height: 1.45; }
-.ref-link-review-benchmark-panel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; padding: 8px 10px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; background: rgba(255, 251, 244, 0.88); }
-.ref-link-review-benchmark-panel label { margin: 0; white-space: nowrap; }
-.ref-link-review-benchmark-inputs { display: contents; }
-.ref-link-review-benchmark-inputs button { white-space: nowrap; }
-.ref-link-review-benchmark-meta { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
+.ref-link-review-benchmark-panel { display: grid; gap: 10px; padding: 10px 12px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; background: rgba(255, 251, 244, 0.88); }
+.ref-link-review-benchmark-panel label { margin: 0; }
+.ref-link-review-benchmark-inputs { display: grid; gap: 8px; }
+.ref-link-review-benchmark-actions { display: flex; justify-content: flex-start; }
+.ref-link-review-benchmark-inputs button { width: auto; max-width: 100%; align-self: start; white-space: normal; }
+.ref-link-review-benchmark-meta { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .ref-link-review-toolbar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; }
 .ref-link-review-toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; }
 .ref-link-review-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -1127,6 +1133,37 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 .ref-link-review-toolbar-summary { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .ref-link-review-visible-summary { margin: 0; }
 .ref-link-review-body { padding: 12px 18px 18px; overflow: auto; }
+.ref-link-review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(260px, 320px); gap: 0; align-items: start; }
+.ref-link-review-main { min-width: 0; }
+.ref-link-review-tray-resize-handle { position: relative; cursor: col-resize; border-radius: 999px; }
+.ref-link-review-tray-resize-handle::after { content: ""; position: absolute; top: 24px; bottom: 24px; left: 50%; width: 3px; transform: translateX(-50%); border-radius: 999px; background: rgba(23, 50, 77, 0.18); }
+.ref-link-review-tray { margin-left: 8px; padding: 10px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 18px; background: rgba(255, 251, 244, 0.84); }
+.ref-link-review-tray-sections { display: grid; gap: 10px; }
+.ref-link-review-tray-section { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; padding: 10px; background: rgba(255, 253, 248, 0.92); }
+.ref-link-review-tray-section-header { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0; border: 0; background: transparent; color: var(--accent-ink); box-shadow: none; border-radius: 0; text-align: left; }
+.ref-link-review-tray-section-header:hover { transform: none; }
+.ref-link-review-tray-section-heading { display: block; color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+.ref-link-review-tray-section-summary { color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.ref-link-review-tray-section-body { margin-top: 10px; }
+.ref-link-review-tray-section.collapsed .ref-link-review-tray-section-body { display: none; }
+.ref-link-review-topbar-status-line { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
+.ref-link-review-filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; align-items: start; }
+.ref-link-review-filter-popover-wrap { position: relative; min-width: 0; }
+.ref-link-review-filter-trigger { width: 100%; justify-content: space-between; border-radius: 10px; padding: 9px 10px; background: #fffdf8; color: var(--text-main); border: 1px solid rgba(109, 95, 74, 0.14); box-shadow: none; }
+.ref-link-review-filter-trigger:hover { transform: none; }
+.ref-link-review-filter-trigger.active { border-color: rgba(23, 50, 77, 0.28); background: rgba(255, 251, 244, 0.96); }
+.ref-link-review-filter-popover { position: absolute; top: calc(100% + 6px); right: 0; z-index: 3; width: max-content; min-width: max(100%, 240px); max-width: min(420px, calc(100vw - 80px), calc(100% + 240px)); padding: 10px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 12px; background: rgba(255, 253, 248, 0.98); box-shadow: 0 10px 24px rgba(17, 23, 31, 0.12); }
+.ref-link-review-filter-popover.hidden { display: none; }
+.ref-link-review-filter-list { display: grid; gap: 6px; max-height: 176px; overflow: auto; padding: 2px 2px 2px 0; }
+.ref-link-review-filter-option { display: flex; align-items: flex-start; gap: 8px; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 12px; line-height: 1.35; color: var(--text-main); min-width: 0; }
+.ref-link-review-filter-option input { width: auto; margin-top: 1px; }
+.ref-link-review-filter-option-text { min-width: 0; white-space: normal; word-break: normal; overflow-wrap: normal; }
+.ref-link-review-filter-popover-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.ref-link-review-dialog-resize-handle { position: absolute; right: 12px; bottom: 10px; width: 18px; height: 18px; cursor: nwse-resize; }
+.ref-link-review-dialog-resize-handle::before,
+.ref-link-review-dialog-resize-handle::after { content: ""; position: absolute; right: 0; bottom: 0; background: rgba(23, 50, 77, 0.28); border-radius: 999px; }
+.ref-link-review-dialog-resize-handle::before { width: 2px; height: 16px; transform: rotate(45deg); transform-origin: bottom right; }
+.ref-link-review-dialog-resize-handle::after { width: 2px; height: 11px; right: 5px; bottom: 1px; transform: rotate(45deg); transform-origin: bottom right; }
 .ref-link-review-bucket { margin-bottom: 18px; padding: 16px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 18px; background: rgba(255, 253, 248, 0.84); }
 .ref-link-review-bucket-header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
 .ref-link-review-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -1170,7 +1207,15 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   .branch-tab { flex: 1; justify-content: center; }
   .ref-link-review-modal { padding: 12px; }
   .ref-link-review-dialog { width: 100%; max-height: 92vh; }
-  .ref-link-review-header, .ref-link-review-toolbar, .ref-link-review-body { padding-left: 14px; padding-right: 14px; }
+  .ref-link-review-topbar, .ref-link-review-header, .ref-link-review-toolbar, .ref-link-review-body { padding-left: 14px; padding-right: 14px; }
+  .ref-link-review-topbar { align-items: flex-start; }
+  .ref-link-review-topbar-summary { display: grid; }
+  .ref-link-review-tray-toggle { display: inline-flex; }
+  .ref-link-review-layout { grid-template-columns: 1fr; }
+  .ref-link-review-tray-resize-handle { display: none; }
+  .ref-link-review-tray { margin-left: 0; margin-top: 12px; }
+  .ref-link-review-filter-row { grid-template-columns: 1fr; }
+  .ref-link-review-filter-popover { position: static; margin-top: 6px; }
   .ref-link-review-toolbar-row { grid-template-columns: 1fr; }
   .ref-link-review-benchmark-panel { grid-template-columns: 1fr; }
   .ref-link-review-benchmark-panel label { white-space: normal; }
@@ -1444,10 +1489,11 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
 <div id='ref_link_review_modal' class='ref-link-review-modal hidden' onclick='if (event.target === this) closeRefLinkReviewModal()'>
   <div class='ref-link-review-dialog' role='dialog' aria-modal='true' aria-labelledby='ref_link_review_title'>
     <div class='ref-link-review-sticky'>
-      <div class='ref-link-review-header'>
-        <div>
-          <h3 id='ref_link_review_title' class='section-heading'>Ref_link review</h3>
+      <div id='ref_link_review_topbar' class='ref-link-review-topbar'>
+        <div id='ref_link_review_topbar_summary' class='ref-link-review-topbar-summary'>
+          <h3 id='ref_link_review_title' class='section-heading ref-link-review-title-line'>Ref_link review</h3>
           <div id='ref_link_review_summary'></div>
+          <div id='ref_link_review_topbar_status_line' class='ref-link-review-topbar-status-line'></div>
           <div id='ref_link_review_scan_status' class='ref-link-review-scan-status'>
             <div class='ref-link-review-scan-meta'>
               <div class='step'>Scan status</div>
@@ -1459,58 +1505,100 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
           </div>
         </div>
         <div class='ref-link-review-header-actions'>
+          <button id='ref_link_review_tray_toggle_button' class='secondary ref-link-review-tray-toggle' onclick='toggleRefLinkReviewTrayOpen()'>Tools</button>
           <button id='ref_link_review_refresh_button' class='secondary' onclick='scanRefLinkReview()'>Refresh scan</button>
           <button id='ref_link_review_apply_button' class='warn' onclick='applySelectedRefLinkReview()'>Apply selected</button>
           <button id='ref_link_review_close' class='secondary' onclick='closeRefLinkReviewModal()'>Close</button>
         </div>
       </div>
-      <div class='ref-link-review-toolbar'>
-        <div class='ref-link-review-toolbar-note'>
-          This window compares stored registry <b>ref_link</b> values against a benchmark BibBase profile.
-          Bulk actions apply only to the rows currently visible.
-        </div>
-        <div class='ref-link-review-benchmark-panel'>
-          <label for='ref_link_review_benchmark_url'>Benchmark URL</label>
-          <div class='ref-link-review-benchmark-inputs'>
-            <input
-              id='ref_link_review_benchmark_url'
-              placeholder='https://bibbase.org/f/.../GCWealthProject_DataSourcesLibrary.bib'
-              oninput='updateRefLinkReviewBenchmarkUrl(this.value)'
-              onchange='renderRefLinkReviewPanel()'
-            >
-            <button class='secondary' onclick='resetRefLinkReviewBenchmarkUrl()'>Use configured benchmark</button>
-          </div>
-          <div id='ref_link_review_benchmark_note' class='ref-link-review-benchmark-meta'></div>
-        </div>
-        <div class='ref-link-review-toolbar-row'>
-          <div class='ref-link-review-filters'>
-            <div class='ref-link-review-filter-group'>
-              <label for='ref_link_review_status_filters'>Status</label>
-              <select id='ref_link_review_status_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("status", this)'></select>
-            </div>
-            <div class='ref-link-review-filter-group'>
-              <label for='ref_link_review_confidence_filters'>Confidence</label>
-              <select id='ref_link_review_confidence_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("confidence", this)'></select>
-            </div>
-            <div class='ref-link-review-filter-group'>
-              <label for='ref_link_review_reason_filters'>Reason</label>
-              <select id='ref_link_review_reason_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("reason", this)'></select>
-            </div>
-          </div>
-          <div class='ref-link-review-toolbar-actions'>
-            <button class='secondary' onclick='clearRefLinkReviewFilters()'>Clear filters</button>
-            <button id='ref_link_review_select_visible_button' class='secondary' onclick='selectVisibleRefLinkReview()'>Select visible</button>
-            <button id='ref_link_review_unselect_visible_button' class='secondary' onclick='unselectVisibleRefLinkReview()'>Unselect visible</button>
-            <button id='ref_link_review_dismiss_button' class='secondary' onclick='dismissSelectedRefLinkReview()'>Dismiss selected</button>
-            <button id='ref_link_review_restore_button' class='secondary' onclick='restoreSelectedRefLinkReview()'>Restore selected</button>
-          </div>
-        </div>
-        <div id='ref_link_review_visible_summary' class='ref-link-review-toolbar-summary ref-link-review-visible-summary'></div>
-      </div>
     </div>
     <div id='ref_link_review_panel' class='ref-link-review-body'>
-      <div id='ref_link_review_workspace'></div>
+      <div class='ref-link-review-layout'>
+        <div class='ref-link-review-main'>
+          <div id='ref_link_review_workspace'></div>
+        </div>
+        <div id='ref_link_review_tray_resize_handle' class='ref-link-review-tray-resize-handle' onmousedown='beginRefLinkReviewTrayResize(event)'></div>
+        <aside id='ref_link_review_tray' class='ref-link-review-tray'>
+          <div id='ref_link_review_tray_sections' class='ref-link-review-tray-sections'>
+            <section id='ref_link_review_tray_section_filters' class='ref-link-review-tray-section'>
+              <button id='ref_link_review_tray_section_header_filters' class='ref-link-review-tray-section-header' onclick='toggleRefLinkReviewTraySection("filters")'>
+                <span class='ref-link-review-tray-section-heading'>Filters</span>
+                <span id='ref_link_review_tray_section_summary_filters' class='ref-link-review-tray-section-summary'></span>
+              </button>
+              <div id='ref_link_review_tray_section_body_filters' class='ref-link-review-tray-section-body'>
+                <div class='ref-link-review-filter-row'>
+                  <div class='ref-link-review-filter-popover-wrap'>
+                    <button id='ref_link_review_filter_button_status' class='secondary ref-link-review-filter-trigger' onclick='toggleRefLinkReviewFilterPopover("status")'>Status</button>
+                    <div id='ref_link_review_filter_popover_status' class='ref-link-review-filter-popover hidden'></div>
+                  </div>
+                  <div class='ref-link-review-filter-popover-wrap'>
+                    <button id='ref_link_review_filter_button_confidence' class='secondary ref-link-review-filter-trigger' onclick='toggleRefLinkReviewFilterPopover("confidence")'>Confidence</button>
+                    <div id='ref_link_review_filter_popover_confidence' class='ref-link-review-filter-popover hidden'></div>
+                  </div>
+                  <div class='ref-link-review-filter-popover-wrap'>
+                    <button id='ref_link_review_filter_button_reason' class='secondary ref-link-review-filter-trigger' onclick='toggleRefLinkReviewFilterPopover("reason")'>Reason</button>
+                    <div id='ref_link_review_filter_popover_reason' class='ref-link-review-filter-popover hidden'></div>
+                  </div>
+                </div>
+                <div id='ref_link_review_visible_summary' class='ref-link-review-toolbar-summary ref-link-review-visible-summary'></div>
+              </div>
+            </section>
+            <section id='ref_link_review_tray_section_benchmark' class='ref-link-review-tray-section'>
+              <button id='ref_link_review_tray_section_header_benchmark' class='ref-link-review-tray-section-header' onclick='toggleRefLinkReviewTraySection("benchmark")'>
+                <span class='ref-link-review-tray-section-heading'>Benchmark</span>
+                <span id='ref_link_review_tray_section_summary_benchmark' class='ref-link-review-tray-section-summary'></span>
+              </button>
+              <div id='ref_link_review_tray_section_body_benchmark' class='ref-link-review-tray-section-body'>
+                <div class='ref-link-review-toolbar-note'>
+                  This window compares stored registry <b>ref_link</b> values against a benchmark BibBase profile.
+                </div>
+                <div class='ref-link-review-benchmark-panel'>
+                  <label for='ref_link_review_benchmark_url'>Benchmark URL</label>
+                  <div class='ref-link-review-benchmark-inputs'>
+                    <input
+                      id='ref_link_review_benchmark_url'
+                      placeholder='https://bibbase.org/f/.../GCWealthProject_DataSourcesLibrary.bib'
+                      oninput='updateRefLinkReviewBenchmarkUrl(this.value)'
+                      onchange='renderRefLinkReviewPanel()'
+                    >
+                    <div class='ref-link-review-benchmark-actions'>
+                      <button class='secondary' onclick='resetRefLinkReviewBenchmarkUrl()'>Use configured benchmark</button>
+                    </div>
+                  </div>
+                  <div id='ref_link_review_benchmark_note' class='ref-link-review-benchmark-meta'></div>
+                </div>
+              </div>
+            </section>
+            <section id='ref_link_review_tray_section_actions' class='ref-link-review-tray-section'>
+              <button id='ref_link_review_tray_section_header_actions' class='ref-link-review-tray-section-header' onclick='toggleRefLinkReviewTraySection("actions")'>
+                <span class='ref-link-review-tray-section-heading'>Bulk actions</span>
+                <span id='ref_link_review_tray_section_summary_actions' class='ref-link-review-tray-section-summary'></span>
+              </button>
+              <div id='ref_link_review_tray_section_body_actions' class='ref-link-review-tray-section-body'>
+                <div class='ref-link-review-toolbar-note'>Bulk actions apply only to the rows currently visible.</div>
+                <div class='ref-link-review-toolbar-actions'>
+                  <button class='secondary' onclick='clearRefLinkReviewFilters()'>Clear filters</button>
+                  <button id='ref_link_review_select_visible_button' class='secondary' onclick='selectVisibleRefLinkReview()'>Select visible</button>
+                  <button id='ref_link_review_unselect_visible_button' class='secondary' onclick='unselectVisibleRefLinkReview()'>Unselect visible</button>
+                  <button id='ref_link_review_dismiss_button' class='secondary' onclick='dismissSelectedRefLinkReview()'>Dismiss selected</button>
+                  <button id='ref_link_review_restore_button' class='secondary' onclick='restoreSelectedRefLinkReview()'>Restore selected</button>
+                </div>
+              </div>
+            </section>
+            <section id='ref_link_review_tray_section_help' class='ref-link-review-tray-section'>
+              <button id='ref_link_review_tray_section_header_help' class='ref-link-review-tray-section-header' onclick='toggleRefLinkReviewTraySection("help")'>
+                <span class='ref-link-review-tray-section-heading'>Help</span>
+                <span id='ref_link_review_tray_section_summary_help' class='ref-link-review-tray-section-summary'></span>
+              </button>
+              <div id='ref_link_review_tray_section_body_help' class='ref-link-review-tray-section-body'>
+                <div class='ref-link-review-toolbar-summary'>Use the tray to adjust filters, benchmark settings, and bulk actions without taking height away from the review table.</div>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </div>
     </div>
+    <div id='ref_link_review_modal_resize_handle' class='ref-link-review-dialog-resize-handle' onmousedown='beginRefLinkReviewModalResize(event)'></div>
   </div>
 </div>
 
@@ -1569,6 +1657,7 @@ let wealthDirty = false;
 let wealthLoadedKey = '';
 let wealthEntries = [];
 let dataEntries = [];
+const REF_LINK_REVIEW_STORAGE_PREFIX = 'adam-ssm-ref-link-review';
 function defaultRefLinkReviewColumnWidths(){
   return {
     select: 68,
@@ -1589,6 +1678,28 @@ function defaultRefLinkReviewScanStatus(){
     message: 'Run a scan to review ref_link proposals.',
     error: '',
   };
+}
+function refLinkReviewStorageKey(suffix){
+  return `${REF_LINK_REVIEW_STORAGE_PREFIX}-${suffix}`;
+}
+function refLinkReviewReadStorage(key, fallbackValue){
+  try {
+    const raw = window.localStorage.getItem(refLinkReviewStorageKey(key));
+    return raw === null ? fallbackValue : raw;
+  } catch (err) {
+    return fallbackValue;
+  }
+}
+function refLinkReviewWriteStorage(key, value){
+  try {
+    if (value === null || value === undefined || value === '') {
+      window.localStorage.removeItem(refLinkReviewStorageKey(key));
+      return;
+    }
+    window.localStorage.setItem(refLinkReviewStorageKey(key), String(value));
+  } catch (err) {
+    // Ignore storage failures in the local UI.
+  }
 }
 function emptyRefLinkReviewState(previousState){
   const previous = previousState || {};
@@ -1615,10 +1726,18 @@ function emptyRefLinkReviewState(previousState){
     },
     benchmark_url: String(previous.benchmark_url || previous.default_benchmark_url || ''),
     default_benchmark_url: String(previous.default_benchmark_url || ''),
+    tray_width: Number(previous.tray_width || refLinkReviewReadStorage('tray-width', 320)),
+    active_tray_section: String(previous.active_tray_section || refLinkReviewReadStorage('active-tray-section', 'filters')),
+    tray_open: previous.tray_open !== false && refLinkReviewReadStorage('tray-open', '1') !== '0',
+    active_filter_popover: String(previous.active_filter_popover || ''),
+    modal_width: Number(previous.modal_width || refLinkReviewReadStorage('modal-width', 1500)),
+    modal_height: Number(previous.modal_height || refLinkReviewReadStorage('modal-height', 0)),
   };
 }
 let refLinkReviewState = emptyRefLinkReviewState();
 let refLinkReviewResizeState = null;
+let refLinkReviewTrayResizeState = null;
+let refLinkReviewModalResizeState = null;
 function markWealthDirty(){ wealthDirty = true; }
 function clearWealthDirty(){ wealthDirty = false; }
 
@@ -1636,6 +1755,15 @@ function refLinkReviewStatusLabel(status){
   if (value === 'needs_review') return 'Needs review';
   if (value === 'dismissed') return 'Dismissed';
   return value || 'Unknown';
+}
+
+function refLinkReviewReasonLabel(reason){
+  const value = String(reason || '').trim();
+  if (!value) return 'Unknown';
+  return value
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match, chr) => chr.toUpperCase());
 }
 
 function refLinkReviewStatusClass(status){
@@ -1682,6 +1810,92 @@ function refLinkReviewCurrentBenchmarkUrl(){
     refLinkReviewState.benchmark_url ||
     ''
   ).trim();
+}
+
+function toggleRefLinkReviewTraySection(section){
+  const nextSection = String(section || '').trim() || 'filters';
+  refLinkReviewState.active_tray_section = nextSection;
+  refLinkReviewWriteStorage('active-tray-section', nextSection);
+  renderRefLinkReviewPanel();
+}
+
+function toggleRefLinkReviewFilterPopover(kind){
+  const nextKind = String(kind || '').trim();
+  refLinkReviewState.active_filter_popover = refLinkReviewState.active_filter_popover === nextKind ? '' : nextKind;
+  renderRefLinkReviewPanel();
+}
+
+function refLinkReviewTrayIsPinned(){
+  return window.innerWidth > 960;
+}
+
+function refLinkReviewClampTrayWidth(width){
+  return Math.max(260, Math.min(520, Number(width || 320)));
+}
+
+function refLinkReviewClampModalWidth(width){
+  return Math.max(980, Math.min(window.innerWidth - 24, Number(width || 1500)));
+}
+
+function refLinkReviewClampModalHeight(height){
+  if (!height) return 0;
+  return Math.max(560, Math.min(window.innerHeight - 24, Number(height || 0)));
+}
+
+function beginRefLinkReviewTrayResize(event){
+  if (!refLinkReviewTrayIsPinned() || !event) return;
+  event.preventDefault();
+  refLinkReviewTrayResizeState = {
+    startX: Number(event.clientX || 0),
+    startWidth: refLinkReviewClampTrayWidth(refLinkReviewState.tray_width || 320),
+  };
+}
+
+function beginRefLinkReviewModalResize(event){
+  if (!event) return;
+  event.preventDefault();
+  const dialogEl = document.querySelector('.ref-link-review-dialog');
+  const rect = dialogEl ? dialogEl.getBoundingClientRect() : {width: refLinkReviewClampModalWidth(refLinkReviewState.modal_width), height: refLinkReviewClampModalHeight(refLinkReviewState.modal_height || window.innerHeight * 0.92)};
+  refLinkReviewModalResizeState = {
+    startX: Number(event.clientX || 0),
+    startY: Number(event.clientY || 0),
+    startWidth: Number(rect.width || refLinkReviewClampModalWidth(refLinkReviewState.modal_width)),
+    startHeight: Number(rect.height || refLinkReviewClampModalHeight(refLinkReviewState.modal_height || window.innerHeight * 0.92)),
+  };
+}
+
+function applyRefLinkReviewTrayWidth(){
+  const layoutEl = document.querySelector('.ref-link-review-layout');
+  const trayEl = document.getElementById('ref_link_review_tray');
+  const resizeHandleEl = document.getElementById('ref_link_review_tray_resize_handle');
+  if (!layoutEl || !trayEl || !resizeHandleEl) return;
+  if (!refLinkReviewTrayIsPinned() || !refLinkReviewState.tray_open) {
+    layoutEl.style.gridTemplateColumns = '1fr';
+    trayEl.style.display = refLinkReviewState.tray_open ? '' : 'none';
+    resizeHandleEl.style.display = 'none';
+    return;
+  }
+  const width = refLinkReviewClampTrayWidth(refLinkReviewState.tray_width || 320);
+  refLinkReviewState.tray_width = width;
+  layoutEl.style.gridTemplateColumns = `minmax(0, 1fr) 12px ${width}px`;
+  trayEl.style.display = '';
+  resizeHandleEl.style.display = '';
+}
+
+function applyRefLinkReviewModalSize(){
+  const dialogEl = document.querySelector('.ref-link-review-dialog');
+  if (!dialogEl) return;
+  const width = refLinkReviewClampModalWidth(refLinkReviewState.modal_width || 1500);
+  const height = refLinkReviewClampModalHeight(refLinkReviewState.modal_height || Math.round(window.innerHeight * 0.92));
+  dialogEl.style.width = `min(96vw, ${width}px)`;
+  dialogEl.style.height = `${height}px`;
+  dialogEl.style.maxHeight = `${height}px`;
+}
+
+function toggleRefLinkReviewTrayOpen(){
+  refLinkReviewState.tray_open = !refLinkReviewState.tray_open;
+  refLinkReviewWriteStorage('tray-open', refLinkReviewState.tray_open ? '1' : '0');
+  renderRefLinkReviewPanel();
 }
 
 function hydrateRefLinkReviewState(review, previousState){
@@ -1826,6 +2040,16 @@ function updateRefLinkReviewFilterFromSelect(kind, selectEl){
       .map((option) => String(option.value || '').trim())
       .filter(Boolean)
   );
+  pruneRefLinkReviewSelectionToVisible();
+  renderRefLinkReviewPanel();
+}
+
+function updateRefLinkReviewFilterOption(kind, value, checked){
+  const filters = refLinkReviewState.filters[kind];
+  const nextValue = String(value || '').trim();
+  if (!filters || !nextValue) return;
+  if (checked) filters.add(nextValue);
+  else filters.delete(nextValue);
   pruneRefLinkReviewSelectionToVisible();
   renderRefLinkReviewPanel();
 }
@@ -2061,6 +2285,58 @@ function renderRefLinkReviewSelectOptions(selectEl, kind, values, formatter){
   selectEl.size = Math.max(4, Math.min(7, values.length));
 }
 
+function renderRefLinkReviewFilterChecklist(containerEl, kind, values, formatter){
+  if (!containerEl) return;
+  const activeValues = refLinkReviewState.filters[kind] || new Set();
+  const availableValues = new Set(values);
+  [...activeValues].forEach((value) => {
+    if (!availableValues.has(value)) activeValues.delete(value);
+  });
+  if (!values.length) {
+    activeValues.clear();
+    containerEl.innerHTML = '<small>No values available.</small>';
+    return;
+  }
+  containerEl.innerHTML = values.map((value, idx) => {
+    const checked = activeValues.has(value) ? 'checked' : '';
+    const label = escapeHtml(formatter ? formatter(value) : value);
+    const inputId = `ref_link_review_filter_${escapeHtml(kind)}_${idx}`;
+    return `
+      <label class="ref-link-review-filter-option" for="${inputId}">
+        <input
+          id="${inputId}"
+          type="checkbox"
+          ${checked}
+          onchange='updateRefLinkReviewFilterOption(${JSON.stringify(kind)}, ${JSON.stringify(value)}, this.checked)'
+        >
+        <span class="ref-link-review-filter-option-text">${label}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function renderRefLinkReviewFilterPopover(containerEl, kind, values, formatter, label){
+  if (!containerEl) return;
+  const activeValues = refLinkReviewState.filters[kind] || new Set();
+  const selectedCount = activeValues.size;
+  const buttonLabel = selectedCount ? `${label} (${selectedCount})` : label;
+  const open = refLinkReviewState.active_filter_popover === kind;
+  containerEl.classList.toggle('hidden', !open);
+  renderRefLinkReviewFilterChecklist(containerEl, kind, values, formatter);
+  containerEl.innerHTML = `
+    <div class="ref-link-review-filter-list">${containerEl.innerHTML}</div>
+    <div class="ref-link-review-filter-popover-actions">
+      <button class="secondary" onclick='toggleRefLinkReviewFilterPopover(${JSON.stringify(kind)})'>Done</button>
+    </div>
+  `;
+  const triggerEl = document.getElementById(`ref_link_review_filter_button_${kind}`);
+  if (triggerEl) {
+    triggerEl.textContent = buttonLabel;
+    triggerEl.classList.toggle('active', open);
+    triggerEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+}
+
 function renderRefLinkReviewWorkspace(){
   const visibleRows = filteredRefLinkReviewRows();
   const totalRows = allRefLinkReviewRows().length;
@@ -2069,7 +2345,7 @@ function renderRefLinkReviewWorkspace(){
     return `
       <section class="ref-link-review-bucket">
         <div class="step">Review workspace</div>
-        <small>No proposals match the current filters. Adjust the filters above to change what you see.</small>
+        <small>No proposals match the current filters. Adjust the tray filters to change what you see.</small>
       </section>
     `;
   }
@@ -2162,21 +2438,35 @@ function renderRefLinkReviewPanel(){
   const modal = document.getElementById('ref_link_review_modal');
   const panel = document.getElementById('ref_link_review_panel');
   const summaryEl = document.getElementById('ref_link_review_summary');
+  const topbarStatusLineEl = document.getElementById('ref_link_review_topbar_status_line');
   const scanStatusEl = document.getElementById('ref_link_review_scan_status');
   const workspaceEl = document.getElementById('ref_link_review_workspace');
   const benchmarkInput = document.getElementById('ref_link_review_benchmark_url');
   const benchmarkNoteEl = document.getElementById('ref_link_review_benchmark_note');
   const visibleSummaryEl = document.getElementById('ref_link_review_visible_summary');
-  const statusFilterEl = document.getElementById('ref_link_review_status_filters');
-  const confidenceEl = document.getElementById('ref_link_review_confidence_filters');
-  const reasonEl = document.getElementById('ref_link_review_reason_filters');
+  const statusFilterEl = document.getElementById('ref_link_review_filter_popover_status');
+  const confidenceEl = document.getElementById('ref_link_review_filter_popover_confidence');
+  const reasonEl = document.getElementById('ref_link_review_filter_popover_reason');
+  const filtersSectionEl = document.getElementById('ref_link_review_tray_section_filters');
+  const benchmarkSectionEl = document.getElementById('ref_link_review_tray_section_benchmark');
+  const actionsSectionEl = document.getElementById('ref_link_review_tray_section_actions');
+  const helpSectionEl = document.getElementById('ref_link_review_tray_section_help');
+  const filtersSummaryEl = document.getElementById('ref_link_review_tray_section_summary_filters');
+  const benchmarkSummaryEl = document.getElementById('ref_link_review_tray_section_summary_benchmark');
+  const actionsSummaryEl = document.getElementById('ref_link_review_tray_section_summary_actions');
+  const helpSummaryEl = document.getElementById('ref_link_review_tray_section_summary_help');
+  const filtersHeaderEl = document.getElementById('ref_link_review_tray_section_header_filters');
+  const benchmarkHeaderEl = document.getElementById('ref_link_review_tray_section_header_benchmark');
+  const actionsHeaderEl = document.getElementById('ref_link_review_tray_section_header_actions');
+  const helpHeaderEl = document.getElementById('ref_link_review_tray_section_header_help');
   const refreshButton = document.getElementById('ref_link_review_refresh_button');
   const applyButton = document.getElementById('ref_link_review_apply_button');
+  const trayToggleButton = document.getElementById('ref_link_review_tray_toggle_button');
   const selectVisibleButton = document.getElementById('ref_link_review_select_visible_button');
   const unselectVisibleButton = document.getElementById('ref_link_review_unselect_visible_button');
   const dismissButton = document.getElementById('ref_link_review_dismiss_button');
   const restoreButton = document.getElementById('ref_link_review_restore_button');
-  if (!modal || !panel || !summaryEl || !scanStatusEl || !workspaceEl || !benchmarkInput || !benchmarkNoteEl || !visibleSummaryEl || !statusFilterEl || !confidenceEl || !reasonEl) return;
+  if (!modal || !panel || !summaryEl || !topbarStatusLineEl || !scanStatusEl || !workspaceEl || !benchmarkInput || !benchmarkNoteEl || !visibleSummaryEl || !statusFilterEl || !confidenceEl || !reasonEl) return;
   if (!refLinkReviewState.modal_open) {
     closeRefLinkReviewModal();
     return;
@@ -2184,12 +2474,9 @@ function renderRefLinkReviewPanel(){
   const statusValues = refLinkReviewFilterValues('status');
   const confidenceValues = refLinkReviewFilterValues('confidence');
   const reasonValues = refLinkReviewFilterValues('reason');
-  renderRefLinkReviewSelectOptions(statusFilterEl, 'status', statusValues, refLinkReviewStatusLabel);
-  renderRefLinkReviewSelectOptions(confidenceEl, 'confidence', confidenceValues);
-  renderRefLinkReviewSelectOptions(reasonEl, 'reason', reasonValues);
-  statusFilterEl.title = renderRefLinkReviewFilterSummary('status', statusValues);
-  confidenceEl.title = renderRefLinkReviewFilterSummary('confidence', confidenceValues);
-  reasonEl.title = renderRefLinkReviewFilterSummary('reason', reasonValues);
+  renderRefLinkReviewFilterPopover(statusFilterEl, 'status', statusValues, refLinkReviewStatusLabel, 'Status');
+  renderRefLinkReviewFilterPopover(confidenceEl, 'confidence', confidenceValues, null, 'Confidence');
+  renderRefLinkReviewFilterPopover(reasonEl, 'reason', reasonValues, refLinkReviewReasonLabel, 'Reason');
   pruneRefLinkReviewSelectionToVisible();
   const readyCount = (refLinkReviewState.ready_to_apply || []).length;
   const reviewCount = (refLinkReviewState.needs_review || []).length;
@@ -2241,15 +2528,17 @@ function renderRefLinkReviewPanel(){
   }
   benchmarkNoteEl.innerHTML = benchmarkNote;
   summaryEl.innerHTML =
-    `<div class="ref-link-review-toolbar-summary">Ready: ${readyCount} | Review: ${reviewCount} | Dismissed: ${dismissedCount} | Visible: ${visibleRows.length} | Selected: ${selectedCount} | Filters: ${statusFilters + confidenceFilters + reasonFilters}${staleText}</div>`;
+    `<div class="ref-link-review-toolbar-summary">Ready ${readyCount} | Review ${reviewCount} | Dismissed ${dismissedCount}${staleText}</div>`;
+  topbarStatusLineEl.innerHTML = `Visible ${visibleRows.length} | Selected ${selectedCount} | Filters ${statusFilters + confidenceFilters + reasonFilters}`;
   scanStatusEl.className = scanClasses.join(' ');
   scanStatusEl.innerHTML = `
-    <div class="ref-link-review-scan-meta">
-      <div class="step">${escapeHtml(stage === 'failed' ? 'Scan failed' : (isScanning ? 'Scan in progress' : (stage === 'complete' ? 'Scan complete' : 'Scan status')))}</div>
-      <small id="ref_link_review_scan_progress_label">${escapeHtml(progressLabel)}</small>
-    </div>
-    <div id="ref_link_review_scan_progress" class="ref-link-review-scan-progress" title="${escapeHtml(scanStatus.message || progressLabel)}">
-      <div id="ref_link_review_scan_progress_fill" class="ref-link-review-scan-progress-fill" style="width:${percent}%"></div>
+    <div class="ref-link-review-scan-status-compact">
+      <div class="ref-link-review-scan-meta">
+        <small id="ref_link_review_scan_progress_label">${escapeHtml(stage === 'failed' ? `Failed: ${progressLabel}` : progressLabel)}</small>
+      </div>
+      <div id="ref_link_review_scan_progress" class="ref-link-review-scan-progress" title="${escapeHtml(scanStatus.message || progressLabel)}">
+        <div id="ref_link_review_scan_progress_fill" class="ref-link-review-scan-progress-fill" style="width:${percent}%"></div>
+      </div>
     </div>
   `;
   if (refreshButton) refreshButton.disabled = false;
@@ -2257,11 +2546,28 @@ function renderRefLinkReviewPanel(){
     applyButton.disabled = isScanning || actionableSelectedVisibleCount === 0;
     applyButton.textContent = actionableSelectedVisibleCount ? `Apply selected (${actionableSelectedVisibleCount})` : 'Apply selected';
   }
+  if (trayToggleButton) {
+    trayToggleButton.textContent = refLinkReviewState.tray_open ? 'Hide tools' : 'Show tools';
+  }
   if (selectVisibleButton) selectVisibleButton.disabled = visibleRows.length === 0;
   if (unselectVisibleButton) unselectVisibleButton.disabled = visibleSelectedRows.length === 0;
   if (dismissButton) dismissButton.disabled = actionableSelectedVisibleCount === 0;
   if (restoreButton) restoreButton.disabled = restorableSelectedVisibleCount === 0;
-  visibleSummaryEl.innerHTML = `Showing ${visibleRows.length} row(s); ${visibleSelectedRows.length} visible row(s) selected. Use Command/Ctrl inside the filter boxes to change multiple selections.`;
+  visibleSummaryEl.innerHTML = `Showing ${visibleRows.length} row(s); ${visibleSelectedRows.length} visible selected.`;
+  if (filtersSummaryEl) filtersSummaryEl.textContent = `${statusFilters + confidenceFilters + reasonFilters} active`;
+  if (benchmarkSummaryEl) benchmarkSummaryEl.textContent = currentBenchmarkValue ? 'Custom' : 'Default';
+  if (actionsSummaryEl) actionsSummaryEl.textContent = `${visibleSelectedRows.length} selected`;
+  if (helpSummaryEl) helpSummaryEl.textContent = 'Tips';
+  const activeSection = String(refLinkReviewState.active_tray_section || 'filters');
+  [
+    ['filters', filtersSectionEl, filtersHeaderEl],
+    ['benchmark', benchmarkSectionEl, benchmarkHeaderEl],
+    ['actions', actionsSectionEl, actionsHeaderEl],
+    ['help', helpSectionEl, helpHeaderEl],
+  ].forEach(([name, sectionEl, headerEl]) => {
+    if (sectionEl) sectionEl.classList.toggle('collapsed', activeSection !== name);
+    if (headerEl) headerEl.setAttribute('aria-expanded', activeSection === name ? 'true' : 'false');
+  });
   if (!readyCount && !reviewCount && !dismissedCount) {
     const emptyMessage = isScanning
       ? 'Scan in progress. Results will appear here when the comparison finishes.'
@@ -2278,19 +2584,43 @@ function renderRefLinkReviewPanel(){
     workspaceEl.innerHTML = renderRefLinkReviewWorkspace();
   }
   openRefLinkReviewModal();
+  applyRefLinkReviewModalSize();
+  applyRefLinkReviewTrayWidth();
   applyRefLinkReviewColumnWidths();
 }
 
 document.addEventListener('mousemove', (event) => {
-  if (!refLinkReviewResizeState) return;
-  const minWidth = refLinkReviewColumnMinWidth(refLinkReviewResizeState.column);
-  const delta = Number(event.clientX || 0) - refLinkReviewResizeState.startX;
-  refLinkReviewState.column_widths[refLinkReviewResizeState.column] = Math.max(minWidth, refLinkReviewResizeState.startWidth + delta);
-  applyRefLinkReviewColumnWidths();
+  if (refLinkReviewResizeState) {
+    const minWidth = refLinkReviewColumnMinWidth(refLinkReviewResizeState.column);
+    const delta = Number(event.clientX || 0) - refLinkReviewResizeState.startX;
+    refLinkReviewState.column_widths[refLinkReviewResizeState.column] = Math.max(minWidth, refLinkReviewResizeState.startWidth + delta);
+    applyRefLinkReviewColumnWidths();
+  }
+  if (refLinkReviewTrayResizeState) {
+    const deltaTray = Number(event.clientX || 0) - refLinkReviewTrayResizeState.startX;
+    refLinkReviewState.tray_width = refLinkReviewClampTrayWidth(refLinkReviewTrayResizeState.startWidth - deltaTray);
+    refLinkReviewWriteStorage('tray-width', refLinkReviewState.tray_width);
+    applyRefLinkReviewTrayWidth();
+  }
+  if (refLinkReviewModalResizeState) {
+    const deltaX = Number(event.clientX || 0) - refLinkReviewModalResizeState.startX;
+    const deltaY = Number(event.clientY || 0) - refLinkReviewModalResizeState.startY;
+    refLinkReviewState.modal_width = refLinkReviewClampModalWidth(refLinkReviewModalResizeState.startWidth + deltaX);
+    refLinkReviewState.modal_height = refLinkReviewClampModalHeight(refLinkReviewModalResizeState.startHeight + deltaY);
+    refLinkReviewWriteStorage('modal-width', refLinkReviewState.modal_width);
+    refLinkReviewWriteStorage('modal-height', refLinkReviewState.modal_height);
+    applyRefLinkReviewModalSize();
+  }
 });
 
 document.addEventListener('mouseup', () => {
   refLinkReviewResizeState = null;
+  refLinkReviewTrayResizeState = null;
+  refLinkReviewModalResizeState = null;
+});
+
+window.addEventListener('resize', () => {
+  if (refLinkReviewState.modal_open) renderRefLinkReviewPanel();
 });
 
 function switchBranch(branch){
