@@ -304,6 +304,94 @@ class RefLinkReviewScanTests(unittest.TestCase):
             self.assertEqual(out["scan_metadata"]["profile_source_url"], profile_source_url)
             self.assertEqual(out["scan_metadata"]["fetch_method"], "fake")
 
+    def test_fetch_and_scan_registry_ref_links_uses_session_benchmark_override(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_bib_path = pathlib.Path(tmpdir) / "local.bib"
+            local_bib_path.write_text("@article{Example2024,}\n", encoding="utf-8")
+            default_source_url = "https://bibbase.org/f/default/GCWealthProject_DataSourcesLibrary.bib"
+            override_source_url = "https://bibbase.org/f/session/GCWealthProject_DataSourcesLibrary.bib"
+            registry = {
+                "config": {
+                    "bib_output": str(local_bib_path),
+                    "bibbase_profile_source_url": default_source_url,
+                    "bibbase_timeout_seconds": 7,
+                },
+                "records": [
+                    {
+                        "id": "src-example",
+                        "source": "Example2024",
+                        "citekey": "Example2024",
+                        "ref_link": "",
+                        "link": "https://example.org/source",
+                        "bib": {"title": "Example Title", "author": "Example, Eve", "year": "2024"},
+                    }
+                ],
+            }
+            show_url = self.mod.build_bibbase_show_url(override_source_url)
+            seen_urls = []
+            responses = {
+                override_source_url: "@article{Example2024,}\n",
+                show_url: make_show_payload("Example2024", "example-exampletitle-2024"),
+            }
+
+            def fake_fetch(url, timeout_seconds):
+                seen_urls.append((url, timeout_seconds))
+                return {"text": responses[url], "method": "fake"}
+
+            out = self.mod.fetch_and_scan_registry_ref_links(
+                registry,
+                fetch_text=fake_fetch,
+                benchmark_url_override=override_source_url,
+            )
+
+            self.assertTrue(out["ok"])
+            self.assertEqual(seen_urls[0], (override_source_url, 7))
+            self.assertEqual(out["scan_metadata"]["profile_source_url"], override_source_url)
+
+    def test_fetch_and_scan_registry_ref_links_rejects_invalid_session_benchmark_override(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_bib_path = pathlib.Path(tmpdir) / "local.bib"
+            local_bib_path.write_text("@article{Example2024,}\n", encoding="utf-8")
+            registry = {
+                "config": {
+                    "bib_output": str(local_bib_path),
+                    "bibbase_profile_source_url": "https://bibbase.org/f/default/GCWealthProject_DataSourcesLibrary.bib",
+                    "bibbase_timeout_seconds": 7,
+                },
+                "records": [],
+            }
+
+            out = self.mod.fetch_and_scan_registry_ref_links(
+                registry,
+                fetch_text=lambda *_args, **_kwargs: self.fail("fetch_text should not be called"),
+                benchmark_url_override="not-a-url",
+            )
+
+            self.assertFalse(out["ok"])
+            self.assertEqual(out["status"], "invalid_benchmark_url")
+
+    def test_scan_registry_ref_links_includes_row_level_status(self):
+        registry = {
+            "config": {"bib_output": "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"},
+            "records": [
+                {
+                    "id": "src-example",
+                    "source": "Example2024",
+                    "citekey": "Example2024",
+                    "ref_link": "",
+                    "link": "https://example.org/source",
+                    "bib": {"title": "Example Title", "author": "Example, Eve", "year": "2024"},
+                }
+            ],
+        }
+        scan = self.mod.scan_registry_ref_links(
+            registry,
+            show_payload_text=make_show_payload("Example2024", "example-exampletitle-2024"),
+            hosted_bib_text="@article{Example2024,}\n",
+            local_bib_text="@article{Example2024,}\n",
+        )
+        self.assertEqual(scan["ready_to_apply"][0]["status"], "ready_to_apply")
+
     def test_apply_selected_ref_links_reports_missing_proposals_as_stale(self):
         registry = {
             "records": [
