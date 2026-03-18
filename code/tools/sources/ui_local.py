@@ -1111,19 +1111,27 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 .ref-link-review-scan-progress { height: 10px; margin-top: 10px; border-radius: 999px; overflow: hidden; background: rgba(23, 50, 77, 0.10); }
 .ref-link-review-scan-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #234a74 0%, #b4692d 100%); transition: width 0.18s ease; }
 .ref-link-review-scan-progress-label { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
-.ref-link-review-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 18px; padding: 14px 22px 16px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
-.ref-link-review-toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
-.ref-link-review-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ref-link-review-toolbar { display: flex; flex-direction: column; gap: 14px; padding: 14px 22px 16px; border-bottom: 1px solid rgba(109, 95, 74, 0.14); }
+.ref-link-review-intro { margin: 0; }
+.ref-link-review-benchmark-panel { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 16px; padding: 14px; background: rgba(255, 251, 244, 0.88); }
+.ref-link-review-benchmark-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.ref-link-review-benchmark-inputs button { white-space: nowrap; }
+.ref-link-review-benchmark-panel small { display: block; margin-top: 8px; line-height: 1.5; }
+.ref-link-review-toolbar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
+.ref-link-review-toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; }
+.ref-link-review-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .ref-link-review-filter-group { border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 16px; padding: 12px; background: rgba(255, 251, 244, 0.86); }
-.ref-link-review-filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
-.ref-link-review-filter-option { display: inline-flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgba(23, 50, 77, 0.08); color: var(--accent-ink); font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 12px; }
-.ref-link-review-filter-option input { width: auto; margin: 0; }
+.ref-link-review-filter-group label { margin-bottom: 8px; }
+.ref-link-review-filter-group select { min-height: 104px; background: #fffdf8; border-radius: 14px; }
+.ref-link-review-filter-group small { display: block; margin-top: 8px; line-height: 1.45; }
+.ref-link-review-visible-summary { margin: 0; }
 .ref-link-review-body { padding: 18px 22px 22px; overflow: auto; }
 .ref-link-review-bucket { margin-bottom: 18px; padding: 16px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 18px; background: rgba(255, 253, 248, 0.84); }
 .ref-link-review-bucket-header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
 .ref-link-review-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ref-link-review-table-summary { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 12px; }
 .ref-link-review-table-wrap { border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 14px; overflow: auto; background: rgba(255, 253, 248, 0.96); }
-.ref-link-review-table-wrap table { min-width: 1200px; width: max(100%, 1200px); table-layout: fixed; }
+.ref-link-review-table-wrap table { min-width: 1280px; width: max(100%, 1280px); table-layout: fixed; }
 .ref-link-review-table-wrap th,
 .ref-link-review-table-wrap td { overflow: hidden; text-overflow: ellipsis; }
 .ref-link-review-table-wrap th { position: relative; padding-right: 18px; }
@@ -1143,6 +1151,10 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 .ref-link-review-resize-handle::after { content: ""; position: absolute; top: 22%; right: 4px; width: 2px; height: 56%; border-radius: 999px; background: rgba(23, 50, 77, 0.20); }
 .ref-link-review-link { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
 .ref-link-review-empty { color: var(--text-muted); font-style: italic; }
+.ref-link-review-status { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.ref-link-review-status.ready-to-apply { background: rgba(45, 115, 76, 0.12); color: #21583c; }
+.ref-link-review-status.needs-review { background: rgba(180, 105, 45, 0.12); color: #8e4520; }
+.ref-link-review-status.dismissed { background: rgba(92, 102, 112, 0.14); color: #4b5662; }
 .ref-link-review-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
 .ref-link-review-reason { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; background: rgba(142, 69, 32, 0.10); color: #7d3918; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 11px; }
 body.modal-open { overflow: hidden; }
@@ -1158,7 +1170,9 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   .ref-link-review-modal { padding: 12px; }
   .ref-link-review-dialog { width: 100%; max-height: 92vh; }
   .ref-link-review-header, .ref-link-review-toolbar, .ref-link-review-body { padding-left: 14px; padding-right: 14px; }
-  .ref-link-review-toolbar { grid-template-columns: 1fr; }
+  .ref-link-review-toolbar-row { grid-template-columns: 1fr; }
+  .ref-link-review-benchmark-inputs { grid-template-columns: 1fr; }
+  .ref-link-review-toolbar-actions { justify-content: flex-start; }
   .ref-link-review-filters { grid-template-columns: 1fr; }
   .ref-link-review-details { grid-template-columns: 1fr; }
 }
@@ -1449,17 +1463,56 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
         </div>
       </div>
       <div class='ref-link-review-toolbar'>
-        <div class='ref-link-review-toolbar-actions'>
-          <button class='secondary' onclick='clearRefLinkReviewFilters()'>Clear filters</button>
+        <div class='help ref-link-review-intro'>
+          This window compares stored registry <b>ref_link</b> values against a benchmark BibBase profile.
+          Filter the observations you want to see, open details only when needed, optionally override a proposal inline,
+          and then apply the selected proposals. Bulk actions apply only to the rows currently visible.
         </div>
-        <div class='ref-link-review-filters'>
-          <div id='ref_link_review_confidence_filters' class='ref-link-review-filter-group'></div>
-          <div id='ref_link_review_reason_filters' class='ref-link-review-filter-group'></div>
+        <div class='ref-link-review-benchmark-panel'>
+          <div class='step'>Benchmark source</div>
+          <label for='ref_link_review_benchmark_url'>Benchmark BibBase URL (session only)</label>
+          <div class='ref-link-review-benchmark-inputs'>
+            <input
+              id='ref_link_review_benchmark_url'
+              placeholder='https://bibbase.org/f/.../GCWealthProject_DataSourcesLibrary.bib'
+              oninput='updateRefLinkReviewBenchmarkUrl(this.value)'
+              onchange='renderRefLinkReviewPanel()'
+            >
+            <button class='secondary' onclick='resetRefLinkReviewBenchmarkUrl()'>Use configured benchmark</button>
+          </div>
+          <small id='ref_link_review_benchmark_note'></small>
         </div>
+        <div class='ref-link-review-toolbar-row'>
+          <div class='ref-link-review-filters'>
+            <div class='ref-link-review-filter-group'>
+              <label for='ref_link_review_status_filters'>Status</label>
+              <select id='ref_link_review_status_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("status", this)'></select>
+              <small id='ref_link_review_status_filters_summary'></small>
+            </div>
+            <div class='ref-link-review-filter-group'>
+              <label for='ref_link_review_confidence_filters'>Confidence</label>
+              <select id='ref_link_review_confidence_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("confidence", this)'></select>
+              <small id='ref_link_review_confidence_filters_summary'></small>
+            </div>
+            <div class='ref-link-review-filter-group'>
+              <label for='ref_link_review_reason_filters'>Reason</label>
+              <select id='ref_link_review_reason_filters' multiple size='4' onchange='updateRefLinkReviewFilterFromSelect("reason", this)'></select>
+              <small id='ref_link_review_reason_filters_summary'></small>
+            </div>
+          </div>
+          <div class='ref-link-review-toolbar-actions'>
+            <button class='secondary' onclick='clearRefLinkReviewFilters()'>Clear filters</button>
+            <button id='ref_link_review_select_visible_button' class='secondary' onclick='selectVisibleRefLinkReview()'>Select visible</button>
+            <button id='ref_link_review_unselect_visible_button' class='secondary' onclick='unselectVisibleRefLinkReview()'>Unselect visible</button>
+            <button id='ref_link_review_dismiss_button' class='secondary' onclick='dismissSelectedRefLinkReview()'>Dismiss selected</button>
+            <button id='ref_link_review_restore_button' class='secondary' onclick='restoreSelectedRefLinkReview()'>Restore selected</button>
+          </div>
+        </div>
+        <div id='ref_link_review_visible_summary' class='help ref-link-review-visible-summary'></div>
       </div>
     </div>
     <div id='ref_link_review_panel' class='ref-link-review-body'>
-      <div id='ref_link_review_groups'></div>
+      <div id='ref_link_review_workspace'></div>
     </div>
   </div>
 </div>
@@ -1521,13 +1574,14 @@ let wealthEntries = [];
 let dataEntries = [];
 function defaultRefLinkReviewColumnWidths(){
   return {
-    select: 72,
-    citekey: 170,
-    current_ref_link: 220,
-    proposed_ref_link: 240,
+    select: 68,
+    citekey: 150,
+    status: 130,
+    current_ref_link: 190,
+    proposed_ref_link: 200,
     confidence: 120,
-    reason: 280,
-    action: 170,
+    reason: 250,
+    action: 160,
   };
 }
 function defaultRefLinkReviewScanStatus(){
@@ -1549,6 +1603,7 @@ function emptyRefLinkReviewState(previousState){
     scan_metadata: {},
     selected: new Set(),
     filters: {
+      status: new Set(),
       confidence: new Set(),
       reason: new Set(),
     },
@@ -1561,6 +1616,8 @@ function emptyRefLinkReviewState(previousState){
       ...defaultRefLinkReviewColumnWidths(),
       ...(previous.column_widths || {}),
     },
+    benchmark_url: String(previous.benchmark_url || previous.default_benchmark_url || ''),
+    default_benchmark_url: String(previous.default_benchmark_url || ''),
   };
 }
 let refLinkReviewState = emptyRefLinkReviewState();
@@ -1574,6 +1631,22 @@ function allRefLinkReviewRows(){
     ...(refLinkReviewState.needs_review || []),
     ...(refLinkReviewState.dismissed || []),
   ];
+}
+
+function refLinkReviewStatusLabel(status){
+  const value = String(status || '').trim();
+  if (value === 'ready_to_apply') return 'Ready to apply';
+  if (value === 'needs_review') return 'Needs review';
+  if (value === 'dismissed') return 'Dismissed';
+  return value || 'Unknown';
+}
+
+function refLinkReviewStatusClass(status){
+  const value = String(status || '').trim();
+  if (value === 'ready_to_apply') return 'ready-to-apply';
+  if (value === 'needs_review') return 'needs-review';
+  if (value === 'dismissed') return 'dismissed';
+  return '';
 }
 
 function normalizeRefLinkReviewScanStatus(payload){
@@ -1605,9 +1678,24 @@ function refLinkReviewCurrentOverride(proposalId){
   return String(refLinkReviewState.overrides[proposalId] || '');
 }
 
+function refLinkReviewCurrentBenchmarkUrl(){
+  return String(
+    ((refLinkReviewState.scan_metadata || {}).profile_source_url) ||
+    refLinkReviewState.default_benchmark_url ||
+    refLinkReviewState.benchmark_url ||
+    ''
+  ).trim();
+}
+
 function hydrateRefLinkReviewState(review, previousState){
-  const ready = Array.isArray(review.ready_to_apply) ? review.ready_to_apply : [];
-  const needs = Array.isArray(review.needs_review) ? review.needs_review : [];
+  const ready = (Array.isArray(review.ready_to_apply) ? review.ready_to_apply : []).map((row) => ({
+    ...row,
+    status: String((row && row.status) || 'ready_to_apply'),
+  }));
+  const needs = (Array.isArray(review.needs_review) ? review.needs_review : []).map((row) => ({
+    ...row,
+    status: String((row && row.status) || 'needs_review'),
+  }));
   const selected = new Set();
   [...ready, ...needs].forEach((row) => {
     if (row && row.selected && row.proposal_id) selected.add(row.proposal_id);
@@ -1619,6 +1707,7 @@ function hydrateRefLinkReviewState(review, previousState){
   next.scan_metadata = review.scan_metadata || {};
   next.selected = selected;
   next.modal_open = true;
+  next.benchmark_url = String(((next.scan_metadata || {}).profile_source_url) || next.benchmark_url || '');
   return next;
 }
 
@@ -1660,7 +1749,23 @@ function closeRefLinkReviewModal(){
   document.body.classList.remove('modal-open');
 }
 
+function setRefLinkReviewMultiSelectValues(selectEl, values){
+  if (!selectEl) return;
+  const selectedValues = values instanceof Set ? values : new Set(values || []);
+  Array.from(selectEl.options || []).forEach((option) => {
+    option.selected = selectedValues.has(String(option.value || ''));
+  });
+}
+
 function refLinkReviewFilterValues(kind){
+  if (kind === 'status') {
+    const present = new Set(
+      allRefLinkReviewRows()
+        .map((row) => String((row && row.status) || '').trim())
+        .filter(Boolean)
+    );
+    return ['ready_to_apply', 'needs_review', 'dismissed'].filter((status) => present.has(status));
+  }
   const values = new Set();
   allRefLinkReviewRows().forEach((row) => {
     if (!row) return;
@@ -1680,6 +1785,9 @@ function refLinkReviewFilterValues(kind){
 
 function rowMatchesRefLinkReviewFilters(row){
   if (!row) return false;
+  const statusFilters = refLinkReviewState.filters.status || new Set();
+  const rowStatus = String(row.status || '').trim();
+  if (statusFilters.size && !statusFilters.has(rowStatus)) return false;
   const confidenceFilters = refLinkReviewState.filters.confidence || new Set();
   const rowConfidence = String(row.confidence || '').trim();
   if (confidenceFilters.size && !confidenceFilters.has(rowConfidence)) return false;
@@ -1699,20 +1807,37 @@ function rowMatchesRefLinkReviewFilters(row){
   return true;
 }
 
-function filteredRefLinkReviewRows(bucket){
-  return (refLinkReviewState[bucket] || []).filter((row) => rowMatchesRefLinkReviewFilters(row));
+function filteredRefLinkReviewRows(){
+  return allRefLinkReviewRows().filter((row) => rowMatchesRefLinkReviewFilters(row));
 }
 
-function toggleRefLinkReviewFilter(kind, value, checked){
-  if (!refLinkReviewState.filters[kind]) return;
-  if (checked) refLinkReviewState.filters[kind].add(value);
-  else refLinkReviewState.filters[kind].delete(value);
+function pruneRefLinkReviewSelectionToVisible(){
+  const visibleIds = new Set(
+    filteredRefLinkReviewRows()
+      .map((row) => String((row && row.proposal_id) || ''))
+      .filter(Boolean)
+  );
+  [...refLinkReviewState.selected].forEach((proposalId) => {
+    if (!visibleIds.has(proposalId)) refLinkReviewState.selected.delete(proposalId);
+  });
+}
+
+function updateRefLinkReviewFilterFromSelect(kind, selectEl){
+  if (!refLinkReviewState.filters[kind] || !selectEl) return;
+  refLinkReviewState.filters[kind] = new Set(
+    Array.from(selectEl.selectedOptions || [])
+      .map((option) => String(option.value || '').trim())
+      .filter(Boolean)
+  );
+  pruneRefLinkReviewSelectionToVisible();
   renderRefLinkReviewPanel();
 }
 
 function clearRefLinkReviewFilters(){
+  refLinkReviewState.filters.status.clear();
   refLinkReviewState.filters.confidence.clear();
   refLinkReviewState.filters.reason.clear();
+  pruneRefLinkReviewSelectionToVisible();
   renderRefLinkReviewPanel();
 }
 
@@ -1723,15 +1848,15 @@ function toggleRefLinkReviewSelection(proposalId, checked){
   renderRefLinkReviewPanel();
 }
 
-function selectFilteredRefLinkReview(bucket){
-  filteredRefLinkReviewRows(bucket).forEach((row) => {
+function selectVisibleRefLinkReview(){
+  filteredRefLinkReviewRows().forEach((row) => {
     if (row && row.proposal_id) refLinkReviewState.selected.add(row.proposal_id);
   });
   renderRefLinkReviewPanel();
 }
 
-function unselectFilteredRefLinkReview(bucket){
-  filteredRefLinkReviewRows(bucket).forEach((row) => {
+function unselectVisibleRefLinkReview(){
+  filteredRefLinkReviewRows().forEach((row) => {
     if (row && row.proposal_id) refLinkReviewState.selected.delete(row.proposal_id);
   });
   renderRefLinkReviewPanel();
@@ -1745,7 +1870,8 @@ function dismissRefLinkReviewProposal(proposalId, rerender=true){
     const idx = rows.findIndex((row) => row.proposal_id === proposalId);
     if (idx >= 0) {
       const [row] = rows.splice(idx, 1);
-      row.dismissed_from = bucket;
+      row.dismissed_from = row.dismissed_from || row.status || bucket;
+      row.status = 'dismissed';
       refLinkReviewState.dismissed.push(row);
       refLinkReviewState.selected.delete(proposalId);
       break;
@@ -1762,23 +1888,24 @@ function restoreRefLinkReviewProposal(proposalId, rerender=true){
     const [row] = rows.splice(idx, 1);
     const bucket = row.dismissed_from || 'needs_review';
     delete row.dismissed_from;
+    row.status = bucket;
     refLinkReviewState[bucket] = refLinkReviewState[bucket] || [];
     refLinkReviewState[bucket].push(row);
   }
   if (rerender) renderRefLinkReviewPanel();
 }
 
-function dismissSelectedRefLinkReview(bucket){
-  const ids = filteredRefLinkReviewRows(bucket)
-    .filter((row) => row && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id))
+function dismissSelectedRefLinkReview(){
+  const ids = filteredRefLinkReviewRows()
+    .filter((row) => row && row.status !== 'dismissed' && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id))
     .map((row) => row.proposal_id);
   ids.forEach((proposalId) => dismissRefLinkReviewProposal(proposalId, false));
   renderRefLinkReviewPanel();
 }
 
 function restoreSelectedRefLinkReview(){
-  const ids = filteredRefLinkReviewRows('dismissed')
-    .filter((row) => row && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id))
+  const ids = filteredRefLinkReviewRows()
+    .filter((row) => row && row.status === 'dismissed' && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id))
     .map((row) => row.proposal_id);
   ids.forEach((proposalId) => restoreRefLinkReviewProposal(proposalId, false));
   renderRefLinkReviewPanel();
@@ -1796,6 +1923,15 @@ function updateRefLinkReviewOverride(proposalId, value){
   const nextValue = String(value || '').trim();
   if (nextValue) refLinkReviewState.overrides[proposalId] = nextValue;
   else delete refLinkReviewState.overrides[proposalId];
+}
+
+function updateRefLinkReviewBenchmarkUrl(value){
+  refLinkReviewState.benchmark_url = String(value || '');
+}
+
+function resetRefLinkReviewBenchmarkUrl(){
+  refLinkReviewState.benchmark_url = String(refLinkReviewState.default_benchmark_url || '');
+  renderRefLinkReviewPanel();
 }
 
 function shortenRefLinkReviewUrl(url){
@@ -1847,11 +1983,12 @@ function renderRefLinkReviewProposedCell(row){
 function refLinkReviewColumnMinWidth(column){
   const mins = {
     select: 64,
-    citekey: 130,
-    current_ref_link: 170,
-    proposed_ref_link: 190,
+    citekey: 120,
+    status: 110,
+    current_ref_link: 150,
+    proposed_ref_link: 165,
     confidence: 110,
-    reason: 220,
+    reason: 210,
     action: 150,
   };
   return mins[column] || 120;
@@ -1892,50 +2029,50 @@ function renderRefLinkReviewHeaderCell(label, column){
   `;
 }
 
-function renderRefLinkReviewFilterGroup(title, kind, values){
-  if (!values.length) {
-    return `<div><div class="step">${escapeHtml(title)}</div><small>No filter values available.</small></div>`;
-  }
-  const activeValues = refLinkReviewState.filters[kind] || new Set();
-  const options = values.map((value) => {
-    const checked = activeValues.has(value) ? 'checked' : '';
-    return `<label class="ref-link-review-filter-option"><input type="checkbox" ${checked} onchange='toggleRefLinkReviewFilter("${kind}", ${JSON.stringify(value)}, this.checked)'><span>${escapeHtml(value)}</span></label>`;
-  }).join('');
-  return `
-    <div>
-      <div class="step">${escapeHtml(title)}</div>
-      <div class="ref-link-review-filter-options">${options}</div>
-    </div>
-  `;
+function renderRefLinkReviewStatus(status){
+  const label = refLinkReviewStatusLabel(status);
+  const statusClass = refLinkReviewStatusClass(status);
+  return `<span class="ref-link-review-status ${statusClass}">${escapeHtml(label)}</span>`;
 }
 
-function renderRefLinkReviewGroup(bucket, title){
-  const visibleRows = filteredRefLinkReviewRows(bucket);
-  const allRows = refLinkReviewState[bucket] || [];
-  const visibleCount = visibleRows.length;
-  const totalCount = allRows.length;
+function renderRefLinkReviewFilterSummary(kind, values){
+  const selectedCount = (refLinkReviewState.filters[kind] || new Set()).size;
+  if (!values.length) return 'No values available in this scan.';
+  if (selectedCount) return `${selectedCount} selected. Hold Command/Ctrl to change multiple selections.`;
+  return 'Showing all values. Hold Command/Ctrl to select multiple values.';
+}
+
+function renderRefLinkReviewSelectOptions(selectEl, kind, values, formatter){
+  if (!selectEl) return;
+  const activeValues = refLinkReviewState.filters[kind] || new Set();
+  const availableValues = new Set(values);
+  [...activeValues].forEach((value) => {
+    if (!availableValues.has(value)) activeValues.delete(value);
+  });
+  if (!values.length) {
+    activeValues.clear();
+    selectEl.disabled = true;
+    selectEl.innerHTML = '<option value="" disabled>(No values available)</option>';
+    selectEl.size = 4;
+    return;
+  }
+  selectEl.disabled = false;
+  selectEl.innerHTML = values
+    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(formatter ? formatter(value) : value)}</option>`)
+    .join('');
+  setRefLinkReviewMultiSelectValues(selectEl, activeValues);
+  selectEl.size = Math.max(4, Math.min(7, values.length));
+}
+
+function renderRefLinkReviewWorkspace(){
+  const visibleRows = filteredRefLinkReviewRows();
+  const totalRows = allRefLinkReviewRows().length;
   const selectedVisibleCount = visibleRows.filter((row) => row && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id)).length;
-  const countLabel = totalCount === visibleCount ? `${totalCount}` : `${visibleCount} shown / ${totalCount} total`;
-  const actionButtons = bucket === 'dismissed'
-    ? `
-      <button class="secondary" onclick="selectFilteredRefLinkReview('dismissed')">Select filtered</button>
-      <button class="secondary" onclick="unselectFilteredRefLinkReview('dismissed')">Unselect filtered</button>
-      <button class="secondary" onclick="restoreSelectedRefLinkReview()">Restore selected</button>
-    `
-    : `
-      <button class="secondary" onclick="selectFilteredRefLinkReview('${bucket}')">Select filtered</button>
-      <button class="secondary" onclick="unselectFilteredRefLinkReview('${bucket}')">Unselect filtered</button>
-      <button class="secondary" onclick="dismissSelectedRefLinkReview('${bucket}')">Dismiss selected</button>
-    `;
   if (!visibleRows.length) {
     return `
       <section class="ref-link-review-bucket">
-        <div class="ref-link-review-bucket-header">
-          <div class="step">${escapeHtml(title)} (${escapeHtml(countLabel)})</div>
-          <small>Selected in view: ${selectedVisibleCount}</small>
-        </div>
-        <div class="ref-link-review-actions">${actionButtons}</div>
-        <small>No proposals match the current filters in this group.</small>
+        <div class="step">Review workspace</div>
+        <small>No proposals match the current filters. Adjust the filters above to change what you see.</small>
       </section>
     `;
   }
@@ -1944,13 +2081,13 @@ function renderRefLinkReviewGroup(bucket, title){
     const isExpanded = row.proposal_id && refLinkReviewState.expanded.has(row.proposal_id);
     const overrideValue = refLinkReviewCurrentOverride(row.proposal_id);
     const overrideClass = refLinkReviewOverrideLooksValid(overrideValue) ? '' : 'invalid';
-    const actionButton = bucket === 'dismissed'
+    const actionButton = row.status === 'dismissed'
       ? `<button class="search-btn" onclick='restoreRefLinkReviewProposal(${JSON.stringify(row.proposal_id || "")})'>Restore</button>`
       : `<button class="search-btn" onclick='dismissRefLinkReviewProposal(${JSON.stringify(row.proposal_id || "")})'>Dismiss</button>`;
     const detailsRow = isExpanded
       ? `
         <tr class="ref-link-review-details-row">
-          <td colspan="7">
+          <td colspan="8">
             <div class="ref-link-review-details">
               ${renderRefLinkReviewDetailBlock('Record ID', escapeHtml(row.record_id || ''))}
               ${renderRefLinkReviewDetailBlock('Legend', escapeHtml(row.legend || ''))}
@@ -1981,6 +2118,7 @@ function renderRefLinkReviewGroup(bucket, title){
       <tr>
         <td class="ref-link-review-cell" data-ref-link-review-col="select" ${refLinkReviewColumnStyle('select')}><input type="checkbox" ${checked} onchange='toggleRefLinkReviewSelection(${JSON.stringify(row.proposal_id || "")}, this.checked)'></td>
         <td class="ref-link-review-cell" data-ref-link-review-col="citekey" ${refLinkReviewColumnStyle('citekey')}>${escapeHtml(row.citekey || row.record_id || '')}</td>
+        <td class="ref-link-review-cell" data-ref-link-review-col="status" ${refLinkReviewColumnStyle('status')}>${renderRefLinkReviewStatus(row.status || '')}</td>
         <td class="ref-link-review-cell" data-ref-link-review-col="current_ref_link" ${refLinkReviewColumnStyle('current_ref_link')}>${renderRefLinkReviewUrl(row.current_ref_link || '')}</td>
         <td class="ref-link-review-cell" data-ref-link-review-col="proposed_ref_link" ${refLinkReviewColumnStyle('proposed_ref_link')}>${renderRefLinkReviewProposedCell(row)}</td>
         <td class="ref-link-review-cell" data-ref-link-review-col="confidence" ${refLinkReviewColumnStyle('confidence')}>${escapeHtml(row.confidence || '')}</td>
@@ -1995,17 +2133,20 @@ function renderRefLinkReviewGroup(bucket, title){
   }).join('');
   return `
     <section class="ref-link-review-bucket">
-      <div class="ref-link-review-bucket-header">
-        <div class="step">${escapeHtml(title)} (${escapeHtml(countLabel)})</div>
-        <small>Selected in view: ${selectedVisibleCount}</small>
+      <div class="ref-link-review-table-summary">
+        <div>
+          <div class="step">Review workspace</div>
+          <small>Showing ${visibleRows.length} of ${totalRows} observation(s) after filtering.</small>
+        </div>
+        <small>Selected visible: ${selectedVisibleCount}</small>
       </div>
-      <div class="ref-link-review-actions">${actionButtons}</div>
       <div class="ref-link-review-table-wrap search-results">
         <table>
           <thead>
             <tr>
               ${renderRefLinkReviewHeaderCell('Select', 'select')}
               ${renderRefLinkReviewHeaderCell('Citekey', 'citekey')}
+              ${renderRefLinkReviewHeaderCell('Status', 'status')}
               ${renderRefLinkReviewHeaderCell('Current ref_link', 'current_ref_link')}
               ${renderRefLinkReviewHeaderCell('Proposed ref_link', 'proposed_ref_link')}
               ${renderRefLinkReviewHeaderCell('Confidence', 'confidence')}
@@ -2025,22 +2166,48 @@ function renderRefLinkReviewPanel(){
   const panel = document.getElementById('ref_link_review_panel');
   const summaryEl = document.getElementById('ref_link_review_summary');
   const scanStatusEl = document.getElementById('ref_link_review_scan_status');
-  const groupsEl = document.getElementById('ref_link_review_groups');
+  const workspaceEl = document.getElementById('ref_link_review_workspace');
+  const benchmarkInput = document.getElementById('ref_link_review_benchmark_url');
+  const benchmarkNoteEl = document.getElementById('ref_link_review_benchmark_note');
+  const visibleSummaryEl = document.getElementById('ref_link_review_visible_summary');
+  const statusFilterEl = document.getElementById('ref_link_review_status_filters');
   const confidenceEl = document.getElementById('ref_link_review_confidence_filters');
   const reasonEl = document.getElementById('ref_link_review_reason_filters');
+  const statusSummaryEl = document.getElementById('ref_link_review_status_filters_summary');
+  const confidenceSummaryEl = document.getElementById('ref_link_review_confidence_filters_summary');
+  const reasonSummaryEl = document.getElementById('ref_link_review_reason_filters_summary');
   const refreshButton = document.getElementById('ref_link_review_refresh_button');
   const applyButton = document.getElementById('ref_link_review_apply_button');
-  if (!modal || !panel || !summaryEl || !scanStatusEl || !groupsEl || !confidenceEl || !reasonEl) return;
+  const selectVisibleButton = document.getElementById('ref_link_review_select_visible_button');
+  const unselectVisibleButton = document.getElementById('ref_link_review_unselect_visible_button');
+  const dismissButton = document.getElementById('ref_link_review_dismiss_button');
+  const restoreButton = document.getElementById('ref_link_review_restore_button');
+  if (!modal || !panel || !summaryEl || !scanStatusEl || !workspaceEl || !benchmarkInput || !benchmarkNoteEl || !visibleSummaryEl || !statusFilterEl || !confidenceEl || !reasonEl || !statusSummaryEl || !confidenceSummaryEl || !reasonSummaryEl) return;
   if (!refLinkReviewState.modal_open) {
     closeRefLinkReviewModal();
     return;
   }
+  const statusValues = refLinkReviewFilterValues('status');
+  const confidenceValues = refLinkReviewFilterValues('confidence');
+  const reasonValues = refLinkReviewFilterValues('reason');
+  renderRefLinkReviewSelectOptions(statusFilterEl, 'status', statusValues, refLinkReviewStatusLabel);
+  renderRefLinkReviewSelectOptions(confidenceEl, 'confidence', confidenceValues);
+  renderRefLinkReviewSelectOptions(reasonEl, 'reason', reasonValues);
+  statusSummaryEl.textContent = renderRefLinkReviewFilterSummary('status', statusValues);
+  confidenceSummaryEl.textContent = renderRefLinkReviewFilterSummary('confidence', confidenceValues);
+  reasonSummaryEl.textContent = renderRefLinkReviewFilterSummary('reason', reasonValues);
+  pruneRefLinkReviewSelectionToVisible();
   const readyCount = (refLinkReviewState.ready_to_apply || []).length;
   const reviewCount = (refLinkReviewState.needs_review || []).length;
   const dismissedCount = (refLinkReviewState.dismissed || []).length;
   const selectedCount = refLinkReviewState.selected.size;
+  const visibleRows = filteredRefLinkReviewRows();
+  const visibleSelectedRows = visibleRows.filter((row) => row && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id));
+  const actionableSelectedVisibleCount = visibleSelectedRows.filter((row) => row && row.status !== 'dismissed').length;
+  const restorableSelectedVisibleCount = visibleSelectedRows.filter((row) => row && row.status === 'dismissed').length;
   const confidenceFilters = refLinkReviewState.filters.confidence.size;
   const reasonFilters = refLinkReviewState.filters.reason.size;
+  const statusFilters = refLinkReviewState.filters.status.size;
   const scanStatus = refLinkReviewState.scan_status || defaultRefLinkReviewScanStatus();
   const isScanning = refLinkReviewIsScanning();
   const stage = String(scanStatus.stage || 'idle');
@@ -2065,8 +2232,19 @@ function renderRefLinkReviewPanel(){
   const staleText = refLinkReviewState.scan_metadata && refLinkReviewState.scan_metadata.hosted_bib_is_stale
     ? '<br><small>Hosted BibBase appears stale relative to the local generated .bib.</small>'
     : '';
+  const currentBenchmarkValue = String(refLinkReviewState.benchmark_url || '');
+  const lastScanBenchmark = String((refLinkReviewState.scan_metadata || {}).profile_source_url || '').trim();
+  const defaultBenchmark = String(refLinkReviewState.default_benchmark_url || '').trim();
+  benchmarkInput.value = currentBenchmarkValue;
+  let benchmarkNote = 'Used only for this browser session. Paste a different BibBase-hosted .bib URL, then run or refresh the scan to compare against it.';
+  if (defaultBenchmark) benchmarkNote += ` Configured default: ${renderRefLinkReviewUrl(defaultBenchmark)}.`;
+  if (lastScanBenchmark) benchmarkNote += ` Last scan used: ${renderRefLinkReviewUrl(lastScanBenchmark)}.`;
+  if (currentBenchmarkValue.trim() && lastScanBenchmark && currentBenchmarkValue.trim() !== lastScanBenchmark) {
+    benchmarkNote += ' <span class="ref-link-review-inline-warning">The field changed after the last scan. Run Refresh scan to use the updated benchmark.</span>';
+  }
+  benchmarkNoteEl.innerHTML = benchmarkNote;
   summaryEl.innerHTML =
-    `<div class="help">Ready to apply: ${readyCount} | Needs review: ${reviewCount} | Dismissed: ${dismissedCount} | Selected: ${selectedCount} | Confidence filters: ${confidenceFilters} | Reason filters: ${reasonFilters}${staleText}</div>`;
+    `<div class="help">Ready to apply: ${readyCount} | Needs review: ${reviewCount} | Dismissed: ${dismissedCount} | Visible: ${visibleRows.length} | Selected visible: ${selectedCount} | Status filters: ${statusFilters} | Confidence filters: ${confidenceFilters} | Reason filters: ${reasonFilters}${staleText}</div>`;
   scanStatusEl.className = scanClasses.join(' ');
   scanStatusEl.innerHTML = `
     <div class="ref-link-review-scan-meta">
@@ -2077,31 +2255,30 @@ function renderRefLinkReviewPanel(){
       <div id="ref_link_review_scan_progress_fill" class="ref-link-review-scan-progress-fill" style="width:${percent}%"></div>
     </div>
   `;
-  confidenceEl.innerHTML = renderRefLinkReviewFilterGroup('Confidence', 'confidence', refLinkReviewFilterValues('confidence'));
-  reasonEl.innerHTML = renderRefLinkReviewFilterGroup('Reason', 'reason', refLinkReviewFilterValues('reason'));
   if (refreshButton) refreshButton.disabled = false;
   if (applyButton) {
-    applyButton.disabled = isScanning || selectedCount === 0;
-    applyButton.textContent = selectedCount ? `Apply selected (${selectedCount})` : 'Apply selected';
+    applyButton.disabled = isScanning || actionableSelectedVisibleCount === 0;
+    applyButton.textContent = actionableSelectedVisibleCount ? `Apply selected (${actionableSelectedVisibleCount})` : 'Apply selected';
   }
+  if (selectVisibleButton) selectVisibleButton.disabled = visibleRows.length === 0;
+  if (unselectVisibleButton) unselectVisibleButton.disabled = visibleSelectedRows.length === 0;
+  if (dismissButton) dismissButton.disabled = actionableSelectedVisibleCount === 0;
+  if (restoreButton) restoreButton.disabled = restorableSelectedVisibleCount === 0;
+  visibleSummaryEl.innerHTML = `Bulk actions apply only to the rows currently visible. Showing <b>${visibleRows.length}</b> row(s); <b>${visibleSelectedRows.length}</b> visible row(s) are selected.`;
   if (!readyCount && !reviewCount && !dismissedCount) {
     const emptyMessage = isScanning
       ? 'Scan in progress. Results will appear here when the comparison finishes.'
       : (stage === 'complete'
         ? 'No ref_link proposals were found for this scan.'
         : 'Run a scan to review ref_link proposals.');
-    groupsEl.innerHTML = `
+    workspaceEl.innerHTML = `
       <section class="ref-link-review-bucket">
         <div class="step">Review workspace</div>
         <small>${escapeHtml(emptyMessage)}</small>
       </section>
     `;
   } else {
-    groupsEl.innerHTML = [
-      renderRefLinkReviewGroup('ready_to_apply', 'Ready to apply'),
-      renderRefLinkReviewGroup('needs_review', 'Needs review'),
-      renderRefLinkReviewGroup('dismissed', 'Dismissed'),
-    ].join('');
+    workspaceEl.innerHTML = renderRefLinkReviewWorkspace();
   }
   openRefLinkReviewModal();
   applyRefLinkReviewColumnWidths();
@@ -2419,7 +2596,14 @@ async function loadOptions(){
     vals.forEach(val => { const opt = document.createElement('option'); opt.value = val; dl.appendChild(opt); });
   }
   dataEntries = j.data_search_rows || [];
+  const nextDefaultBenchmark = String(j.ref_link_review_benchmark_url || '');
+  const previousDefaultBenchmark = String(refLinkReviewState.default_benchmark_url || '');
+  refLinkReviewState.default_benchmark_url = nextDefaultBenchmark;
+  if (!String(refLinkReviewState.benchmark_url || '').trim() || String(refLinkReviewState.benchmark_url || '') === previousDefaultBenchmark) {
+    refLinkReviewState.benchmark_url = nextDefaultBenchmark;
+  }
   dataRenderSearchResults();
+  if (refLinkReviewState.modal_open) renderRefLinkReviewPanel();
 }
 
 function dataRenderSearchResults(){
@@ -2626,9 +2810,13 @@ async function pollRefLinkReviewScanStatus(scanId){
 
 async function scanRefLinkReview(){
   try {
+    const benchmarkUrl = String(refLinkReviewState.benchmark_url || '').trim();
+    if (benchmarkUrl && !/^https?:\/\//i.test(benchmarkUrl)) {
+      throw new Error('Benchmark URL must start with http:// or https://.');
+    }
     startRefLinkReviewScanState({stage: 'fetching_live_bibbase', message: 'Starting ref_link review scan...'});
     renderRefLinkReviewPanel();
-    const out = await req('/api/ref_link_review_scan', {});
+    const out = await req('/api/ref_link_review_scan', {benchmark_url: benchmarkUrl});
     startRefLinkReviewScanState(out);
     renderRefLinkReviewPanel();
     const final = await pollRefLinkReviewScanStatus(out.scan_id);
@@ -2652,7 +2840,9 @@ async function scanRefLinkReview(){
 
 async function applySelectedRefLinkReview(){
   try {
-    const selectedProposalIds = [...refLinkReviewState.selected];
+    const selectedProposalIds = allRefLinkReviewRows()
+      .filter((row) => row && row.status !== 'dismissed' && row.proposal_id && refLinkReviewState.selected.has(row.proposal_id))
+      .map((row) => row.proposal_id);
     if (!selectedProposalIds.length) {
       throw new Error('Select at least one proposal to apply.');
     }
@@ -2663,6 +2853,9 @@ async function applySelectedRefLinkReview(){
       if (overrideValue) overrides[proposalId] = overrideValue;
     });
     const overrideCount = Object.keys(overrides).length;
+    const benchmarkUsedForApply = refLinkReviewCurrentBenchmarkUrl();
+    const currentBenchmarkInput = String(refLinkReviewState.benchmark_url || '').trim();
+    const benchmarkChangedAfterScan = currentBenchmarkInput && benchmarkUsedForApply && currentBenchmarkInput !== benchmarkUsedForApply;
     const fileList = [
       'metadata/sources/sources.yaml',
       'metadata/sources/change_log.yaml',
@@ -2674,6 +2867,9 @@ async function applySelectedRefLinkReview(){
       `Apply ${selectedProposalIds.length} selected ref_link proposal(s)?\n\n` +
       `Dismissed this session: ${dismissedCount}\n\n` +
       `Manual overrides in selection: ${overrideCount}\n\n` +
+      (benchmarkChangedAfterScan
+        ? `The benchmark field changed after the last scan. Apply will use the last scanned benchmark until you refresh.\n\n`
+        : '') +
       `This will modify:\n- ${fileList.join('\\n- ')}`;
     if (!confirm(msg)) return;
     const editorName = await ensureEditorName('apply selected ref_link proposals');
@@ -2681,6 +2877,7 @@ async function applySelectedRefLinkReview(){
       selected_proposal_ids: selectedProposalIds,
       editor_name: editorName,
       overrides,
+      benchmark_url: benchmarkUsedForApply,
     });
     const next = hydrateRefLinkReviewState(out, refLinkReviewState);
     const remainingTotal = (next.ready_to_apply || []).length + (next.needs_review || []).length;
@@ -3119,7 +3316,7 @@ class App:
             scan.update(updates)
             scan["updated_at"] = time.time()
 
-    def start_ref_link_review_scan(self) -> dict:
+    def start_ref_link_review_scan(self, benchmark_url: str = "") -> dict:
         self._cleanup_ref_link_review_scans()
         registry = self.registry
         total = len(registry.get("records", []))
@@ -3155,6 +3352,7 @@ class App:
                     registry,
                     progress_callback=progress_callback,
                     stage_callback=stage_callback,
+                    benchmark_url_override=benchmark_url,
                 )
                 if not review.get("ok"):
                     self._set_ref_link_review_scan(
@@ -3515,7 +3713,13 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/options":
             reg = self.app.registry
-            self._send_json(suggested_options(reg.get("records", [])))
+            cfg = reg.get("config", {}) or {}
+            self._send_json(
+                {
+                    **suggested_options(reg.get("records", [])),
+                    "ref_link_review_benchmark_url": normalize_whitespace(cfg.get("bibbase_profile_source_url", "")),
+                }
+            )
             return
 
         if parsed.path == "/api/wealth/options":
@@ -3823,7 +4027,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if self.path == "/api/ref_link_review_scan":
-                scan = self.app.start_ref_link_review_scan()
+                data = self._read_json()
+                benchmark_url = normalize_whitespace(data.get("benchmark_url", ""))
+                scan = self.app.start_ref_link_review_scan(benchmark_url=benchmark_url)
                 self._send_json({"ok": True, "operation": "ref_link_review_scan", **scan})
                 return
 
@@ -3832,13 +4038,14 @@ class Handler(BaseHTTPRequestHandler):
                 selected_ids = set(data.get("selected_proposal_ids", []))
                 editor = normalize_whitespace(data.get("editor_name", ""))
                 overrides = data.get("overrides", {}) or {}
+                benchmark_url = normalize_whitespace(data.get("benchmark_url", ""))
                 if not selected_ids:
                     raise ValueError("selected_proposal_ids is required")
                 if not editor:
                     raise ValueError("editor_name is required")
 
                 reg = self.app.registry
-                review = fetch_and_scan_registry_ref_links(reg)
+                review = fetch_and_scan_registry_ref_links(reg, benchmark_url_override=benchmark_url)
                 if not review.get("ok"):
                     self._send_json(review, 400)
                     return
@@ -3876,7 +4083,7 @@ class Handler(BaseHTTPRequestHandler):
 
                 after = file_mtimes(tracked_paths)
                 try:
-                    refreshed = fetch_and_scan_registry_ref_links(reg)
+                    refreshed = fetch_and_scan_registry_ref_links(reg, benchmark_url_override=benchmark_url)
                 except Exception:  # pylint: disable=broad-except
                     refreshed = review
                 modified = modified_paths(before, after)
