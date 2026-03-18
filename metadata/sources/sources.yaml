@@ -34527,7 +34527,7 @@
     },
     {
       "id": "src-blanchet2022weight",
-      "section": "Wealth Inequality Trends",
+      "section": "Estate, Inheritance, and Gift Taxes",
       "aggsource": "Academic research",
       "legend": "Blanchet et al. (2022)",
       "source": "blanchet2022weight",
@@ -34567,9 +34567,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-03-13T09:27:15Z",
-      "updated_at": "2026-03-13T09:27:15Z",
+      "updated_at": "2026-03-18T10:01:43Z",
       "created_by": "Ignacio",
-      "updated_by": "Ignacio"
+      "updated_by": "IF"
     }
   ]
 }

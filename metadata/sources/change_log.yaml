@@ -239,6 +239,22 @@
       "actor": "Ignacio",
       "issue_number": "local-ui",
       "updated_at": "2026-03-13T09:27:15Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Edited via local UI",
+      "actor": "I",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-17T10:03:13Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Edited via local UI",
+      "actor": "IF",
+      "issue_number": "local-ui",
+      "updated_at": "2026-03-18T10:01:43Z"
     }
   ]
 }
