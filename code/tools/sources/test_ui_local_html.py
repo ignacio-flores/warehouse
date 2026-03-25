@@ -3,6 +3,17 @@ import pathlib
 import sys
 import unittest
 
+SOURCE_DIR = pathlib.Path("code/tools/sources").resolve()
+if str(SOURCE_DIR) not in sys.path:
+    sys.path.insert(0, str(SOURCE_DIR))
+
+from source_paths import (
+    DEFAULT_ALIASES_PATH,
+    DEFAULT_CHANGE_LOG_PATH,
+    DEFAULT_REGISTRY_PATH,
+    DEFAULT_WEALTH_CHANGE_LOG_PATH,
+)
+
 
 def load_ui_local_module():
     path = pathlib.Path("code/tools/sources/ui_local.py").resolve()
@@ -17,7 +28,8 @@ def load_ui_local_module():
 class UiLocalHtmlTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.html = load_ui_local_module().HTML
+        cls.mod = load_ui_local_module()
+        cls.html = cls.mod.HTML
 
     def test_adam_ssm_branding_is_present(self):
         self.assertIn("ADAM SSM - Sleepless Source Manager", self.html)
@@ -74,6 +86,8 @@ class UiLocalHtmlTests(unittest.TestCase):
     def test_ref_link_review_apply_message_keeps_escaped_newlines(self):
         self.assertIn("fileList.join('\\n- ')", self.html)
         self.assertNotIn("fileList.join('\n- ')", self.html)
+        self.assertIn(DEFAULT_REGISTRY_PATH, self.html)
+        self.assertIn(DEFAULT_CHANGE_LOG_PATH, self.html)
 
     def test_ref_link_review_simplified_workspace_hooks_exist(self):
         for marker in [
@@ -178,6 +192,58 @@ class UiLocalHtmlTests(unittest.TestCase):
             "min-width: max(100%, 240px)",
         ]:
             self.assertIn(marker, self.html)
+
+    def test_build_file_change_summary_matches_new_metadata_paths(self):
+        summary = self.mod.build_file_change_summary(
+            [
+                f"/tmp/{DEFAULT_REGISTRY_PATH}",
+                f"/tmp/{DEFAULT_CHANGE_LOG_PATH}",
+                f"/tmp/{DEFAULT_ALIASES_PATH}",
+                "handmade_tables/dictionary.xlsx",
+            ],
+            "edit",
+            "src-example",
+            ["source", "bib.title"],
+            key_renamed=True,
+        )
+        summaries = {entry["file"]: entry["summary"] for entry in summary}
+        self.assertIn("Updated record src-example.", summaries[f"/tmp/{DEFAULT_REGISTRY_PATH}"])
+        self.assertIn("Appended edit audit entry", summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"])
+        self.assertEqual(
+            summaries[f"/tmp/{DEFAULT_ALIASES_PATH}"],
+            "Added Source/Citekey alias mappings for key rename.",
+        )
+        self.assertEqual(
+            summaries["handmade_tables/dictionary.xlsx"],
+            "Regenerated Sources sheet from canonical registry.",
+        )
+
+    def test_build_file_change_summary_matches_new_wealth_log_path(self):
+        summary = self.mod.build_file_change_summary(
+            [f"/tmp/{DEFAULT_WEALTH_CHANGE_LOG_PATH}"],
+            "delete",
+            "wealth-key",
+            [],
+        )
+        self.assertEqual(
+            summary[0]["summary"],
+            "Appended delete wealth audit entry for wealth-key.",
+        )
+
+    def test_build_ref_link_review_summary_matches_new_metadata_paths(self):
+        summary = self.mod.build_ref_link_review_file_change_summary(
+            [f"/tmp/{DEFAULT_REGISTRY_PATH}", f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"],
+            ["src-a", "src-b"],
+        )
+        summaries = {entry["file"]: entry["summary"] for entry in summary}
+        self.assertEqual(
+            summaries[f"/tmp/{DEFAULT_REGISTRY_PATH}"],
+            "Updated ref_link for 2 record(s).",
+        )
+        self.assertEqual(
+            summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"],
+            "Appended 2 ref_link review audit entries.",
+        )
 
 
 if __name__ == "__main__":

@@ -6,13 +6,14 @@ from collections import Counter
 from pathlib import Path
 
 from common import load_registry, normalize_whitespace, parse_bib_entries
+from source_paths import DEFAULT_DATA_BIB_PATH, DEFAULT_RECONCILIATION_REPORT_PATH, DEFAULT_REGISTRY_PATH
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--registry", default="metadata/sources/sources.yaml")
-    parser.add_argument("--bib", default="documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib")
-    parser.add_argument("--out", default="metadata/sources/reconciliation_report.md")
+    parser.add_argument("--registry", default=DEFAULT_REGISTRY_PATH)
+    parser.add_argument("--bib", default=DEFAULT_DATA_BIB_PATH)
+    parser.add_argument("--out", default=DEFAULT_RECONCILIATION_REPORT_PATH)
     args = parser.parse_args()
 
     reg = load_registry(Path(args.registry))

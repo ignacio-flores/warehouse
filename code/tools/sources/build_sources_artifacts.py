@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate dictionary Sources sheet and canonical .bib from metadata/sources/sources.yaml."""
+"""Generate dictionary Sources sheet and canonical .bib from code/tools metadata."""
 
 import argparse
 import sys
@@ -15,6 +15,13 @@ from common import (
     records_sorted,
     render_bib_entry,
     write_sources_sheet,
+)
+from source_paths import (
+    DEFAULT_BOTH_BIB_PATH,
+    DEFAULT_DATA_BIB_PATH,
+    DEFAULT_DICTIONARY_PATH,
+    DEFAULT_REGISTRY_PATH,
+    DEFAULT_WEALTH_BIB_PATH,
 )
 
 BIB_FIELD_ORDER = [
@@ -106,7 +113,7 @@ def merge_bib_libraries(data_bib_path: Path, wealth_bib_path: Path, both_bib_out
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--registry", default="metadata/sources/sources.yaml", help="Path to canonical registry")
+    parser.add_argument("--registry", default=DEFAULT_REGISTRY_PATH, help="Path to canonical registry")
     parser.add_argument("--dictionary-template", default=None, help="Template dictionary.xlsx path")
     parser.add_argument("--dictionary-output", default=None, help="Output dictionary.xlsx path")
     parser.add_argument("--bib-output", default=None, help="Output .bib path")
@@ -118,13 +125,13 @@ def main() -> int:
     reg = load_registry(registry_path)
     cfg = reg.get("config", {})
 
-    dictionary_template = Path(args.dictionary_template or cfg.get("dictionary_template", "handmade_tables/dictionary.xlsx"))
-    dictionary_output = Path(args.dictionary_output or cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
-    bib_output = Path(args.bib_output or cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    dictionary_template = Path(args.dictionary_template or cfg.get("dictionary_template", DEFAULT_DICTIONARY_PATH))
+    dictionary_output = Path(args.dictionary_output or cfg.get("dictionary_output", DEFAULT_DICTIONARY_PATH))
+    bib_output = Path(args.bib_output or cfg.get("bib_output", DEFAULT_DATA_BIB_PATH))
     wealth_bib_input = Path(
-        args.wealth_bib_input or cfg.get("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib")
+        args.wealth_bib_input or cfg.get("wealth_bib_input", DEFAULT_WEALTH_BIB_PATH)
     )
-    both_bib_output = Path(args.both_bib_output or cfg.get("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"))
+    both_bib_output = Path(args.both_bib_output or cfg.get("both_bib_output", DEFAULT_BOTH_BIB_PATH))
 
     records = records_sorted(reg.get("records", []))
 

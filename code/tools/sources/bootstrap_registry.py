@@ -13,6 +13,7 @@ from common import (
     parse_bib_entries,
     read_sources_sheet,
 )
+from source_paths import DEFAULT_DICTIONARY_PATH, DEFAULT_REGISTRY_PATH
 
 
 def slugify(value: str) -> str:
@@ -119,9 +120,9 @@ def dedupe_records(records: list) -> list:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dictionary", default="handmade_tables/dictionary.xlsx")
+    parser.add_argument("--dictionary", default=DEFAULT_DICTIONARY_PATH)
     parser.add_argument("--bib", default="", help="Optional bib file path")
-    parser.add_argument("--out", default="metadata/sources/sources.yaml")
+    parser.add_argument("--out", default=DEFAULT_REGISTRY_PATH)
     args = parser.parse_args()
 
     dictionary = Path(args.dictionary)

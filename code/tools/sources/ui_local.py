@@ -36,6 +36,17 @@ from common import (
     write_parsed_bib_entries,
 )
 from ref_link_review import apply_selected_ref_links, fetch_and_scan_registry_ref_links
+from source_paths import (
+    DEFAULT_ALIASES_PATH,
+    DEFAULT_BOTH_BIB_PATH,
+    DEFAULT_CHANGE_LOG_PATH,
+    DEFAULT_DATA_BIB_PATH,
+    DEFAULT_DICTIONARY_PATH,
+    DEFAULT_REGISTRY_PATH,
+    DEFAULT_WEALTH_BIB_PATH,
+    DEFAULT_WEALTH_CHANGE_LOG_PATH,
+    path_matches,
+)
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
@@ -65,23 +76,23 @@ def now_utc() -> str:
 
 
 def _data_bib_path(cfg: dict) -> Path:
-    return Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    return Path(cfg.get("bib_output", DEFAULT_DATA_BIB_PATH))
 
 
 def _dictionary_output_path(cfg: dict) -> Path:
-    return Path(cfg.get("dictionary_output", "handmade_tables/dictionary.xlsx"))
+    return Path(cfg.get("dictionary_output", DEFAULT_DICTIONARY_PATH))
 
 
 def _wealth_bib_path(cfg: dict) -> Path:
-    return Path(cfg.get("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"))
+    return Path(cfg.get("wealth_bib_input", DEFAULT_WEALTH_BIB_PATH))
 
 
 def _both_bib_path(cfg: dict) -> Path:
-    return Path(cfg.get("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"))
+    return Path(cfg.get("both_bib_output", DEFAULT_BOTH_BIB_PATH))
 
 
 def _wealth_change_log_path(cfg: dict) -> Path:
-    return Path(cfg.get("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"))
+    return Path(cfg.get("wealth_change_log", DEFAULT_WEALTH_CHANGE_LOG_PATH))
 
 
 def _is_duplicate_error(msg: str) -> bool:
@@ -825,7 +836,7 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
     summary: List[dict] = []
     for fp in modified_files:
         p = str(fp)
-        if p.endswith("metadata/sources/sources.yaml"):
+        if path_matches(p, DEFAULT_REGISTRY_PATH):
             if operation == "edit":
                 text = f"Updated record {record_id}. Fields changed: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
             elif operation == "add":
@@ -838,19 +849,19 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
                 text = "Updated source registry."
             summary.append({"file": p, "summary": text})
             continue
-        if p.endswith("metadata/sources/change_log.yaml"):
+        if path_matches(p, DEFAULT_CHANGE_LOG_PATH):
             summary.append({"file": p, "summary": f"Appended {operation} audit entry for {record_id}."})
             continue
-        if p.endswith("metadata/sources/wealth_research_change_log.yaml"):
+        if path_matches(p, DEFAULT_WEALTH_CHANGE_LOG_PATH):
             summary.append({"file": p, "summary": f"Appended {operation} wealth audit entry for {record_id}."})
             continue
-        if p.endswith("metadata/sources/aliases.yaml"):
+        if path_matches(p, DEFAULT_ALIASES_PATH):
             if key_renamed:
                 summary.append({"file": p, "summary": "Added Source/Citekey alias mappings for key rename."})
             else:
                 summary.append({"file": p, "summary": "Aliases file touched."})
             continue
-        if p.endswith("handmade_tables/dictionary.xlsx"):
+        if path_matches(p, DEFAULT_DICTIONARY_PATH):
             summary.append({"file": p, "summary": "Regenerated Sources sheet from canonical registry."})
             continue
         if p.endswith(".bib"):
@@ -865,13 +876,13 @@ def build_ref_link_review_file_change_summary(modified_files: List[str], applied
     summary: List[dict] = []
     for fp in modified_files:
         p = str(fp)
-        if p.endswith("metadata/sources/sources.yaml"):
+        if path_matches(p, DEFAULT_REGISTRY_PATH):
             summary.append({"file": p, "summary": f"Updated ref_link for {count} record(s)."})
             continue
-        if p.endswith("metadata/sources/change_log.yaml"):
+        if path_matches(p, DEFAULT_CHANGE_LOG_PATH):
             summary.append({"file": p, "summary": f"Appended {count} ref_link review audit entr{'y' if count == 1 else 'ies'}."})
             continue
-        if p.endswith("handmade_tables/dictionary.xlsx"):
+        if path_matches(p, DEFAULT_DICTIONARY_PATH):
             summary.append({"file": p, "summary": "Regenerated Sources sheet from canonical registry."})
             continue
         if p.endswith(".bib"):
@@ -3184,8 +3195,8 @@ async function applySelectedRefLinkReview(){
     const currentBenchmarkInput = String(refLinkReviewState.benchmark_url || '').trim();
     const benchmarkChangedAfterScan = currentBenchmarkInput && benchmarkUsedForApply && currentBenchmarkInput !== benchmarkUsedForApply;
     const fileList = [
-      'metadata/sources/sources.yaml',
-      'metadata/sources/change_log.yaml',
+      'code/tools/metadata/sources/sources.yaml',
+      'code/tools/metadata/sources/change_log.yaml',
       'handmade_tables/dictionary.xlsx',
       'documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib',
       'documentation/BibTeX files/BothLibraries.bib',
@@ -3913,7 +3924,7 @@ def _fetch_url_text(reference_url: str, timeout_seconds: int) -> Dict[str, str]:
 
 def compare_local_bib_with_online(registry: dict) -> dict:
     cfg = registry.get("config", {}) or {}
-    bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    bib_path = Path(cfg.get("bib_output", DEFAULT_DATA_BIB_PATH))
     reference_url = normalize_whitespace(str(cfg.get("online_bib_reference_url", "")))
     timeout_seconds = _coerce_timeout_seconds(cfg.get("online_bib_timeout_seconds", 20), default=20)
     base = {
@@ -3934,7 +3945,7 @@ def compare_local_bib_with_online(registry: dict) -> dict:
             **base,
             "ok": False,
             "status": "not_configured",
-            "message": "online_bib_reference_url is not configured in metadata/sources/sources.yaml.",
+            "message": f"online_bib_reference_url is not configured in {DEFAULT_REGISTRY_PATH}.",
         }
     if not bib_path.exists():
         return {
@@ -4733,9 +4744,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--registry", default="metadata/sources/sources.yaml")
-    parser.add_argument("--aliases", default="metadata/sources/aliases.yaml")
-    parser.add_argument("--change-log", default="metadata/sources/change_log.yaml")
+    parser.add_argument("--registry", default=DEFAULT_REGISTRY_PATH)
+    parser.add_argument("--aliases", default=DEFAULT_ALIASES_PATH)
+    parser.add_argument("--change-log", default=DEFAULT_CHANGE_LOG_PATH)
     args = parser.parse_args()
 
     app = App(Path(args.registry), Path(args.aliases), Path(args.change_log))

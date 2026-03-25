@@ -14,6 +14,16 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from common import load_json_yaml, load_registry, normalize_text, normalize_url, normalize_whitespace, read_sources_sheet, records_sorted
+from source_paths import (
+    DEFAULT_ALIASES_PATH,
+    DEFAULT_BOTH_BIB_PATH,
+    DEFAULT_CHANGE_LOG_PATH,
+    DEFAULT_DATA_BIB_PATH,
+    DEFAULT_DICTIONARY_PATH,
+    DEFAULT_REGISTRY_PATH,
+    DEFAULT_SCHEMA_PATH,
+    DEFAULT_WEALTH_BIB_PATH,
+)
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
@@ -276,15 +286,15 @@ def check_generated_artifacts(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--registry", default="metadata/sources/sources.yaml")
-    parser.add_argument("--schema", default="metadata/sources/schema.json")
-    parser.add_argument("--aliases", default="metadata/sources/aliases.yaml")
-    parser.add_argument("--change-log", default="metadata/sources/change_log.yaml")
+    parser.add_argument("--registry", default=DEFAULT_REGISTRY_PATH)
+    parser.add_argument("--schema", default=DEFAULT_SCHEMA_PATH)
+    parser.add_argument("--aliases", default=DEFAULT_ALIASES_PATH)
+    parser.add_argument("--change-log", default=DEFAULT_CHANGE_LOG_PATH)
     parser.add_argument("--check-generated", action="store_true")
-    parser.add_argument("--dictionary", default="handmade_tables/dictionary.xlsx")
-    parser.add_argument("--bib", default="documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib")
-    parser.add_argument("--wealth-bib-input", default="documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib")
-    parser.add_argument("--both-bib", default="documentation/BibTeX files/BothLibraries.bib")
+    parser.add_argument("--dictionary", default=DEFAULT_DICTIONARY_PATH)
+    parser.add_argument("--bib", default=DEFAULT_DATA_BIB_PATH)
+    parser.add_argument("--wealth-bib-input", default=DEFAULT_WEALTH_BIB_PATH)
+    parser.add_argument("--both-bib", default=DEFAULT_BOTH_BIB_PATH)
     parser.add_argument("--strict", action="store_true", help="Fail on duplicate citekey/url/title-year and URL/DOI format issues")
     args = parser.parse_args()
 

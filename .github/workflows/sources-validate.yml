@@ -17,10 +17,12 @@ jobs:
       - name: Validate canonical registry and generated outputs
         run: |
           python3 code/tools/sources/validate_sources.py \
-            --registry metadata/sources/sources.yaml \
-            --schema metadata/sources/schema.json \
-            --aliases metadata/sources/aliases.yaml \
-            --change-log metadata/sources/change_log.yaml \
+            --registry code/tools/metadata/sources/sources.yaml \
+            --schema code/tools/metadata/sources/schema.json \
+            --aliases code/tools/metadata/sources/aliases.yaml \
+            --change-log code/tools/metadata/sources/change_log.yaml \
             --check-generated \
             --dictionary handmade_tables/dictionary.xlsx \
-            --bib metadata/sources/GCWealthProject_DataSourcesLibrary.bib
+            --bib "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib" \
+            --wealth-bib-input "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib" \
+            --both-bib "documentation/BibTeX files/BothLibraries.bib"

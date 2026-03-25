@@ -13,6 +13,14 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
+from source_paths import (
+    DEFAULT_BOTH_BIB_PATH,
+    DEFAULT_DATA_BIB_PATH,
+    DEFAULT_DICTIONARY_PATH,
+    DEFAULT_WEALTH_BIB_PATH,
+    DEFAULT_WEALTH_CHANGE_LOG_PATH,
+)
+
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -90,16 +98,16 @@ DEFAULT_REGISTRY = OrderedDict(
             "config",
             OrderedDict(
                 [
-                    ("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"),
-                    ("wealth_bib_input", "documentation/BibTeX files/GCWealthProject_WealthResearchLibrary.bib"),
-                    ("both_bib_output", "documentation/BibTeX files/BothLibraries.bib"),
-                    ("wealth_change_log", "metadata/sources/wealth_research_change_log.yaml"),
+                    ("bib_output", DEFAULT_DATA_BIB_PATH),
+                    ("wealth_bib_input", DEFAULT_WEALTH_BIB_PATH),
+                    ("both_bib_output", DEFAULT_BOTH_BIB_PATH),
+                    ("wealth_change_log", DEFAULT_WEALTH_CHANGE_LOG_PATH),
                     ("bibbase_profile_source_url", ""),
                     ("bibbase_timeout_seconds", 20),
                     ("online_bib_reference_url", ""),
                     ("online_bib_timeout_seconds", 20),
-                    ("dictionary_template", "handmade_tables/dictionary.xlsx"),
-                    ("dictionary_output", "handmade_tables/dictionary.xlsx"),
+                    ("dictionary_template", DEFAULT_DICTIONARY_PATH),
+                    ("dictionary_output", DEFAULT_DICTIONARY_PATH),
                 ]
             ),
         ),

@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from common import normalize_url, normalize_whitespace, now_utc
+from source_paths import DEFAULT_DATA_BIB_PATH, DEFAULT_REGISTRY_PATH
 
 
 OUTER_PAYLOAD_RE = re.compile(r"var bibbase_data = (.*); document\.write\(bibbase_data\.data\);?\s*$", re.S)
@@ -131,9 +132,9 @@ def fetch_and_scan_registry_ref_links(
         return {
             "ok": False,
             "status": "not_configured",
-            "message": "bibbase_profile_source_url is not configured in metadata/sources/sources.yaml.",
+            "message": f"bibbase_profile_source_url is not configured in {DEFAULT_REGISTRY_PATH}.",
         }
-    local_bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
+    local_bib_path = Path(cfg.get("bib_output", DEFAULT_DATA_BIB_PATH))
     local_bib_text = local_bib_path.read_text(encoding="utf-8")
     fetch_impl = fetch_text or _fetch_text
     if stage_callback:
