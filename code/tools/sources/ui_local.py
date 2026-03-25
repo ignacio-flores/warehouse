@@ -10,8 +10,10 @@ import argparse
 import hashlib
 import json
 import re
+import shlex
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -892,6 +894,288 @@ def build_ref_link_review_file_change_summary(modified_files: List[str], applied
     return summary
 
 
+def _history_action_label(operation: str, reason: str) -> str:
+    op = normalize_whitespace(operation).lower()
+    reason_text = normalize_whitespace(reason).lower()
+    if "ref_link" in reason_text:
+        return "Ref link review"
+    labels = {
+        "add": "Add",
+        "edit": "Edit",
+        "delete": "Delete",
+        "build_only": "Build only",
+    }
+    return labels.get(op, op.replace("_", " ").title() or "Change")
+
+
+def _history_entry_summary(library: str, operation: str, record_id: str, reason: str) -> str:
+    action = _history_action_label(operation, reason)
+    record = normalize_whitespace(record_id) or "(no record id)"
+    if library == "wealth_research":
+        return f"{action} in Wealth Research for {record}."
+    return f"{action} in Data Sources for {record}."
+
+
+def _history_file_sort_key(path_value: str) -> tuple:
+    if path_matches(path_value, DEFAULT_DICTIONARY_PATH):
+        return (0, path_value)
+    if str(path_value).endswith(".bib"):
+        return (1, path_value)
+    if path_matches(path_value, DEFAULT_REGISTRY_PATH):
+        return (2, path_value)
+    if (
+        path_matches(path_value, DEFAULT_CHANGE_LOG_PATH)
+        or path_matches(path_value, DEFAULT_WEALTH_CHANGE_LOG_PATH)
+        or path_matches(path_value, DEFAULT_ALIASES_PATH)
+    ):
+        return (3, path_value)
+    return (4, path_value)
+
+
+def _history_file_descriptors(
+    library: str,
+    operation: str,
+    reason: str,
+    registry_path: Path,
+    changelog_path: Path,
+    aliases_path: Path,
+    cfg: dict,
+) -> List[dict]:
+    descriptors: List[dict] = []
+
+    def add_descriptor(path_value: Path, category: str, note: str, optional: bool = False):
+        descriptors.append(
+            {
+                "path": str(path_value),
+                "category": category,
+                "note": note,
+                "optional": optional,
+            }
+        )
+
+    op = normalize_whitespace(operation).lower()
+    reason_text = normalize_whitespace(reason).lower()
+
+    if library == "wealth_research":
+        add_descriptor(_wealth_bib_path(cfg), "canonical", "Primary Wealth Research bibliography store.")
+        add_descriptor(changelog_path, "audit", "Wealth Research audit log.")
+        if op in {"add", "edit", "delete", "build_only"}:
+            add_descriptor(_both_bib_path(cfg), "generated", "Combined bibliography regenerated from both libraries.")
+        return sorted(descriptors, key=lambda item: _history_file_sort_key(item.get("path", "")))
+
+    add_descriptor(registry_path, "canonical", "Primary Data Sources registry.")
+    add_descriptor(changelog_path, "audit", "Data Sources audit log.")
+    if op in {"add", "edit", "delete", "build_only"}:
+        add_descriptor(_dictionary_output_path(cfg), "generated", "Sources sheet rebuilt from canonical registry.")
+        add_descriptor(_data_bib_path(cfg), "generated", "Data Sources BibTeX library regenerated.")
+        add_descriptor(_both_bib_path(cfg), "generated", "Combined bibliography regenerated from both libraries.")
+    if op == "edit" and "ref_link" not in reason_text:
+        add_descriptor(
+            aliases_path,
+            "compatibility",
+            "Touched only when Source/Citekey was renamed and alias mappings were added.",
+            optional=True,
+        )
+    return sorted(descriptors, key=lambda item: _history_file_sort_key(item.get("path", "")))
+
+
+def _git_show_summary(commit: str, timeout_seconds: int = 5) -> dict:
+    try:
+        proc = _run_git(["show", "-s", "--format=%H%n%cI%n%s", commit], timeout_seconds)
+        lines = proc.stdout.decode("utf-8", errors="replace").splitlines()
+        return {
+            "commit": lines[0] if len(lines) > 0 else commit,
+            "committed_at": lines[1] if len(lines) > 1 else "",
+            "subject": lines[2] if len(lines) > 2 else "",
+        }
+    except Exception:
+        return {"commit": commit, "committed_at": "", "subject": ""}
+
+
+def _history_git_context(updated_at: str) -> dict:
+    base = getattr(_history_git_context, "_base_context", None)
+    if base is None:
+        base = {
+            "available": False,
+            "remote_url": "",
+            "commit": "",
+            "committed_at": "",
+            "subject": "",
+        }
+        try:
+            _run_git(["rev-parse", "--is-inside-work-tree"], 5)
+            base["available"] = True
+            for remote_name in ["upstream", "origin"]:
+                try:
+                    proc = _run_git(["remote", "get-url", remote_name], 5)
+                    remote_url = normalize_whitespace(proc.stdout.decode("utf-8", errors="replace"))
+                    if remote_url:
+                        base["remote_url"] = remote_url
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        _history_git_context._base_context = base
+        _history_git_context._commit_cache = {}
+
+    context = dict(base)
+    if not context.get("available") or not normalize_whitespace(updated_at):
+        return context
+
+    cache = getattr(_history_git_context, "_commit_cache", {})
+    if updated_at not in cache:
+        commit_context = {"commit": "", "committed_at": "", "subject": ""}
+        try:
+            proc = _run_git(["rev-list", "-1", f"--before={updated_at}", "--all"], 5)
+            commit = normalize_whitespace(proc.stdout.decode("utf-8", errors="replace"))
+            if commit:
+                commit_context.update(_git_show_summary(commit, timeout_seconds=5))
+        except Exception:
+            pass
+        cache[updated_at] = commit_context
+        _history_git_context._commit_cache = cache
+    context.update(cache.get(updated_at, {}))
+    return context
+
+
+def _build_history_entry(
+    library: str,
+    entry: dict,
+    storage_index: int,
+    registry_path: Path,
+    changelog_path: Path,
+    aliases_path: Path,
+    cfg: dict,
+) -> dict:
+    operation = normalize_whitespace(entry.get("operation", ""))
+    record_id = normalize_whitespace(entry.get("record_id", ""))
+    reason = normalize_whitespace(entry.get("reason", ""))
+    updated_at = normalize_whitespace(entry.get("updated_at", ""))
+    actor = normalize_whitespace(entry.get("actor", ""))
+    return {
+        "history_id": f"{library}:{storage_index}",
+        "storage_index": storage_index,
+        "library": library,
+        "branch_label": "Wealth Research" if library == "wealth_research" else "Data Sources",
+        "operation": operation,
+        "action_label": _history_action_label(operation, reason),
+        "record_id": record_id,
+        "reason": reason,
+        "actor": actor,
+        "updated_at": updated_at,
+        "summary": _history_entry_summary(library, operation, record_id, reason),
+        "affected_files": _history_file_descriptors(
+            library,
+            operation,
+            reason,
+            registry_path,
+            changelog_path,
+            aliases_path,
+            cfg,
+        ),
+        "git_context": _history_git_context(updated_at),
+    }
+
+
+def build_history_feed(app, registry: dict) -> dict:
+    cfg = registry.get("config", {}) or {}
+    data_log = load_json_yaml(app.changelog_path) or {"changes": []}
+    wealth_log_path = _wealth_change_log_path(cfg)
+    wealth_log = load_json_yaml(wealth_log_path) or {"changes": []}
+    entries: List[dict] = []
+
+    for idx, entry in enumerate(data_log.get("changes", []) or []):
+        entries.append(
+            _build_history_entry(
+                "data_sources",
+                entry or {},
+                idx,
+                app.registry_path,
+                app.changelog_path,
+                app.aliases_path,
+                cfg,
+            )
+        )
+
+    for idx, entry in enumerate(wealth_log.get("changes", []) or []):
+        entries.append(
+            _build_history_entry(
+                "wealth_research",
+                entry or {},
+                idx,
+                app.registry_path,
+                wealth_log_path,
+                app.aliases_path,
+                cfg,
+            )
+        )
+
+    entries.sort(key=lambda item: (item.get("updated_at", ""), item.get("history_id", "")), reverse=True)
+    latest = entries[0] if entries else {}
+    summary = {
+        "total": len(entries),
+        "data_sources": sum(1 for item in entries if item.get("library") == "data_sources"),
+        "wealth_research": sum(1 for item in entries if item.get("library") == "wealth_research"),
+        "latest_updated_at": latest.get("updated_at", ""),
+        "latest_summary": latest.get("summary", ""),
+    }
+    return {"entries": entries, "summary": summary}
+
+
+def delete_history_entry(changelog_path: Path, storage_index: int) -> dict:
+    data = load_json_yaml(changelog_path) or {"changes": []}
+    changes = list(data.get("changes", []) or [])
+    if storage_index < 0 or storage_index >= len(changes):
+        raise ValueError(f"history entry not found at index {storage_index}")
+    removed = changes.pop(storage_index)
+    data["changes"] = changes
+    changelog_path.parent.mkdir(parents=True, exist_ok=True)
+    changelog_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')
+    return removed
+
+
+def delete_history_entries_for_record(changelog_path: Path, record_id: str) -> List[dict]:
+    record_key = normalize_whitespace(record_id)
+    if not record_key:
+        raise ValueError("record_id is required")
+    data = load_json_yaml(changelog_path) or {"changes": []}
+    changes = list(data.get("changes", []) or [])
+    removed = [entry for entry in changes if normalize_whitespace((entry or {}).get("record_id", "")) == record_key]
+    if not removed:
+        raise ValueError(f"no history rows found for {record_key}")
+    data["changes"] = [entry for entry in changes if normalize_whitespace((entry or {}).get("record_id", "")) != record_key]
+    changelog_path.parent.mkdir(parents=True, exist_ok=True)
+    changelog_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')
+    return removed
+
+
+def relaunch_local_ui(app, host: str, port: int) -> None:
+    launch_cmd = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--host",
+        str(host),
+        "--port",
+        str(port),
+        "--registry",
+        str(app.registry_path),
+        "--aliases",
+        str(app.aliases_path),
+        "--change-log",
+        str(app.changelog_path),
+    ]
+    cmd_text = " ".join(shlex.quote(part) for part in launch_cmd)
+    shell_cmd = f"sleep 2; cd {shlex.quote(str(REPO_ROOT))}; exec {cmd_text} >/tmp/source_manager_relaunch.log 2>&1"
+    subprocess.Popen(
+        ["/bin/bash", "-lc", shell_cmd],
+        cwd=str(REPO_ROOT),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
 def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_path: Path) -> dict:
     records = registry.get("records", [])
     mode = normalize_whitespace(payload.get("mode", "add")).lower()
@@ -1070,6 +1354,9 @@ HTML = """<!doctype html>
 body { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif; margin: 24px; background: radial-gradient(circle at top, #f7f1e7 0%, var(--bg-page) 58%, #e7ddcc 100%); color: var(--text-main); }
 .wrap { max-width: 1180px; margin: 0 auto; background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 10px; padding: 20px; }
 .app-shell { box-shadow: 0 22px 60px rgba(41, 37, 30, 0.12); }
+.app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.app-header-main { min-width: 0; }
+.app-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 label { font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
 input, textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border-soft); border-radius: 10px; font-size: 13px; background: var(--bg-input); color: var(--text-main); font-family: "Avenir Next", "Segoe UI", sans-serif; transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease; }
@@ -1209,11 +1496,58 @@ pre { background: linear-gradient(180deg, #1d242d 0%, #131920 100%); color: #e8e
 body.modal-open { overflow: hidden; }
 details { border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 16px; background: rgba(255, 251, 244, 0.82); padding: 14px 16px; }
 summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); letter-spacing: 0.05em; text-transform: uppercase; }
+.history-shell { display: grid; gap: 18px; }
+.history-summary-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.history-kpi { padding: 14px 16px; border: 1px solid rgba(109, 95, 74, 0.18); border-radius: 16px; background: rgba(255, 251, 244, 0.88); }
+.history-kpi-label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+.history-kpi-value { font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif; color: var(--accent-ink); font-size: 1.1rem; line-height: 1.2; }
+.history-toolbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; }
+.history-filter-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.history-layout { display: grid; grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr); gap: 18px; align-items: start; }
+.history-list { max-height: 640px; overflow: auto; display: grid; gap: 10px; padding-right: 2px; }
+.history-day-group { display: grid; gap: 8px; }
+.history-day-heading { margin: 0; color: var(--text-muted); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+.history-item { width: 100%; padding: 14px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 16px; background: rgba(255, 253, 248, 0.94); color: var(--text-main); box-shadow: none; text-align: left; display: grid; gap: 8px; }
+.history-item:hover { transform: translateY(-1px); }
+.history-item.active { border-color: rgba(23, 50, 77, 0.28); box-shadow: 0 14px 28px rgba(23, 50, 77, 0.10); }
+.history-item-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.history-item-time { color: var(--accent-ink); font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 12px; font-weight: 600; }
+.history-item-meta { color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.history-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.history-badge.library { background: rgba(23, 50, 77, 0.10); color: var(--accent-ink); }
+.history-badge.action { background: rgba(180, 105, 45, 0.12); color: #8e4520; }
+.history-record { font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 13px; font-weight: 600; color: var(--accent-ink); }
+.history-summary { color: var(--text-main); font-size: 13px; line-height: 1.45; }
+.history-files-count { color: var(--text-muted); font-size: 12px; }
+.history-detail-empty { color: var(--text-muted); font-style: italic; }
+.history-detail-grid { display: grid; gap: 14px; }
+.history-detail-card { padding: 14px 16px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 16px; background: rgba(255, 251, 244, 0.86); }
+.history-detail-card h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.history-meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.history-meta-block { min-width: 0; }
+.history-meta-label { display: block; margin-bottom: 4px; color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+.history-meta-value { color: var(--text-main); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.history-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.history-file-row { padding: 10px 12px; border: 1px solid rgba(109, 95, 74, 0.14); border-radius: 14px; background: rgba(255, 253, 248, 0.94); }
+.history-file-path { display: block; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 12px; color: var(--accent-ink); word-break: break-word; }
+.history-file-note { margin-top: 4px; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
+.history-file-tag { display: inline-flex; margin-bottom: 6px; padding: 3px 8px; border-radius: 999px; background: rgba(92, 102, 112, 0.12); color: #4b5662; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.history-file-tag.optional { background: rgba(180, 105, 45, 0.12); color: #8e4520; }
+.history-guidance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.history-guidance-card { padding: 14px 16px; border: 1px solid rgba(109, 95, 74, 0.16); border-radius: 16px; background: rgba(255, 253, 248, 0.94); }
+.history-guidance-card h5 { margin: 0 0 8px; font-size: 0.9rem; }
+.history-guidance-card p { margin: 0 0 8px; color: var(--text-main); font-size: 13px; line-height: 1.45; }
+.history-guidance-card small { display: block; line-height: 1.45; }
+.history-cleanup-note { color: #8e4520; font-size: 12px; line-height: 1.5; }
+#history_status { white-space: pre-wrap; line-height: 1.5; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 12px; }
 @media (max-width: 960px) {
   body { margin: 14px; }
   .wrap { padding: 16px; }
   .grid3 { grid-template-columns: 1fr; gap: 12px; }
   .panel { padding: 14px; border-radius: 16px; }
+  .app-header { flex-direction: column; }
+  .app-header-actions { width: 100%; justify-content: flex-start; }
   .branch-tabs { display: flex; width: 100%; }
   .branch-tab { flex: 1; justify-content: center; }
   .ref-link-review-modal { padding: 12px; }
@@ -1233,16 +1567,25 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   .ref-link-review-toolbar-actions { justify-content: flex-start; }
   .ref-link-review-filters { grid-template-columns: 1fr; }
   .ref-link-review-details { grid-template-columns: 1fr; }
+  .history-toolbar, .history-layout, .history-guidance-grid, .history-meta-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 <div class='wrap app-shell'>
-  <h1>ADAM SSM - Sleepless Source Manager</h1>
-  <p class='app-subtitle'><small>This UI validates and writes locally.</small></p>
+  <div class='app-header'>
+    <div class='app-header-main'>
+      <h1>ADAM SSM - Sleepless Source Manager</h1>
+      <p class='app-subtitle'><small>This UI validates and writes locally.</small></p>
+    </div>
+    <div class='app-header-actions'>
+      <button id='relaunch_app_button' class='secondary' onclick='relaunchApp()'>Relaunch App</button>
+    </div>
+  </div>
   <div class='branch-tabs'>
     <button id='branch_data_tab' class='branch-tab active' onclick="switchBranch('data')">Data Sources</button>
     <button id='branch_wealth_tab' class='branch-tab' onclick="switchBranch('wealth')">Wealth Research</button>
+    <button id='branch_history_tab' class='branch-tab' onclick="switchBranch('history')">History</button>
   </div>
 
   <div id='branch_data'>
@@ -1495,6 +1838,66 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     </div>
     <datalist id='wealth_target_opts'></datalist>
   </div>
+
+  <div id='branch_history' class='hidden'>
+    <div class='panel'>
+      <h3 class='section-heading'>History</h3>
+      <div class='help'>Browse audit history, identify the point before a change, and use external file history in GitHub or Dropbox to restore earlier versions. Recommended: keep history intact. Remove entries only for testing or development cleanup.</div>
+    </div>
+
+    <div id='history_summary_strip' class='history-summary-strip'></div>
+
+    <div class='panel'>
+      <div class='history-toolbar'>
+        <div>
+          <label>Show Changes Up To</label>
+          <input id='history_show_before' type='datetime-local' onchange='renderHistoryView()'>
+        </div>
+        <div>
+          <label>Branch</label>
+          <select id='history_branch_filter' onchange='renderHistoryView()'>
+            <option value=''>All branches</option>
+            <option value='data_sources'>Data Sources</option>
+            <option value='wealth_research'>Wealth Research</option>
+          </select>
+        </div>
+        <div>
+          <label>Action</label>
+          <select id='history_action_filter' onchange='renderHistoryView()'>
+            <option value=''>All actions</option>
+            <option value='Add'>Add</option>
+            <option value='Edit'>Edit</option>
+            <option value='Delete'>Delete</option>
+            <option value='Ref link review'>Ref link review</option>
+          </select>
+        </div>
+        <div>
+          <label>Search</label>
+          <input id='history_search' placeholder='record id, actor, reason, file path' oninput='renderHistoryView()'>
+        </div>
+      </div>
+      <div class='history-filter-actions' style='margin-top:12px;'>
+        <button class='secondary' onclick='historyClearFilters()'>Clear filters</button>
+        <button class='secondary' onclick='historyLoad()'>Refresh history</button>
+      </div>
+    </div>
+
+    <div class='history-layout'>
+      <div class='panel'>
+        <h3 class='section-heading'>Timeline</h3>
+        <div id='history_list' class='history-list'></div>
+      </div>
+      <div class='panel'>
+        <h3 class='section-heading'>Change Detail</h3>
+        <div id='history_detail' class='history-detail-empty'>Select a history row to inspect the affected files and restore guidance.</div>
+      </div>
+    </div>
+
+    <div class='panel'>
+      <h3 class='section-heading'>Status</h3>
+      <pre id='history_status'></pre>
+    </div>
+  </div>
 </div>
 
 <div id='ref_link_review_modal' class='ref-link-review-modal hidden' onclick='if (event.target === this) closeRefLinkReviewModal()'>
@@ -1668,6 +2071,11 @@ let wealthDirty = false;
 let wealthLoadedKey = '';
 let wealthEntries = [];
 let dataEntries = [];
+let historyEntries = [];
+let historySummary = {};
+let historySelectedId = '';
+let historyCleanupReason = '';
+let isRelaunching = false;
 const REF_LINK_REVIEW_STORAGE_PREFIX = 'adam-ssm-ref-link-review';
 function defaultRefLinkReviewColumnWidths(){
   return {
@@ -2634,18 +3042,415 @@ window.addEventListener('resize', () => {
   if (refLinkReviewState.modal_open) renderRefLinkReviewPanel();
 });
 
+function historyIsoToLocalInput(value){
+  const date = new Date(String(value || ''));
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function historyFormatDate(value){
+  const date = new Date(String(value || ''));
+  if (Number.isNaN(date.getTime())) return String(value || 'Unknown time');
+  return date.toLocaleString([], {year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'});
+}
+
+function historyDayLabel(value){
+  const date = new Date(String(value || ''));
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString([], {year: 'numeric', month: 'long', day: 'numeric'});
+}
+
+function historyGetEntryById(historyId, entries){
+  const pool = Array.isArray(entries) ? entries : historyEntries;
+  return pool.find((entry) => entry && entry.history_id === historyId) || null;
+}
+
+function historyEntriesForRecord(entry){
+  if (!entry || !entry.record_id) return [];
+  return historyEntries.filter((item) => item && item.library === entry.library && item.record_id === entry.record_id);
+}
+
+function historyApplyCleanupReason(reason){
+  historyCleanupReason = String(reason || '');
+  const input = document.getElementById('history_cleanup_reason');
+  if (input) input.value = historyCleanupReason;
+}
+
+function historyClearFilters(){
+  document.getElementById('history_show_before').value = '';
+  document.getElementById('history_branch_filter').value = '';
+  document.getElementById('history_action_filter').value = '';
+  document.getElementById('history_search').value = '';
+  renderHistoryView();
+}
+
+function historyUseSelectedTime(){
+  const entry = historyGetEntryById(historySelectedId);
+  if (!entry) return;
+  document.getElementById('history_show_before').value = historyIsoToLocalInput(entry.updated_at);
+  renderHistoryView();
+}
+
+function historyMatches(entry){
+  if (!entry) return false;
+  const showBefore = v('history_show_before').trim();
+  if (showBefore) {
+    const boundary = new Date(showBefore);
+    const changeDate = new Date(String(entry.updated_at || ''));
+    if (!Number.isNaN(boundary.getTime()) && !Number.isNaN(changeDate.getTime()) && changeDate.getTime() > boundary.getTime()) {
+      return false;
+    }
+  }
+  const branchFilter = v('history_branch_filter').trim();
+  if (branchFilter && String(entry.library || '') !== branchFilter) return false;
+  const actionFilter = v('history_action_filter').trim();
+  if (actionFilter && String(entry.action_label || '') !== actionFilter) return false;
+  const query = v('history_search').trim().toLowerCase();
+  if (!query) return true;
+  const files = Array.isArray(entry.affected_files) ? entry.affected_files : [];
+  const haystack = [
+    entry.record_id,
+    entry.actor,
+    entry.reason,
+    entry.summary,
+    entry.branch_label,
+    entry.action_label,
+    ...files.map((item) => item.path),
+  ].join(' ').toLowerCase();
+  return haystack.includes(query);
+}
+
+function filteredHistoryEntries(){
+  return historyEntries.filter((entry) => historyMatches(entry));
+}
+
+function renderHistorySummaryStrip(entries){
+  const strip = document.getElementById('history_summary_strip');
+  if (!strip) return;
+  const cards = [
+    {label: 'Latest change', value: historySummary.latest_updated_at ? historyFormatDate(historySummary.latest_updated_at) : 'No history yet'},
+    {label: 'Visible rows', value: String((entries || []).length)},
+    {label: 'Data Sources rows', value: String(historySummary.data_sources || 0)},
+    {label: 'Wealth Research rows', value: String(historySummary.wealth_research || 0)},
+  ];
+  strip.innerHTML = cards.map((card) => `
+    <div class="history-kpi">
+      <span class="history-kpi-label">${escapeHtml(card.label)}</span>
+      <div class="history-kpi-value">${escapeHtml(card.value)}</div>
+    </div>
+  `).join('');
+}
+
+function renderHistoryList(entries){
+  const listEl = document.getElementById('history_list');
+  if (!listEl) return;
+  if (!entries.length) {
+    listEl.innerHTML = '<small>No history rows match the current filters.</small>';
+    return;
+  }
+  const groups = [];
+  entries.forEach((entry) => {
+    const label = historyDayLabel(entry.updated_at);
+    const lastGroup = groups[groups.length - 1];
+    if (!lastGroup || lastGroup.label !== label) {
+      groups.push({label, entries: [entry]});
+    } else {
+      lastGroup.entries.push(entry);
+    }
+  });
+  listEl.innerHTML = groups.map((group) => `
+    <div class="history-day-group">
+      <div class="history-day-heading">${escapeHtml(group.label)}</div>
+      ${group.entries.map((entry) => {
+        const active = entry.history_id === historySelectedId ? ' active' : '';
+        const files = Array.isArray(entry.affected_files) ? entry.affected_files.length : 0;
+        return `
+          <button class="history-item${active}" onclick='historySelect(${JSON.stringify(entry.history_id)})'>
+            <div class="history-item-top">
+              <div class="history-badges">
+                <span class="history-badge library">${escapeHtml(entry.branch_label || '')}</span>
+                <span class="history-badge action">${escapeHtml(entry.action_label || '')}</span>
+              </div>
+              <div class="history-item-time">${escapeHtml(historyFormatDate(entry.updated_at))}</div>
+            </div>
+            <div class="history-record">${escapeHtml(entry.record_id || '(no record id)')}</div>
+            <div class="history-summary">${escapeHtml(entry.summary || '')}</div>
+            <div class="history-item-meta">${escapeHtml(entry.actor || 'Unknown actor')}</div>
+            <div class="history-files-count">${files} affected file${files === 1 ? '' : 's'}</div>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function renderHistoryDetail(entry){
+  const detailEl = document.getElementById('history_detail');
+  if (!detailEl) return;
+  if (!entry) {
+    detailEl.innerHTML = '<div class="history-detail-empty">Select a history row to inspect the affected files and restore guidance.</div>';
+    return;
+  }
+  const files = Array.isArray(entry.affected_files) ? entry.affected_files : [];
+  const filesHtml = files.length ? files.map((item) => `
+    <li class="history-file-row">
+      <span class="history-file-path">${escapeHtml(item.path || '')}</span>
+      <div class="history-file-note">${escapeHtml(item.note || '')}</div>
+    </li>
+  `).join('') : '<div class="history-detail-empty">No affected files were inferred for this history row.</div>';
+  const git = entry.git_context || {};
+  const gitSummary = !git.available
+    ? 'Local git context was not available in this workspace.'
+    : (git.commit
+        ? `Nearest local commit before this change: ${git.commit.slice(0, 12)}${git.subject ? ` (${git.subject})` : ''}.`
+        : 'Local git repository detected for this workspace.');
+  const gitRemoteNote = git.remote_url ? `<small>Remote: ${escapeHtml(git.remote_url)}</small>` : '';
+  const gitCommitNote = git.committed_at ? `<small>Nearest commit time: ${escapeHtml(historyFormatDate(git.committed_at))}</small>` : '';
+  detailEl.innerHTML = `
+    <div class="history-detail-grid">
+      <div class="history-detail-card">
+        <h4>Change Snapshot</h4>
+        <div class="history-summary" style="margin-bottom:12px;">${escapeHtml(entry.summary || '')}</div>
+        <div class="history-meta-grid">
+          <div class="history-meta-block">
+            <span class="history-meta-label">When</span>
+            <div class="history-meta-value">${escapeHtml(historyFormatDate(entry.updated_at))}</div>
+          </div>
+          <div class="history-meta-block">
+            <span class="history-meta-label">Action</span>
+            <div class="history-meta-value">${escapeHtml(entry.action_label || '')}</div>
+          </div>
+          <div class="history-meta-block">
+            <span class="history-meta-label">Record</span>
+            <div class="history-meta-value">${escapeHtml(entry.record_id || '(no record id)')}</div>
+          </div>
+          <div class="history-meta-block">
+            <span class="history-meta-label">Actor</span>
+            <div class="history-meta-value">${escapeHtml(entry.actor || 'Unknown actor')}</div>
+          </div>
+        </div>
+        <div class="history-meta-block" style="margin-top:12px;">
+          <span class="history-meta-label">Reason</span>
+          <div class="history-meta-value">${escapeHtml(entry.reason || '(no reason recorded)')}</div>
+        </div>
+      </div>
+      <div class="history-detail-card">
+        <h4>Restore Guidance</h4>
+        <div class="history-guidance-grid">
+          <div class="history-guidance-card">
+            <h5>GitHub / Git</h5>
+            <p>Restore the affected files to a version from just before ${escapeHtml(historyFormatDate(entry.updated_at))}.</p>
+            <small>${escapeHtml(gitSummary)}</small>
+            ${gitRemoteNote}
+            ${gitCommitNote}
+          </div>
+          <div class="history-guidance-card">
+            <h5>Dropbox</h5>
+            <p>If this folder is Dropbox-synced, open version history for the affected files and restore versions from just before ${escapeHtml(historyFormatDate(entry.updated_at))}.</p>
+            <small>Dropbox sync status is not detected automatically in this UI.</small>
+          </div>
+        </div>
+      </div>
+      <details>
+        <summary><b>Files affected</b> (${files.length})</summary>
+        <div style="margin-top:12px;">
+          <ul class="history-files">${filesHtml}</ul>
+        </div>
+      </details>
+      <details>
+        <summary><b>History cleanup</b></summary>
+        <div style="margin-top:12px;">
+          <div class="history-cleanup-note">Recommended: keep history intact. Remove entries only for testing or development cleanup. This does not restore or modify canonical source data or generated artifacts.</div>
+          <div class="row" style="margin-top:12px;">
+            <label>Cleanup reason</label>
+            <input id="history_cleanup_reason" list="history_cleanup_reason_suggestions" placeholder="test entry, development trial, duplicate noise" value="${escapeHtml(historyCleanupReason)}" oninput="historyCleanupReason = this.value">
+            <datalist id="history_cleanup_reason_suggestions">
+              <option value="testing noise"></option>
+              <option value="development trial"></option>
+              <option value="duplicate noise"></option>
+              <option value="local rehearsal"></option>
+            </datalist>
+          </div>
+          <div class="history-filter-actions" style="margin-bottom:10px;">
+            <button class="secondary" onclick="historyApplyCleanupReason('testing noise')">Testing noise</button>
+            <button class="secondary" onclick="historyApplyCleanupReason('development trial')">Development trial</button>
+            <button class="secondary" onclick="historyApplyCleanupReason('duplicate noise')">Duplicate noise</button>
+            <button class="secondary" onclick="historyApplyCleanupReason('local rehearsal')">Local rehearsal</button>
+          </div>
+          <div class="history-filter-actions">
+            <button class="secondary" onclick="historyUseSelectedTime()">Filter to this time</button>
+            <button class="warn" onclick="historyDeleteSelected()">Remove This Row</button>
+            <button class="warn" onclick="historyDeleteForRecord()">Remove All Rows For This Source</button>
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function renderHistoryView(){
+  const entries = filteredHistoryEntries();
+  renderHistorySummaryStrip(entries);
+  if (historySelectedId && !entries.some((entry) => entry.history_id === historySelectedId)) {
+    historySelectedId = entries[0] ? entries[0].history_id : '';
+  }
+  if (!historySelectedId && entries[0]) historySelectedId = entries[0].history_id;
+  renderHistoryList(entries);
+  renderHistoryDetail(historyGetEntryById(historySelectedId, entries));
+}
+
+function historySelect(historyId){
+  historySelectedId = historyId;
+  renderHistoryView();
+}
+
+function activeStatusTarget(){
+  if (activeBranch === 'wealth') return 'wealth_status';
+  if (activeBranch === 'history') return 'history_status';
+  return 'status';
+}
+
+function pollForRelaunch(attempt=0){
+  const maxAttempts = 18;
+  window.setTimeout(async () => {
+    try {
+      const resp = await fetch('/api/ping', {cache: 'no-store'});
+      if (resp.ok) {
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      // Wait for the replacement server process.
+    }
+    if (attempt < maxAttempts) pollForRelaunch(attempt + 1);
+  }, attempt === 0 ? 900 : 1200);
+}
+
+async function relaunchApp(){
+  try {
+    const msg = 'Relaunch the local source manager? This is equivalent to closing and starting the app again.';
+    if (!confirm(msg)) return;
+    isRelaunching = true;
+    const out = await req('/api/relaunch', {});
+    const statusTarget = activeStatusTarget();
+    setStatus(out, statusTarget);
+    pollForRelaunch();
+  } catch (err) {
+    isRelaunching = false;
+    setStatus({ok:false, error:String(err)}, activeStatusTarget());
+    showErrorWindow(String(err));
+  }
+}
+
+async function historyLoad(preserveSelection=true){
+  try {
+    const out = await reqGetJson('/api/history');
+    historyEntries = Array.isArray(out.entries) ? out.entries : [];
+    historySummary = out.summary || {};
+    if (!preserveSelection || !historyEntries.some((entry) => entry.history_id === historySelectedId)) {
+      historySelectedId = historyEntries[0] ? historyEntries[0].history_id : '';
+    }
+    renderHistoryView();
+    setStatus({ok: true, entries: historyEntries.length, latest: historySummary.latest_updated_at || ''}, 'history_status');
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'history_status');
+    renderHistoryView();
+  }
+}
+
+async function historyDeleteSelected(){
+  try {
+    const entry = historyGetEntryById(historySelectedId);
+    if (!entry) throw new Error('Select a history row first.');
+    const cleanupReason = (v('history_cleanup_reason') || '').trim();
+    historyCleanupReason = cleanupReason;
+    if (!cleanupReason) throw new Error('Cleanup reason is required to remove a history row.');
+    const visibleEntries = filteredHistoryEntries();
+    const currentIndex = Math.max(0, visibleEntries.findIndex((item) => item && item.history_id === historySelectedId));
+    const msg =
+      `Remove this history row?
+
+` +
+      `${entry.summary || 'Selected history row'}
+` +
+      `Time: ${historyFormatDate(entry.updated_at)}
+
+` +
+      `This only removes the audit entry from history. It does not restore or modify canonical source data or generated artifacts.
+
+` +
+      `Use this only for testing or development cleanup.`;
+    if (!confirm(msg)) return;
+    const out = await req('/api/history/delete_entry', {
+      library: entry.library,
+      cleanup_scope: 'entry',
+      storage_index: entry.storage_index,
+      cleanup_reason: cleanupReason,
+    });
+    await historyLoad(false);
+    const nextVisible = filteredHistoryEntries()[Math.min(currentIndex, Math.max(filteredHistoryEntries().length - 1, 0))];
+    historySelectedId = nextVisible ? nextVisible.history_id : '';
+    renderHistoryView();
+    setStatus(out, 'history_status');
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'history_status');
+    showErrorWindow(String(err));
+  }
+}
+
+async function historyDeleteForRecord(){
+  try {
+    const entry = historyGetEntryById(historySelectedId);
+    if (!entry) throw new Error('Select a history row first.');
+    if (!entry.record_id) throw new Error('This history row has no source or key identifier to clean up.');
+    const cleanupReason = (v('history_cleanup_reason') || '').trim();
+    historyCleanupReason = cleanupReason;
+    if (!cleanupReason) throw new Error('Cleanup reason is required to remove history rows for a source.');
+    const matchingRows = historyEntriesForRecord(entry);
+    const msg =
+      `Remove all ${matchingRows.length} history row(s) for ${entry.record_id}?
+
+` +
+      `This only removes audit entries from history for the selected source or key in ${entry.branch_label}.
+
+` +
+      `It does not restore or modify canonical source data or generated artifacts.`;
+    if (!confirm(msg)) return;
+    const out = await req('/api/history/delete_entry', {
+      library: entry.library,
+      cleanup_scope: 'record',
+      record_id: entry.record_id,
+      cleanup_reason: cleanupReason,
+    });
+    await historyLoad(false);
+    renderHistoryView();
+    setStatus(out, 'history_status');
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'history_status');
+    showErrorWindow(String(err));
+  }
+}
+
 function switchBranch(branch){
-  activeBranch = branch === 'wealth' ? 'wealth' : 'data';
+  activeBranch = branch === 'wealth' ? 'wealth' : (branch === 'history' ? 'history' : 'data');
   const isData = activeBranch === 'data';
+  const isWealth = activeBranch === 'wealth';
+  const isHistory = activeBranch === 'history';
   document.getElementById('branch_data').classList.toggle('hidden', !isData);
-  document.getElementById('branch_wealth').classList.toggle('hidden', isData);
+  document.getElementById('branch_wealth').classList.toggle('hidden', !isWealth);
+  document.getElementById('branch_history').classList.toggle('hidden', !isHistory);
   document.getElementById('branch_data_tab').classList.toggle('active', isData);
-  document.getElementById('branch_wealth_tab').classList.toggle('active', !isData);
-  if (!isData) {
+  document.getElementById('branch_wealth_tab').classList.toggle('active', isWealth);
+  document.getElementById('branch_history_tab').classList.toggle('active', isHistory);
+  if (isWealth) {
     closeRefLinkReviewModal();
     wealthOnModeChange();
     wealthOnEntryTypeChange();
     wealthLoadOptions().catch((err) => setStatus({ok:false, error:String(err)}, 'wealth_status'));
+  } else if (isHistory) {
+    closeRefLinkReviewModal();
+    historyLoad().catch((err) => setStatus({ok:false, error:String(err)}, 'history_status'));
   } else {
     onModeChange();
     onEntryTypeChange();
@@ -3589,11 +4394,13 @@ document.querySelectorAll('input, textarea, select').forEach(el => {
   }
 });
 window.addEventListener('beforeunload', (e) => {
+  if (isRelaunching) return;
   if (!dirty && !wealthDirty) return;
   e.preventDefault();
   e.returnValue = '';
 });
 window.addEventListener('unload', () => {
+  if (isRelaunching) return;
   if (navigator.sendBeacon) {
     navigator.sendBeacon('/api/shutdown', new Blob([JSON.stringify({})], {type: 'application/json'}));
   }
@@ -4080,6 +4887,11 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/ping":
             self.app.last_ping = time.time()
             self._send_json({"ok": True})
+            return
+
+        if parsed.path == "/api/history":
+            reg = self.app.registry
+            self._send_json({"ok": True, **build_history_feed(self.app, reg)})
             return
 
         if parsed.path == "/api/ref_link_review_scan_status":
@@ -4728,6 +5540,62 @@ class Handler(BaseHTTPRequestHandler):
                     ),
                     "message": "Entry deleted and artifacts regenerated",
                 })
+                return
+
+            if self.path == "/api/history/delete_entry":
+                data = self._read_json()
+                library = normalize_whitespace(data.get("library", ""))
+                cleanup_reason = normalize_whitespace(data.get("cleanup_reason", ""))
+                cleanup_scope = normalize_whitespace(data.get("cleanup_scope", "entry")) or "entry"
+                if library not in {"data_sources", "wealth_research"}:
+                    raise ValueError("library must be data_sources or wealth_research")
+                if cleanup_scope not in {"entry", "record"}:
+                    raise ValueError("cleanup_scope must be entry or record")
+                if not cleanup_reason:
+                    raise ValueError("cleanup_reason is required")
+
+                reg = self.app.registry
+                cfg = reg.get("config", {}) or {}
+                changelog_path = self.app.changelog_path if library == "data_sources" else _wealth_change_log_path(cfg)
+                if cleanup_scope == "record":
+                    record_id = normalize_whitespace(data.get("record_id", ""))
+                    removed_rows = delete_history_entries_for_record(changelog_path, record_id)
+                    self._send_json(
+                        {
+                            "ok": True,
+                            "library": library,
+                            "cleanup_scope": cleanup_scope,
+                            "record_id": record_id,
+                            "removed_count": len(removed_rows),
+                            "removed": removed_rows,
+                            "message": "History rows removed for the selected source or key. Canonical source data and generated artifacts were not changed.",
+                        }
+                    )
+                    return
+
+                try:
+                    storage_index = int(data.get("storage_index", -1))
+                except (TypeError, ValueError):
+                    raise ValueError("storage_index must be an integer")
+                removed = delete_history_entry(changelog_path, storage_index)
+                self._send_json(
+                    {
+                        "ok": True,
+                        "library": library,
+                        "cleanup_scope": cleanup_scope,
+                        "storage_index": storage_index,
+                        "removed_count": 1,
+                        "removed": removed,
+                        "message": "History row removed. Canonical source data and generated artifacts were not changed.",
+                    }
+                )
+                return
+
+            if self.path == "/api/relaunch":
+                host, port = self.server.server_address[:2]
+                relaunch_local_ui(self.app, host, int(port))
+                self._send_json({"ok": True, "message": "Relaunching app. This page will reconnect automatically."})
+                threading.Thread(target=self.server.shutdown, daemon=True).start()
                 return
 
             if self.path == "/api/shutdown":

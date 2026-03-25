@@ -1,6 +1,8 @@
 import importlib.util
+import json
 import pathlib
 import sys
+import tempfile
 import unittest
 
 SOURCE_DIR = pathlib.Path("code/tools/sources").resolve()
@@ -183,6 +185,28 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_history_tab_restore_guidance_and_cleanup_hooks_exist(self):
+        for marker in [
+            "branch_history_tab",
+            "Show Changes Up To",
+            "Restore Guidance",
+            "Remove This Row",
+            "Filter to this time",
+            "Recommended: keep history intact. Remove entries only for testing or development cleanup.",
+            "/api/history",
+            "/api/history/delete_entry",
+            "history_summary_strip",
+            "history_cleanup_reason",
+            "history_cleanup_reason_suggestions",
+            "historyApplyCleanupReason('testing noise')",
+            "Remove All Rows For This Source",
+            "cleanup_scope",
+            "Relaunch App",
+            "/api/relaunch",
+            "relaunchApp()",
+        ]:
+            self.assertIn(marker, self.html)
+
     def test_ref_link_review_compact_topbar_scan_hooks_exist(self):
         for marker in [
             "ref-link-review-scan-status-compact",
@@ -244,6 +268,73 @@ class UiLocalHtmlTests(unittest.TestCase):
             summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"],
             "Appended 2 ref_link review audit entries.",
         )
+
+    def test_history_file_descriptors_cover_data_registry_and_cleanup_paths(self):
+        files = self.mod._history_file_descriptors(
+            "data_sources",
+            "edit",
+            "Edited via local UI",
+            pathlib.Path(DEFAULT_REGISTRY_PATH),
+            pathlib.Path(DEFAULT_CHANGE_LOG_PATH),
+            pathlib.Path(DEFAULT_ALIASES_PATH),
+            {},
+        )
+        indexed = {entry["path"]: entry for entry in files}
+        ordered_paths = [entry["path"] for entry in files]
+        self.assertIn(DEFAULT_REGISTRY_PATH, indexed)
+        self.assertIn(DEFAULT_CHANGE_LOG_PATH, indexed)
+        self.assertIn(DEFAULT_ALIASES_PATH, indexed)
+        self.assertTrue(indexed[DEFAULT_ALIASES_PATH]["optional"])
+        self.assertEqual(ordered_paths[0], self.mod.DEFAULT_DICTIONARY_PATH)
+        self.assertTrue(ordered_paths[1].endswith('.bib'))
+        self.assertTrue(ordered_paths[2].endswith('.bib'))
+
+    def test_delete_history_entry_removes_selected_row(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = pathlib.Path(tmpdir) / "change_log.json"
+            log_path.write_text(
+                json.dumps(
+                    {
+                        "changes": [
+                            {"operation": "add", "record_id": "src-a", "reason": "test", "updated_at": "2026-03-24T10:00:00Z"},
+                            {"operation": "edit", "record_id": "src-b", "reason": "test", "updated_at": "2026-03-24T11:00:00Z"},
+                        ]
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            removed = self.mod.delete_history_entry(log_path, 0)
+            remaining = json.loads(log_path.read_text(encoding="utf-8"))
+            self.assertEqual(removed["record_id"], "src-a")
+            self.assertEqual(len(remaining["changes"]), 1)
+            self.assertEqual(remaining["changes"][0]["record_id"], "src-b")
+
+
+    def test_delete_history_entries_for_record_removes_all_matching_rows(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = pathlib.Path(tmpdir) / "change_log.json"
+            log_path.write_text(
+                json.dumps(
+                    {
+                        "changes": [
+                            {"operation": "add", "record_id": "src-a", "reason": "test", "updated_at": "2026-03-24T10:00:00Z"},
+                            {"operation": "edit", "record_id": "src-a", "reason": "test", "updated_at": "2026-03-24T11:00:00Z"},
+                            {"operation": "delete", "record_id": "src-b", "reason": "test", "updated_at": "2026-03-24T12:00:00Z"},
+                        ]
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            removed = self.mod.delete_history_entries_for_record(log_path, "src-a")
+            remaining = json.loads(log_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(removed), 2)
+            self.assertEqual([entry["record_id"] for entry in removed], ["src-a", "src-a"])
+            self.assertEqual(len(remaining["changes"]), 1)
+            self.assertEqual(remaining["changes"][0]["record_id"], "src-b")
 
 
 if __name__ == "__main__":

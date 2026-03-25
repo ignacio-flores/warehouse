@@ -1,3 +1,18 @@
 {
-  "aliases": []
+  "aliases": [
+    {
+      "type": "source",
+      "old": "alvaredo2017share",
+      "new": "alvaredo2017",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-03-25T14:47:16Z"
+    },
+    {
+      "type": "citekey",
+      "old": "alvaredo2017share",
+      "new": "alvaredo2017",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-03-25T14:47:16Z"
+    }
+  ]
 }
