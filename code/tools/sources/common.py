@@ -481,23 +481,46 @@ def update_filter_database_range(workbook_xml: bytes, max_row: int) -> bytes:
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+def validate_xlsx_for_replace(xlsx_path: Path) -> None:
+    try:
+        with zipfile.ZipFile(xlsx_path, "r") as zf:
+            bad_member = zf.testzip()
+            if bad_member:
+                raise RuntimeError(f"bad zip member: {bad_member}")
+            for required in ["xl/workbook.xml", "xl/_rels/workbook.xml.rels"]:
+                if required not in zf.namelist():
+                    raise RuntimeError(f"missing workbook member: {required}")
+            sheet_path, _ = locate_sources_sheet(zf)
+            ET.fromstring(zf.read(sheet_path))
+    except (zipfile.BadZipFile, KeyError, ET.ParseError, RuntimeError) as exc:
+        raise RuntimeError(f"Generated dictionary workbook is invalid: {exc}") from exc
+
+
 def write_sources_sheet(template_xlsx: Path, output_xlsx: Path, rows: List[dict]) -> None:
     sheet_xml = build_sources_sheet_xml(rows)
     ensure_parent(output_xlsx)
     tmp_output = output_xlsx.with_suffix(output_xlsx.suffix + ".tmp")
-    with zipfile.ZipFile(template_xlsx, "r") as zin:
-        sheet_path, _ = locate_sources_sheet(zin)
-        workbook_xml = update_filter_database_range(zin.read("xl/workbook.xml"), len(rows) + 1)
+    try:
+        with zipfile.ZipFile(template_xlsx, "r") as zin:
+            sheet_path, _ = locate_sources_sheet(zin)
+            workbook_xml = update_filter_database_range(zin.read("xl/workbook.xml"), len(rows) + 1)
 
-        with zipfile.ZipFile(tmp_output, "w", compression=zipfile.ZIP_DEFLATED) as zout:
-            for name in zin.namelist():
-                if name == sheet_path:
-                    zout.writestr(name, sheet_xml)
-                elif name == "xl/workbook.xml":
-                    zout.writestr(name, workbook_xml)
-                else:
-                    zout.writestr(name, zin.read(name))
-    tmp_output.replace(output_xlsx)
+            with zipfile.ZipFile(tmp_output, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+                for name in zin.namelist():
+                    if name == sheet_path:
+                        zout.writestr(name, sheet_xml)
+                    elif name == "xl/workbook.xml":
+                        zout.writestr(name, workbook_xml)
+                    else:
+                        zout.writestr(name, zin.read(name))
+        validate_xlsx_for_replace(tmp_output)
+        tmp_output.replace(output_xlsx)
+    except Exception:
+        try:
+            tmp_output.unlink()
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def normalize_record(raw: dict) -> dict:

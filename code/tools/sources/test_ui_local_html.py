@@ -12,6 +12,7 @@ if str(SOURCE_DIR) not in sys.path:
 from source_paths import (
     DEFAULT_ALIASES_PATH,
     DEFAULT_CHANGE_LOG_PATH,
+    DEFAULT_DICTIONARY_PATH,
     DEFAULT_REGISTRY_PATH,
     DEFAULT_WEALTH_CHANGE_LOG_PATH,
 )
@@ -190,16 +191,16 @@ class UiLocalHtmlTests(unittest.TestCase):
             "branch_history_tab",
             "Show Changes Up To",
             "Restore Guidance",
-            "Remove This Row",
+            "Remove History Record",
             "Filter to this time",
-            "Recommended: keep history intact. Remove entries only for testing or development cleanup.",
+            "Removes history records only. Source records and generated files are not changed.",
             "/api/history",
             "/api/history/delete_entry",
             "history_summary_strip",
             "history_cleanup_reason",
             "history_cleanup_reason_suggestions",
             "historyApplyCleanupReason('testing noise')",
-            "Remove All Rows For This Source",
+            "Remove History Records For This Source",
             "cleanup_scope",
             "Relaunch App",
             "/api/relaunch",
@@ -232,7 +233,7 @@ class UiLocalHtmlTests(unittest.TestCase):
         )
         summaries = {entry["file"]: entry["summary"] for entry in summary}
         self.assertIn("Updated record src-example.", summaries[f"/tmp/{DEFAULT_REGISTRY_PATH}"])
-        self.assertIn("Appended edit audit entry", summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"])
+        self.assertIn("Added edit history record", summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"])
         self.assertEqual(
             summaries[f"/tmp/{DEFAULT_ALIASES_PATH}"],
             "Added Source/Citekey alias mappings for key rename.",
@@ -251,7 +252,7 @@ class UiLocalHtmlTests(unittest.TestCase):
         )
         self.assertEqual(
             summary[0]["summary"],
-            "Appended delete wealth audit entry for wealth-key.",
+            "Added delete Wealth Research history record for wealth-key.",
         )
 
     def test_build_ref_link_review_summary_matches_new_metadata_paths(self):
@@ -266,7 +267,7 @@ class UiLocalHtmlTests(unittest.TestCase):
         )
         self.assertEqual(
             summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"],
-            "Appended 2 ref_link review audit entries.",
+            "Added 2 ref_link review history records.",
         )
 
     def test_history_file_descriptors_cover_data_registry_and_cleanup_paths(self):
@@ -310,6 +311,50 @@ class UiLocalHtmlTests(unittest.TestCase):
             self.assertEqual(removed["record_id"], "src-a")
             self.assertEqual(len(remaining["changes"]), 1)
             self.assertEqual(remaining["changes"][0]["record_id"], "src-b")
+
+
+    def test_delete_history_entries_for_record_only_updates_history_log(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            log_path = root / "change_log.json"
+            source_path = root / DEFAULT_REGISTRY_PATH
+            dictionary_path = root / DEFAULT_DICTIONARY_PATH
+            bib_path = root / "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"
+            for path, content in [
+                (
+                    log_path,
+                    json.dumps(
+                        {
+                            "changes": [
+                                {"operation": "add", "record_id": "src-a", "reason": "test", "updated_at": "2026-03-24T10:00:00Z"},
+                                {"operation": "edit", "record_id": "src-a", "reason": "test", "updated_at": "2026-03-24T11:00:00Z"},
+                                {"operation": "delete", "record_id": "src-b", "reason": "test", "updated_at": "2026-03-24T12:00:00Z"},
+                            ]
+                        },
+                        indent=2,
+                    )
+                    + "\n",
+                ),
+                (source_path, '{"records": [{"id": "src-a"}]}\n'),
+                (dictionary_path, "dictionary bytes"),
+                (bib_path, "@article{a}\n"),
+            ]:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+
+            before = {
+                source_path: source_path.read_text(encoding="utf-8"),
+                dictionary_path: dictionary_path.read_text(encoding="utf-8"),
+                bib_path: bib_path.read_text(encoding="utf-8"),
+            }
+            removed = self.mod.delete_history_entries_for_record(log_path, "src-a")
+
+            remaining = json.loads(log_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(removed), 2)
+            self.assertEqual(len(remaining["changes"]), 1)
+            self.assertEqual(remaining["changes"][0]["record_id"], "src-b")
+            for path, content in before.items():
+                self.assertEqual(path.read_text(encoding="utf-8"), content)
 
 
     def test_delete_history_entries_for_record_removes_all_matching_rows(self):

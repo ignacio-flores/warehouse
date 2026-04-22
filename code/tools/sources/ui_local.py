@@ -852,10 +852,10 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
             summary.append({"file": p, "summary": text})
             continue
         if path_matches(p, DEFAULT_CHANGE_LOG_PATH):
-            summary.append({"file": p, "summary": f"Appended {operation} audit entry for {record_id}."})
+            summary.append({"file": p, "summary": f"Added {operation} history record for {record_id}."})
             continue
         if path_matches(p, DEFAULT_WEALTH_CHANGE_LOG_PATH):
-            summary.append({"file": p, "summary": f"Appended {operation} wealth audit entry for {record_id}."})
+            summary.append({"file": p, "summary": f"Added {operation} Wealth Research history record for {record_id}."})
             continue
         if path_matches(p, DEFAULT_ALIASES_PATH):
             if key_renamed:
@@ -882,7 +882,7 @@ def build_ref_link_review_file_change_summary(modified_files: List[str], applied
             summary.append({"file": p, "summary": f"Updated ref_link for {count} record(s)."})
             continue
         if path_matches(p, DEFAULT_CHANGE_LOG_PATH):
-            summary.append({"file": p, "summary": f"Appended {count} ref_link review audit entr{'y' if count == 1 else 'ies'}."})
+            summary.append({"file": p, "summary": f"Added {count} ref_link review history record{'s' if count != 1 else ''}."})
             continue
         if path_matches(p, DEFAULT_DICTIONARY_PATH):
             summary.append({"file": p, "summary": "Regenerated Sources sheet from canonical registry."})
@@ -958,13 +958,13 @@ def _history_file_descriptors(
 
     if library == "wealth_research":
         add_descriptor(_wealth_bib_path(cfg), "canonical", "Primary Wealth Research bibliography store.")
-        add_descriptor(changelog_path, "audit", "Wealth Research audit log.")
+        add_descriptor(changelog_path, "history", "Wealth Research history log.")
         if op in {"add", "edit", "delete", "build_only"}:
             add_descriptor(_both_bib_path(cfg), "generated", "Combined bibliography regenerated from both libraries.")
         return sorted(descriptors, key=lambda item: _history_file_sort_key(item.get("path", "")))
 
     add_descriptor(registry_path, "canonical", "Primary Data Sources registry.")
-    add_descriptor(changelog_path, "audit", "Data Sources audit log.")
+    add_descriptor(changelog_path, "history", "Data Sources history log.")
     if op in {"add", "edit", "delete", "build_only"}:
         add_descriptor(_dictionary_output_path(cfg), "generated", "Sources sheet rebuilt from canonical registry.")
         add_descriptor(_data_bib_path(cfg), "generated", "Data Sources BibTeX library regenerated.")
@@ -1143,7 +1143,7 @@ def delete_history_entries_for_record(changelog_path: Path, record_id: str) -> L
     changes = list(data.get("changes", []) or [])
     removed = [entry for entry in changes if normalize_whitespace((entry or {}).get("record_id", "")) == record_key]
     if not removed:
-        raise ValueError(f"no history rows found for {record_key}")
+        raise ValueError(f"no history records found for {record_key}")
     data["changes"] = [entry for entry in changes if normalize_whitespace((entry or {}).get("record_id", "")) != record_key]
     changelog_path.parent.mkdir(parents=True, exist_ok=True)
     changelog_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')
@@ -1842,7 +1842,7 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   <div id='branch_history' class='hidden'>
     <div class='panel'>
       <h3 class='section-heading'>History</h3>
-      <div class='help'>Browse audit history, identify the point before a change, and use external file history in GitHub or Dropbox to restore earlier versions. Recommended: keep history intact. Remove entries only for testing or development cleanup.</div>
+      <div class='help'>Browse history, identify the point before a change, and use external file history in GitHub or Dropbox to restore earlier versions. Recommended: keep history intact. Remove history records only for testing or development cleanup.</div>
     </div>
 
     <div id='history_summary_strip' class='history-summary-strip'></div>
@@ -1889,7 +1889,7 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
       </div>
       <div class='panel'>
         <h3 class='section-heading'>Change Detail</h3>
-        <div id='history_detail' class='history-detail-empty'>Select a history row to inspect the affected files and restore guidance.</div>
+        <div id='history_detail' class='history-detail-empty'>Select a history record to inspect the affected files and restore guidance.</div>
       </div>
     </div>
 
@@ -3146,7 +3146,7 @@ function renderHistoryList(entries){
   const listEl = document.getElementById('history_list');
   if (!listEl) return;
   if (!entries.length) {
-    listEl.innerHTML = '<small>No history rows match the current filters.</small>';
+    listEl.innerHTML = '<small>No history records match the current filters.</small>';
     return;
   }
   const groups = [];
@@ -3189,7 +3189,7 @@ function renderHistoryDetail(entry){
   const detailEl = document.getElementById('history_detail');
   if (!detailEl) return;
   if (!entry) {
-    detailEl.innerHTML = '<div class="history-detail-empty">Select a history row to inspect the affected files and restore guidance.</div>';
+    detailEl.innerHTML = '<div class="history-detail-empty">Select a history record to inspect the affected files and restore guidance.</div>';
     return;
   }
   const files = Array.isArray(entry.affected_files) ? entry.affected_files : [];
@@ -3198,7 +3198,7 @@ function renderHistoryDetail(entry){
       <span class="history-file-path">${escapeHtml(item.path || '')}</span>
       <div class="history-file-note">${escapeHtml(item.note || '')}</div>
     </li>
-  `).join('') : '<div class="history-detail-empty">No affected files were inferred for this history row.</div>';
+  `).join('') : '<div class="history-detail-empty">No affected files were inferred for this history record.</div>';
   const git = entry.git_context || {};
   const gitSummary = !git.available
     ? 'Local git context was not available in this workspace.'
@@ -3261,7 +3261,7 @@ function renderHistoryDetail(entry){
       <details>
         <summary><b>History cleanup</b></summary>
         <div style="margin-top:12px;">
-          <div class="history-cleanup-note">Recommended: keep history intact. Remove entries only for testing or development cleanup. This does not restore or modify canonical source data or generated artifacts.</div>
+          <div class="history-cleanup-note">Recommended: keep history intact. Removes history records only. Source records and generated files are not changed.</div>
           <div class="row" style="margin-top:12px;">
             <label>Cleanup reason</label>
             <input id="history_cleanup_reason" list="history_cleanup_reason_suggestions" placeholder="test entry, development trial, duplicate noise" value="${escapeHtml(historyCleanupReason)}" oninput="historyCleanupReason = this.value">
@@ -3280,8 +3280,8 @@ function renderHistoryDetail(entry){
           </div>
           <div class="history-filter-actions">
             <button class="secondary" onclick="historyUseSelectedTime()">Filter to this time</button>
-            <button class="warn" onclick="historyDeleteSelected()">Remove This Row</button>
-            <button class="warn" onclick="historyDeleteForRecord()">Remove All Rows For This Source</button>
+            <button class="warn" onclick="historyDeleteSelected()">Remove History Record</button>
+            <button class="warn" onclick="historyDeleteForRecord()">Remove History Records For This Source</button>
           </div>
         </div>
       </details>
@@ -3362,25 +3362,27 @@ async function historyLoad(preserveSelection=true){
 async function historyDeleteSelected(){
   try {
     const entry = historyGetEntryById(historySelectedId);
-    if (!entry) throw new Error('Select a history row first.');
+    if (!entry) throw new Error('Select a history record first.');
     const cleanupReason = (v('history_cleanup_reason') || '').trim();
     historyCleanupReason = cleanupReason;
-    if (!cleanupReason) throw new Error('Cleanup reason is required to remove a history row.');
+    if (!cleanupReason) throw new Error('Cleanup reason is required to remove a history record.');
     const visibleEntries = filteredHistoryEntries();
     const currentIndex = Math.max(0, visibleEntries.findIndex((item) => item && item.history_id === historySelectedId));
     const msg =
-      `Remove this history row?
+      `Remove this history record?
 
 ` +
-      `${entry.summary || 'Selected history row'}
+      `${entry.summary || 'Selected history record'}
 ` +
       `Time: ${historyFormatDate(entry.updated_at)}
 
 ` +
-      `This only removes the audit entry from history. It does not restore or modify canonical source data or generated artifacts.
+      `Removes history records only.
+Source records are not changed.
+Generated files are not changed.
 
 ` +
-      `Use this only for testing or development cleanup.`;
+      `Use only for testing or development cleanup.`;
     if (!confirm(msg)) return;
     const out = await req('/api/history/delete_entry', {
       library: entry.library,
@@ -3402,20 +3404,19 @@ async function historyDeleteSelected(){
 async function historyDeleteForRecord(){
   try {
     const entry = historyGetEntryById(historySelectedId);
-    if (!entry) throw new Error('Select a history row first.');
-    if (!entry.record_id) throw new Error('This history row has no source or key identifier to clean up.');
+    if (!entry) throw new Error('Select a history record first.');
+    if (!entry.record_id) throw new Error('This history record has no source or key identifier to clean up.');
     const cleanupReason = (v('history_cleanup_reason') || '').trim();
     historyCleanupReason = cleanupReason;
-    if (!cleanupReason) throw new Error('Cleanup reason is required to remove history rows for a source.');
+    if (!cleanupReason) throw new Error('Cleanup reason is required to remove history records for a source.');
     const matchingRows = historyEntriesForRecord(entry);
     const msg =
-      `Remove all ${matchingRows.length} history row(s) for ${entry.record_id}?
+      `Remove all ${matchingRows.length} history record(s) for ${entry.record_id}?
 
 ` +
-      `This only removes audit entries from history for the selected source or key in ${entry.branch_label}.
-
-` +
-      `It does not restore or modify canonical source data or generated artifacts.`;
+      `Removes history records only for this source or key in ${entry.branch_label}.
+Source records are not changed.
+Generated files are not changed.`;
     if (!confirm(msg)) return;
     const out = await req('/api/history/delete_entry', {
       library: entry.library,
@@ -5567,8 +5568,12 @@ class Handler(BaseHTTPRequestHandler):
                             "cleanup_scope": cleanup_scope,
                             "record_id": record_id,
                             "removed_count": len(removed_rows),
+                            "removed_history_records": len(removed_rows),
+                            "source_records_changed": False,
+                            "generated_files_changed": False,
+                            "modified_files": [str(changelog_path)],
                             "removed": removed_rows,
-                            "message": "History rows removed for the selected source or key. Canonical source data and generated artifacts were not changed.",
+                            "message": "History records removed. Source records and generated files were not changed.",
                         }
                     )
                     return
@@ -5585,8 +5590,12 @@ class Handler(BaseHTTPRequestHandler):
                         "cleanup_scope": cleanup_scope,
                         "storage_index": storage_index,
                         "removed_count": 1,
+                        "removed_history_records": 1,
+                        "source_records_changed": False,
+                        "generated_files_changed": False,
+                        "modified_files": [str(changelog_path)],
                         "removed": removed,
-                        "message": "History row removed. Canonical source data and generated artifacts were not changed.",
+                        "message": "History record removed. Source records and generated files were not changed.",
                     }
                 )
                 return
