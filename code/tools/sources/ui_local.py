@@ -3650,11 +3650,13 @@ function setStatusWithChecks(out, heading, opts={}){
   const modeValue = opts.modeValue || v('mode');
   const includeOnlineCompare = opts.includeOnlineCompare !== false;
   const includeDuplicateGuidance = opts.includeDuplicateGuidance !== false;
+  const nextMessage = opts.nextMessage || '';
   const lines = [];
   if (heading) lines.push(heading);
   const summary = (out.ok || out.status === 'ok') ? 'Overall result: PASSED' : 'Overall result: FAILED';
   lines.push(summary);
   if (out.message) lines.push(`Message: ${out.message}`);
+  if (nextMessage) lines.push(nextMessage);
   const checkText = formatChecks(out);
   if (checkText) lines.push(checkText);
   if (includeDuplicateGuidance && modeValue === 'add') {
@@ -3963,7 +3965,8 @@ async function applyAndBuild(){
       payload.editor_name = await ensureEditorName('save this entry');
     }
     const out = await req('/api/apply_and_build', payload);
-    setStatusWithChecks(out, 'Save complete.');
+    const addReadyMessage = (payload.mode === 'add' && !emptyAddPayload) ? 'Next: The form was cleared and is ready for another entry.' : '';
+    setStatusWithChecks(out, 'Save complete.', {nextMessage: addReadyMessage});
     try {
       await loadOptions();
     } catch (optErr) {
@@ -4444,10 +4447,12 @@ async function wealthApplyAndBuild(){
       payload.editor_name = await wealthEnsureEditorName('save this entry');
     }
     const out = await req('/api/wealth/apply_and_build', payload);
+    const addReadyMessage = (payload.mode === 'add' && !emptyAddPayload) ? 'Next: The form was cleared and is ready for another entry.' : '';
     setStatusWithChecks(out, 'Save complete.', {
       targetId: 'wealth_status',
       modeValue: wv('wealth_mode'),
-      includeDuplicateGuidance: false
+      includeDuplicateGuidance: false,
+      nextMessage: addReadyMessage
     });
     try {
       await wealthLoadOptions();

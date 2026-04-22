@@ -33,7 +33,21 @@ def load_ui_local_module():
 
 def extract_js_function(html, name):
     start = html.index(f"function {name}(")
-    brace = html.index("{", start)
+    open_paren = html.index("(", start)
+    paren_depth = 0
+    close_paren = -1
+    for idx in range(open_paren, len(html)):
+        char = html[idx]
+        if char == "(":
+            paren_depth += 1
+        elif char == ")":
+            paren_depth -= 1
+            if paren_depth == 0:
+                close_paren = idx
+                break
+    if close_paren == -1:
+        raise AssertionError(f"Could not find JavaScript function parameters: {name}")
+    brace = html.index("{", close_paren)
     depth = 0
     for idx in range(brace, len(html)):
         char = html[idx]
@@ -103,6 +117,11 @@ class UiLocalHtmlTests(unittest.TestCase):
         ]:
             self.assertIn(marker, self.html)
 
+    def test_status_renderer_supports_post_save_next_message(self):
+        body = self.js_function("setStatusWithChecks")
+        self.assertIn("const nextMessage = opts.nextMessage || '';", body)
+        self.assertIn("if (nextMessage) lines.push(nextMessage);", body)
+
     def test_data_add_save_resets_entry_fields_but_preserves_editor(self):
         body = self.js_function("resetDataAddFormAfterSave")
         for marker in [
@@ -128,6 +147,11 @@ class UiLocalHtmlTests(unittest.TestCase):
         body = self.js_function("applyAndBuild")
         self.assertIn("const emptyAddPayload = isEmptyAddPayload(payload);", body)
         self.assertIn("const out = await req('/api/apply_and_build', payload);", body)
+        self.assertIn(
+            "const addReadyMessage = (payload.mode === 'add' && !emptyAddPayload) ? 'Next: The form was cleared and is ready for another entry.' : '';",
+            body,
+        )
+        self.assertIn("setStatusWithChecks(out, 'Save complete.', {nextMessage: addReadyMessage});", body)
         self.assertIn("if (payload.mode === 'add' && !emptyAddPayload) {", body)
         self.assertIn("resetDataAddFormAfterSave();", body)
         self.assertIn("} else {\n      clearDirty();\n    }", body)
@@ -156,6 +180,11 @@ class UiLocalHtmlTests(unittest.TestCase):
         body = self.js_function("wealthApplyAndBuild")
         self.assertIn("const emptyAddPayload = wealthIsEmptyAddPayload(payload);", body)
         self.assertIn("const out = await req('/api/wealth/apply_and_build', payload);", body)
+        self.assertIn(
+            "const addReadyMessage = (payload.mode === 'add' && !emptyAddPayload) ? 'Next: The form was cleared and is ready for another entry.' : '';",
+            body,
+        )
+        self.assertIn("nextMessage: addReadyMessage", body)
         self.assertIn("if (payload.mode === 'add' && !emptyAddPayload) {", body)
         self.assertIn("resetWealthAddFormAfterSave();", body)
         self.assertIn("} else {\n      clearWealthDirty();\n    }", body)
