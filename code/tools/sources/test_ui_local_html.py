@@ -31,11 +31,29 @@ def load_ui_local_module():
     return module
 
 
+def extract_js_function(html, name):
+    start = html.index(f"function {name}(")
+    brace = html.index("{", start)
+    depth = 0
+    for idx in range(brace, len(html)):
+        char = html[idx]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return html[start : idx + 1]
+    raise AssertionError(f"Could not extract JavaScript function: {name}")
+
+
 class UiLocalHtmlTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.mod = load_ui_local_module()
         cls.html = cls.mod.HTML
+
+    def js_function(self, name):
+        return extract_js_function(self.html, name)
 
     def test_adam_ssm_branding_is_present(self):
         self.assertIn("ADAM SSM - Sleepless Source Manager", self.html)
@@ -84,6 +102,63 @@ class UiLocalHtmlTests(unittest.TestCase):
             "targetId: 'wealth_status'",
         ]:
             self.assertIn(marker, self.html)
+
+    def test_data_add_save_resets_entry_fields_but_preserves_editor(self):
+        body = self.js_function("resetDataAddFormAfterSave")
+        for marker in [
+            "'bib_paste'",
+            "'section'",
+            "'aggsource'",
+            "'legend'",
+            "'source_key'",
+            "'link'",
+            "'metadata'",
+            "'bib_entry_type'",
+            "'bib_abstract'",
+            "loadedSourceKey = ''",
+            "delete document.getElementById('legend').dataset.userEdited",
+            "onEntryTypeChange()",
+            "clearDirty()",
+            "next.focus()",
+        ]:
+            self.assertIn(marker, body)
+        self.assertNotIn("'editor_name'", body)
+
+    def test_data_add_save_reset_only_runs_after_non_empty_add_success(self):
+        body = self.js_function("applyAndBuild")
+        self.assertIn("const emptyAddPayload = isEmptyAddPayload(payload);", body)
+        self.assertIn("const out = await req('/api/apply_and_build', payload);", body)
+        self.assertIn("if (payload.mode === 'add' && !emptyAddPayload) {", body)
+        self.assertIn("resetDataAddFormAfterSave();", body)
+        self.assertIn("} else {\n      clearDirty();\n    }", body)
+
+    def test_wealth_add_save_resets_entry_fields_but_preserves_editor(self):
+        body = self.js_function("resetWealthAddFormAfterSave")
+        for marker in [
+            "'wealth_bib_paste'",
+            "'wealth_target'",
+            "'wealth_key'",
+            "'wealth_entry_type'",
+            "'wealth_title'",
+            "'wealth_author'",
+            "'wealth_year'",
+            "'wealth_abstract'",
+            "document.getElementById('wealth_extra_fields').value = '{}';",
+            "wealthLoadedKey = ''",
+            "wealthOnEntryTypeChange()",
+            "clearWealthDirty()",
+            "next.focus()",
+        ]:
+            self.assertIn(marker, body)
+        self.assertNotIn("'wealth_editor_name'", body)
+
+    def test_wealth_add_save_reset_only_runs_after_non_empty_add_success(self):
+        body = self.js_function("wealthApplyAndBuild")
+        self.assertIn("const emptyAddPayload = wealthIsEmptyAddPayload(payload);", body)
+        self.assertIn("const out = await req('/api/wealth/apply_and_build', payload);", body)
+        self.assertIn("if (payload.mode === 'add' && !emptyAddPayload) {", body)
+        self.assertIn("resetWealthAddFormAfterSave();", body)
+        self.assertIn("} else {\n      clearWealthDirty();\n    }", body)
 
     def test_default_registry_contains_wealth_online_compare_config(self):
         cfg = DEFAULT_REGISTRY["config"]

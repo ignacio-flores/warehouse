@@ -3895,6 +3895,52 @@ async function validateOnly(){
   }
 }
 
+function resetDataAddFormAfterSave(){
+  const ids = [
+    'bib_paste',
+    'target',
+    'section',
+    'aggsource',
+    'legend',
+    'source_key',
+    'link',
+    'data_type',
+    'ref_link',
+    'inclusion_in_warehouse',
+    'multigeo_reference',
+    'metadatalink',
+    'metadata',
+    'bib_entry_type',
+    'bib_title',
+    'bib_author',
+    'bib_year',
+    'bib_month',
+    'bib_journal',
+    'bib_booktitle',
+    'bib_volume',
+    'bib_number',
+    'bib_pages',
+    'bib_institution',
+    'bib_publisher',
+    'bib_doi',
+    'bib_url',
+    'bib_urldate',
+    'bib_keywords',
+    'bib_note',
+    'bib_abstract'
+  ];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  loadedSourceKey = '';
+  delete document.getElementById('legend').dataset.userEdited;
+  onEntryTypeChange();
+  clearDirty();
+  const next = document.getElementById('bib_paste');
+  if (next) next.focus();
+}
+
 async function applyAndBuild(){
   try{
     const payload = getPayload();
@@ -3924,7 +3970,11 @@ async function applyAndBuild(){
       const current = document.getElementById('status').textContent || '';
       setStatus(`${current}\\n\\nWarning: ${String(optErr)}`);
     }
-    clearDirty();
+    if (payload.mode === 'add' && !emptyAddPayload) {
+      resetDataAddFormAfterSave();
+    } else {
+      clearDirty();
+    }
   }
   catch(err){
     setStatus({ok:false, error:String(err)});
@@ -4336,6 +4386,42 @@ async function wealthValidateOnly(){
   }
 }
 
+function resetWealthAddFormAfterSave(){
+  const ids = [
+    'wealth_bib_paste',
+    'wealth_target',
+    'wealth_key',
+    'wealth_entry_type',
+    'wealth_title',
+    'wealth_author',
+    'wealth_year',
+    'wealth_month',
+    'wealth_journal',
+    'wealth_booktitle',
+    'wealth_volume',
+    'wealth_number',
+    'wealth_pages',
+    'wealth_institution',
+    'wealth_publisher',
+    'wealth_doi',
+    'wealth_url',
+    'wealth_urldate',
+    'wealth_keywords',
+    'wealth_note',
+    'wealth_abstract'
+  ];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('wealth_extra_fields').value = '{}';
+  wealthLoadedKey = '';
+  wealthOnEntryTypeChange();
+  clearWealthDirty();
+  const next = document.getElementById('wealth_bib_paste');
+  if (next) next.focus();
+}
+
 async function wealthApplyAndBuild(){
   try {
     const payload = wealthGetPayload();
@@ -4363,8 +4449,17 @@ async function wealthApplyAndBuild(){
       modeValue: wv('wealth_mode'),
       includeDuplicateGuidance: false
     });
-    await wealthLoadOptions();
-    clearWealthDirty();
+    try {
+      await wealthLoadOptions();
+    } catch (optErr) {
+      const current = document.getElementById('wealth_status').textContent || '';
+      setStatus(`${current}\\n\\nWarning: ${String(optErr)}`, 'wealth_status');
+    }
+    if (payload.mode === 'add' && !emptyAddPayload) {
+      resetWealthAddFormAfterSave();
+    } else {
+      clearWealthDirty();
+    }
   } catch (err) {
     setStatus({ok:false, error:String(err)}, 'wealth_status');
     showErrorWindow(String(err));
