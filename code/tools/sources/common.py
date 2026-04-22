@@ -106,6 +106,8 @@ DEFAULT_REGISTRY = OrderedDict(
                     ("bibbase_timeout_seconds", 20),
                     ("online_bib_reference_url", ""),
                     ("online_bib_timeout_seconds", 20),
+                    ("wealth_online_bib_reference_url", ""),
+                    ("wealth_online_bib_timeout_seconds", 20),
                     ("dictionary_template", DEFAULT_DICTIONARY_PATH),
                     ("dictionary_output", DEFAULT_DICTIONARY_PATH),
                 ]

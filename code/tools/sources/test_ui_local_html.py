@@ -12,10 +12,13 @@ if str(SOURCE_DIR) not in sys.path:
 from source_paths import (
     DEFAULT_ALIASES_PATH,
     DEFAULT_CHANGE_LOG_PATH,
+    DEFAULT_DATA_BIB_PATH,
     DEFAULT_DICTIONARY_PATH,
     DEFAULT_REGISTRY_PATH,
+    DEFAULT_WEALTH_BIB_PATH,
     DEFAULT_WEALTH_CHANGE_LOG_PATH,
 )
+from common import DEFAULT_REGISTRY
 
 
 def load_ui_local_module():
@@ -72,6 +75,76 @@ class UiLocalHtmlTests(unittest.TestCase):
             "@media (max-width:",
         ]:
             self.assertIn(marker, self.html)
+
+    def test_wealth_online_compare_hooks_exist(self):
+        for marker in [
+            "onclick='wealthCompareOnlineBib()'",
+            "async function wealthCompareOnlineBib()",
+            "/api/wealth/compare_online_bib",
+            "targetId: 'wealth_status'",
+        ]:
+            self.assertIn(marker, self.html)
+
+    def test_default_registry_contains_wealth_online_compare_config(self):
+        cfg = DEFAULT_REGISTRY["config"]
+        self.assertIn("online_bib_reference_url", cfg)
+        self.assertIn("online_bib_timeout_seconds", cfg)
+        self.assertIn("wealth_online_bib_reference_url", cfg)
+        self.assertIn("wealth_online_bib_timeout_seconds", cfg)
+
+    def test_online_compare_uses_selected_library_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            data_path = root / DEFAULT_DATA_BIB_PATH
+            wealth_path = root / DEFAULT_WEALTH_BIB_PATH
+            data_path.parent.mkdir(parents=True, exist_ok=True)
+            data_path.write_text("@misc{data,\n  title = {Data}\n}\n", encoding="utf-8")
+            wealth_path.write_text("@article{wealth,\n  title = {Wealth}\n}\n", encoding="utf-8")
+            registry = {
+                "config": {
+                    "bib_output": str(data_path),
+                    "wealth_bib_input": str(wealth_path),
+                    "online_bib_reference_url": "https://example.test/data.bib",
+                    "online_bib_timeout_seconds": 3,
+                    "wealth_online_bib_reference_url": "https://example.test/wealth.bib",
+                    "wealth_online_bib_timeout_seconds": 4,
+                }
+            }
+            calls = []
+
+            def fake_fetch(url, timeout_seconds):
+                calls.append((url, timeout_seconds))
+                if url.endswith("/wealth.bib"):
+                    return {"text": wealth_path.read_text(encoding="utf-8"), "method": "test"}
+                return {"text": data_path.read_text(encoding="utf-8"), "method": "test"}
+
+            original_fetch = self.mod._fetch_url_text
+            self.mod._fetch_url_text = fake_fetch
+            try:
+                data_out = self.mod.compare_local_bib_with_online(registry)
+                wealth_out = self.mod.compare_local_bib_with_online(registry, "wealth_research")
+            finally:
+                self.mod._fetch_url_text = original_fetch
+
+            self.assertEqual(data_out["library"], "data_sources")
+            self.assertEqual(data_out["library_label"], "Data Sources")
+            self.assertEqual(data_out["local_bib_path"], str(data_path))
+            self.assertEqual(data_out["reference_url"], "https://example.test/data.bib")
+            self.assertEqual(data_out["timeout_seconds"], 3)
+            self.assertEqual(data_out["status"], "up_to_date")
+            self.assertEqual(wealth_out["library"], "wealth_research")
+            self.assertEqual(wealth_out["library_label"], "Wealth Research")
+            self.assertEqual(wealth_out["local_bib_path"], str(wealth_path))
+            self.assertEqual(wealth_out["reference_url"], "https://example.test/wealth.bib")
+            self.assertEqual(wealth_out["timeout_seconds"], 4)
+            self.assertEqual(wealth_out["status"], "up_to_date")
+            self.assertEqual(
+                calls,
+                [
+                    ("https://example.test/data.bib", 3),
+                    ("https://example.test/wealth.bib", 4),
+                ],
+            )
 
     def test_ref_link_review_action_and_panel_hooks_exist(self):
         for marker in [

@@ -1830,6 +1830,10 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
       </div>
       <button class='warn' onclick='wealthApplyAndBuild()'>Save entry and rebuild</button>
     </div>
+    <div class='row'>
+      <div class='step'>Step 3: Compare with online reference (optional)</div>
+      <button class='secondary' onclick='wealthCompareOnlineBib()'>Compare</button>
+    </div>
     </div>
 
     <div class='panel'>
@@ -3632,6 +3636,7 @@ function buildStaleArtifactGuidance(out){
 function formatOnlineCompare(onlineCompare){
   if (!onlineCompare) return '';
   const lines = ['Online .bib comparison:'];
+  if (onlineCompare.library_label) lines.push(`- Library: ${onlineCompare.library_label}`);
   lines.push(`- Status: ${onlineCompare.status || 'unknown'}`);
   if (onlineCompare.message) lines.push(`- Message: ${onlineCompare.message}`);
   if (onlineCompare.reference_url) lines.push(`- Online reference: ${onlineCompare.reference_url}`);
@@ -3933,6 +3938,20 @@ async function compareOnlineBib(){
     setStatusWithChecks(out, 'Online comparison complete.');
   } catch (err) {
     setStatus({ok:false, error:String(err)});
+    showErrorWindow(String(err));
+  }
+}
+
+async function wealthCompareOnlineBib(){
+  try{
+    const out = await req('/api/wealth/compare_online_bib', {});
+    setStatusWithChecks(out, 'Online comparison complete.', {
+      targetId: 'wealth_status',
+      modeValue: wv('wealth_mode'),
+      includeDuplicateGuidance: false
+    });
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'wealth_status');
     showErrorWindow(String(err));
   }
 }
@@ -4342,8 +4361,7 @@ async function wealthApplyAndBuild(){
     setStatusWithChecks(out, 'Save complete.', {
       targetId: 'wealth_status',
       modeValue: wv('wealth_mode'),
-      includeDuplicateGuidance: false,
-      includeOnlineCompare: false
+      includeDuplicateGuidance: false
     });
     await wealthLoadOptions();
     clearWealthDirty();
@@ -4367,8 +4385,7 @@ async function wealthDeleteEntry(){
     setStatusWithChecks(out, 'Delete complete.', {
       targetId: 'wealth_status',
       modeValue: wv('wealth_mode'),
-      includeDuplicateGuidance: false,
-      includeOnlineCompare: false
+      includeDuplicateGuidance: false
     });
     await wealthLoadOptions();
     clearWealthDirty();
@@ -4730,12 +4747,38 @@ def _fetch_url_text(reference_url: str, timeout_seconds: int) -> Dict[str, str]:
             ) from git_exc
 
 
-def compare_local_bib_with_online(registry: dict) -> dict:
+def _online_bib_compare_config(registry: dict, library: str) -> dict:
     cfg = registry.get("config", {}) or {}
-    bib_path = Path(cfg.get("bib_output", DEFAULT_DATA_BIB_PATH))
-    reference_url = normalize_whitespace(str(cfg.get("online_bib_reference_url", "")))
-    timeout_seconds = _coerce_timeout_seconds(cfg.get("online_bib_timeout_seconds", 20), default=20)
+    if library == "wealth_research":
+        return {
+            "library": "wealth_research",
+            "library_label": "Wealth Research",
+            "local_bib_path": _wealth_bib_path(cfg),
+            "reference_url": normalize_whitespace(str(cfg.get("wealth_online_bib_reference_url", ""))),
+            "reference_url_key": "wealth_online_bib_reference_url",
+            "timeout_seconds": _coerce_timeout_seconds(
+                cfg.get("wealth_online_bib_timeout_seconds", 20),
+                default=20,
+            ),
+        }
+    return {
+        "library": "data_sources",
+        "library_label": "Data Sources",
+        "local_bib_path": _data_bib_path(cfg),
+        "reference_url": normalize_whitespace(str(cfg.get("online_bib_reference_url", ""))),
+        "reference_url_key": "online_bib_reference_url",
+        "timeout_seconds": _coerce_timeout_seconds(cfg.get("online_bib_timeout_seconds", 20), default=20),
+    }
+
+
+def compare_local_bib_with_online(registry: dict, library: str = "data_sources") -> dict:
+    compare_cfg = _online_bib_compare_config(registry, library)
+    bib_path = compare_cfg["local_bib_path"]
+    reference_url = compare_cfg["reference_url"]
+    timeout_seconds = compare_cfg["timeout_seconds"]
     base = {
+        "library": compare_cfg["library"],
+        "library_label": compare_cfg["library_label"],
         "reference_url": reference_url,
         "local_bib_path": str(bib_path),
         "timeout_seconds": timeout_seconds,
@@ -4753,7 +4796,7 @@ def compare_local_bib_with_online(registry: dict) -> dict:
             **base,
             "ok": False,
             "status": "not_configured",
-            "message": f"online_bib_reference_url is not configured in {DEFAULT_REGISTRY_PATH}.",
+            "message": f"{compare_cfg['reference_url_key']} is not configured in {DEFAULT_REGISTRY_PATH}.",
         }
     if not bib_path.exists():
         return {
@@ -5011,6 +5054,7 @@ class Handler(BaseHTTPRequestHandler):
                     _rebuild_both_bib(cfg)
                     after = file_mtimes(tracked_paths)
                     changed_files = modified_paths(before, after)
+                    online_compare = compare_local_bib_with_online(reg, "wealth_research")
                     self._send_json(
                         {
                             "ok": True,
@@ -5028,6 +5072,7 @@ class Handler(BaseHTTPRequestHandler):
                                 }
                             ],
                             "modified_files": changed_files,
+                            "online_compare": online_compare,
                             "file_change_summary": build_file_change_summary(changed_files, "build_only", "", [], False),
                             "message": "No changes made. BothLibraries.bib rebuilt.",
                         }
@@ -5101,11 +5146,13 @@ class Handler(BaseHTTPRequestHandler):
                 _rebuild_both_bib(cfg)
                 after = file_mtimes(tracked_paths)
                 changed = modified_paths(before, after)
+                online_compare = compare_local_bib_with_online(reg, "wealth_research")
                 self._send_json(
                     {
                         "ok": True,
                         **out,
                         "modified_files": changed,
+                        "online_compare": online_compare,
                         "file_change_summary": build_file_change_summary(
                             changed,
                             out.get("operation", mode),
@@ -5149,6 +5196,7 @@ class Handler(BaseHTTPRequestHandler):
 
                 after = file_mtimes(tracked_paths)
                 changed = modified_paths(before, after)
+                online_compare = compare_local_bib_with_online(reg, "wealth_research")
                 self._send_json(
                     {
                         "ok": True,
@@ -5157,15 +5205,30 @@ class Handler(BaseHTTPRequestHandler):
                         "changed_fields": deleted_fields,
                         "checks": [{"name": "Delete target resolution", "passed": True, "detail": f"Deleted {target}"}],
                         "modified_files": changed,
+                        "online_compare": online_compare,
                         "file_change_summary": build_file_change_summary(changed, "delete", target, deleted_fields, False),
                         "message": "Entry deleted and BothLibraries.bib rebuilt",
                     }
                 )
                 return
 
+            if self.path == "/api/wealth/compare_online_bib":
+                reg = self.app.registry
+                online_compare = compare_local_bib_with_online(reg, "wealth_research")
+                self._send_json({
+                    "ok": True,
+                    "operation": "wealth_compare_online_bib",
+                    "checks": [],
+                    "warnings": [],
+                    "errors": [],
+                    "online_compare": online_compare,
+                    "message": "Online comparison complete",
+                })
+                return
+
             if self.path == "/api/compare_online_bib":
                 reg = self.app.registry
-                online_compare = compare_local_bib_with_online(reg)
+                online_compare = compare_local_bib_with_online(reg, "data_sources")
                 self._send_json({
                     "ok": True,
                     "operation": "compare_online_bib",
