@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Common utilities for source registry tooling."""
 
+import io
 import json
+import math
 import re
+import tempfile
 import zipfile
 from collections import OrderedDict
 from copy import deepcopy
@@ -24,6 +27,9 @@ from source_paths import (
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+EXPECTED_SOURCES_SHEET_NAME = "Sources"
+REQUIRED_XLSX_MEMBERS = ("xl/workbook.xml", "xl/_rels/workbook.xml.rels")
+INVALID_SHEET_CHARS_RE = re.compile(r"[\[\]:*?/\\]")
 
 SOURCES_HEADERS = [
     "Section",
@@ -146,6 +152,89 @@ def normalize_url(value: str) -> str:
 
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def sanitize_excel_string(value) -> str:
+    if value is None:
+        return ""
+    text = str(value)
+    return "".join(ch for ch in text if _is_valid_excel_xml_char(ord(ch)))
+
+
+def sanitize_sheet_name(name, fallback: str = "Sheet1") -> str:
+    text = INVALID_SHEET_CHARS_RE.sub(" ", sanitize_excel_string(name))
+    text = normalize_whitespace(text).strip("'")
+    if not text:
+        text = INVALID_SHEET_CHARS_RE.sub(" ", sanitize_excel_string(fallback))
+        text = normalize_whitespace(text).strip("'")
+    return (text or "Sheet1")[:31]
+
+
+def sanitize_excel_value(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return ""
+    return sanitize_excel_string(value)
+
+
+def _is_valid_excel_xml_char(codepoint: int) -> bool:
+    return codepoint in (0x9, 0xA, 0xD) or 0x20 <= codepoint <= 0xD7FF or 0xE000 <= codepoint <= 0xFFFD or 0x10000 <= codepoint <= 0x10FFFF
+
+
+def _coerce_xlsx_payload(xlsx_source) -> Tuple[bytes, str]:
+    if isinstance(xlsx_source, Path):
+        return xlsx_source.read_bytes(), str(xlsx_source)
+    if isinstance(xlsx_source, str):
+        path = Path(xlsx_source)
+        return path.read_bytes(), str(path)
+    if isinstance(xlsx_source, io.BytesIO):
+        return xlsx_source.getvalue(), "<memory>"
+    if isinstance(xlsx_source, (bytes, bytearray)):
+        return bytes(xlsx_source), "<memory>"
+    raise TypeError(f"Unsupported xlsx source type: {type(xlsx_source)!r}")
+
+
+def _openpyxl_validate_workbook(payload: bytes) -> None:
+    load_workbook = _load_openpyxl_workbook()
+    workbook = load_workbook(io.BytesIO(payload), read_only=True)
+    try:
+        _ = workbook.sheetnames
+    finally:
+        workbook.close()
+
+
+def _load_openpyxl_workbook():
+    try:
+        from openpyxl import load_workbook
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "openpyxl is required for Excel validation. Install it with: python3 -m pip install openpyxl"
+        ) from exc
+    return load_workbook
+
+
+def workbook_to_xlsx_bytes(workbook) -> bytes:
+    workbook_buffer = io.BytesIO()
+    workbook.save(workbook_buffer)
+    return workbook_buffer.getvalue()
+
+
+def validate_xlsx_file(xlsx_source) -> None:
+    payload, label = _coerce_xlsx_payload(xlsx_source)
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload), "r") as zf:
+            bad_member = zf.testzip()
+            if bad_member:
+                raise RuntimeError(f"bad zip member: {bad_member}")
+            for required in REQUIRED_XLSX_MEMBERS:
+                if required not in zf.namelist():
+                    raise RuntimeError(f"missing workbook member: {required}")
+            sheet_path, _ = locate_sources_sheet(zf)
+            ET.fromstring(zf.read(sheet_path))
+        _openpyxl_validate_workbook(payload)
+    except (zipfile.BadZipFile, KeyError, ET.ParseError, RuntimeError) as exc:
+        raise RuntimeError(f"Generated dictionary workbook is invalid ({label}): {exc}") from exc
 
 
 def load_json_yaml(path: Path) -> dict:
@@ -375,12 +464,15 @@ def locate_sources_sheet(zf: zipfile.ZipFile) -> Tuple[str, str]:
     rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
     rid_map = {r.attrib["Id"]: r.attrib["Target"] for r in rels.findall(f"{{{NS_PKG_REL}}}Relationship")}
     ns = {"a": NS_MAIN, "r": NS_REL}
+    expected_sheet_name = sanitize_sheet_name(EXPECTED_SOURCES_SHEET_NAME)
     for sheet in workbook.findall("a:sheets/a:sheet", ns):
-        if sheet.attrib.get("name") == "Sources":
+        if sanitize_sheet_name(sheet.attrib.get("name", "")) == expected_sheet_name:
             rid = sheet.attrib.get(f"{{{NS_REL}}}id")
             if rid:
                 target = rid_map[rid]
-                if not target.startswith("xl/"):
+                if target.startswith("/"):
+                    target = target.lstrip("/")
+                elif not target.startswith("xl/"):
                     target = "xl/" + target
                 return target, sheet.attrib.get("sheetId", "")
     raise RuntimeError("Sources sheet not found in workbook")
@@ -437,9 +529,7 @@ def read_sources_sheet(xlsx_path: Path) -> List[dict]:
 def xml_cell(col_idx: int, row_idx: int, value: str) -> str:
     col = column_name(col_idx)
     ref = f"{col}{row_idx}"
-    if value is None:
-        value = ""
-    escaped = escape(str(value))
+    escaped = escape(sanitize_excel_value(value))
     return f'<c r="{ref}" t="inlineStr"><is><t xml:space="preserve">{escaped}</t></is></c>'
 
 
@@ -473,56 +563,71 @@ def build_sources_sheet_xml(rows: List[dict]) -> bytes:
     return (header + "".join(body)).encode("utf-8")
 
 
-def update_filter_database_range(workbook_xml: bytes, max_row: int) -> bytes:
-    ns = {"a": NS_MAIN}
-    root = ET.fromstring(workbook_xml)
-    for dn in root.findall("a:definedNames/a:definedName", ns):
-        name = dn.attrib.get("name", "")
-        if name == "_xlnm._FilterDatabase" and (dn.text or "").startswith("Sources!"):
-            dn.text = f"Sources!$A$1:$R${max_row}"
-    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
-
-
 def validate_xlsx_for_replace(xlsx_path: Path) -> None:
+    validate_xlsx_file(xlsx_path)
+
+
+def get_sources_worksheet(workbook):
+    expected_sheet_name = sanitize_sheet_name(EXPECTED_SOURCES_SHEET_NAME)
+    for worksheet in workbook.worksheets:
+        if sanitize_sheet_name(worksheet.title) == expected_sheet_name:
+            return worksheet
+    raise RuntimeError("Sources sheet not found in workbook")
+
+
+def populate_sources_worksheet(worksheet, rows: List[dict]) -> None:
+    if worksheet.max_row > 1:
+        worksheet.delete_rows(2, worksheet.max_row - 1)
+
+    for c_idx, header in enumerate(SOURCES_HEADERS, start=1):
+        worksheet.cell(row=1, column=c_idx, value=sanitize_excel_string(header))
+
+    for r_idx, row in enumerate(rows, start=2):
+        for c_idx, header in enumerate(SOURCES_HEADERS, start=1):
+            worksheet.cell(row=r_idx, column=c_idx, value=sanitize_excel_value(row.get(header, "")))
+
+    max_row = len(rows) + 1
+    worksheet.auto_filter.ref = f"A1:R{max_row}"
+    if worksheet.freeze_panes == "A1":
+        worksheet.freeze_panes = None
+
+
+def write_xlsx_atomic(output_xlsx: Path, payload: bytes) -> None:
+    ensure_parent(output_xlsx)
+    tmp_output = None
     try:
-        with zipfile.ZipFile(xlsx_path, "r") as zf:
-            bad_member = zf.testzip()
-            if bad_member:
-                raise RuntimeError(f"bad zip member: {bad_member}")
-            for required in ["xl/workbook.xml", "xl/_rels/workbook.xml.rels"]:
-                if required not in zf.namelist():
-                    raise RuntimeError(f"missing workbook member: {required}")
-            sheet_path, _ = locate_sources_sheet(zf)
-            ET.fromstring(zf.read(sheet_path))
-    except (zipfile.BadZipFile, KeyError, ET.ParseError, RuntimeError) as exc:
-        raise RuntimeError(f"Generated dictionary workbook is invalid: {exc}") from exc
+        with tempfile.NamedTemporaryFile(
+            "wb",
+            delete=False,
+            dir=str(output_xlsx.parent),
+            prefix=f".{output_xlsx.stem}.",
+            suffix=output_xlsx.suffix,
+        ) as handle:
+            handle.write(payload)
+            tmp_output = Path(handle.name)
+        validate_xlsx_file(tmp_output)
+        tmp_output.replace(output_xlsx)
+    except Exception:
+        if tmp_output is not None:
+            try:
+                tmp_output.unlink()
+            except FileNotFoundError:
+                pass
+        raise
 
 
 def write_sources_sheet(template_xlsx: Path, output_xlsx: Path, rows: List[dict]) -> None:
-    sheet_xml = build_sources_sheet_xml(rows)
-    ensure_parent(output_xlsx)
-    tmp_output = output_xlsx.with_suffix(output_xlsx.suffix + ".tmp")
+    load_workbook = _load_openpyxl_workbook()
+    workbook = load_workbook(template_xlsx)
     try:
-        with zipfile.ZipFile(template_xlsx, "r") as zin:
-            sheet_path, _ = locate_sources_sheet(zin)
-            workbook_xml = update_filter_database_range(zin.read("xl/workbook.xml"), len(rows) + 1)
+        worksheet = get_sources_worksheet(workbook)
+        populate_sources_worksheet(worksheet, rows)
+        workbook_bytes = workbook_to_xlsx_bytes(workbook)
+    finally:
+        workbook.close()
 
-            with zipfile.ZipFile(tmp_output, "w", compression=zipfile.ZIP_DEFLATED) as zout:
-                for name in zin.namelist():
-                    if name == sheet_path:
-                        zout.writestr(name, sheet_xml)
-                    elif name == "xl/workbook.xml":
-                        zout.writestr(name, workbook_xml)
-                    else:
-                        zout.writestr(name, zin.read(name))
-        validate_xlsx_for_replace(tmp_output)
-        tmp_output.replace(output_xlsx)
-    except Exception:
-        try:
-            tmp_output.unlink()
-        except FileNotFoundError:
-            pass
-        raise
+    validate_xlsx_file(workbook_bytes)
+    write_xlsx_atomic(output_xlsx, workbook_bytes)
 
 
 def normalize_record(raw: dict) -> dict:

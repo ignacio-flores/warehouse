@@ -183,6 +183,22 @@
       "actor": "Ignacio",
       "issue_number": "local-ui",
       "updated_at": "2026-04-23T16:17:27Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-27T12:02:40Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-blanchet2022weight",
+      "reason": "Deleted via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-27T12:14:08Z"
     }
   ]
 }

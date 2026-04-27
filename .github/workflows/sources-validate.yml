@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Excel validation dependency
+        run: python3 -m pip install openpyxl
+
       - name: Validate canonical registry and generated outputs
         run: |
           python3 code/tools/sources/validate_sources.py \

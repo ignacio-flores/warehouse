@@ -13,7 +13,16 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import urlparse
 
-from common import load_json_yaml, load_registry, normalize_text, normalize_url, normalize_whitespace, read_sources_sheet, records_sorted
+from common import (
+    load_json_yaml,
+    load_registry,
+    normalize_text,
+    normalize_url,
+    normalize_whitespace,
+    read_sources_sheet,
+    records_sorted,
+    validate_xlsx_file,
+)
 from source_paths import (
     DEFAULT_ALIASES_PATH,
     DEFAULT_BOTH_BIB_PATH,
@@ -249,6 +258,7 @@ def check_generated_artifacts(
         tmp_dict = Path(td) / "dictionary.xlsx"
         tmp_bib = Path(td) / "data.bib"
         tmp_both_bib = Path(td) / "both.bib"
+        validate_xlsx_file(dictionary)
         shutil.copy2(dictionary, tmp_dict)
         cmd = [
             sys.executable,
@@ -278,6 +288,7 @@ def check_generated_artifacts(
         if tmp_both_bib.read_text(encoding="utf-8") != both_bib_output.read_text(encoding="utf-8"):
             raise ValidationError("Generated combined bib is out of date. Run build_sources_artifacts.py")
 
+        validate_xlsx_file(tmp_dict)
         current_rows = read_sources_sheet(dictionary)
         rebuilt_rows = read_sources_sheet(tmp_dict)
         if json.dumps(current_rows, sort_keys=True) != json.dumps(rebuilt_rows, sort_keys=True):
