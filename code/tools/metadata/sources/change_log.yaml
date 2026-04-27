@@ -31,6 +31,158 @@
       "actor": "Ignacio",
       "issue_number": "local-ui",
       "updated_at": "2026-04-22T09:10:32Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-acciari-morelli-2020",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T10:09:07Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-alvaredo-garbinti-piketty-2017",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T12:51:50Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-atkinson-2018",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T12:54:55Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-br-lhart-fuster-mart-nez-moseka-2026",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T12:56:27Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-br-lhart-dupertuis-moreau-2018",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T12:57:21Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-piketty2011long",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:12:00Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-schinke2012inheritance",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:29:09Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-apostel2025belgian",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:30:27Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-acciari-morelli-2020",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:32:53Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-alvaredo-garbinti-piketty-2017",
+      "reason": "Deleted via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:33:53Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-apostel2025belgian",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:34:21Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-atkinson-2018",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T13:58:35Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-br-lhart-fuster-mart-nez-moseka-2026",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T16:58:20Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-br-lhart-dupertuis-moreau-2018",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T16:59:15Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-piketty2011long",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T17:00:00Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-schinke2012inheritance",
+      "reason": "Deleted via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-22T17:00:24Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-guzzardi2026",
+      "reason": "Added via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-23T14:05:31Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-guzzardi2026",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-23T14:06:18Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2017share",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-23T16:17:27Z"
     }
   ]
 }
