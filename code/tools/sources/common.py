@@ -147,6 +147,8 @@ def normalize_url(value: str) -> str:
     rebuilt = f"{scheme}://{netloc}{path}"
     if parsed.query:
         rebuilt = f"{rebuilt}?{parsed.query}"
+    if parsed.fragment:
+        rebuilt = f"{rebuilt}#{parsed.fragment}"
     return rebuilt
 
 

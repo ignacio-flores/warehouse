@@ -24,6 +24,25 @@ if str(SOURCE_DIR) not in sys.path:
 import common
 
 
+class UrlNormalizationTests(unittest.TestCase):
+    def test_normalize_url_preserves_fragment_identity(self):
+        first = common.normalize_url(
+            "https://research.ibfd.org/#/doc?url=/linkresolver/static/gthb_bj_2020-06-30_s_5."
+        )
+        second = common.normalize_url(
+            "https://research.ibfd.org/#/doc?url=/linkresolver/static/gthb_me_2025-05-10_s_5."
+        )
+
+        self.assertNotEqual(first, second)
+        self.assertIn("#/doc?url=/linkresolver/static/gthb_bj_2020-06-30_s_5.", first)
+
+    def test_normalize_url_keeps_existing_path_query_behavior(self):
+        self.assertEqual(
+            common.normalize_url(" HTTPS://Example.COM//foo///bar/?x=1 "),
+            "https://example.com/foo/bar?x=1",
+        )
+
+
 class ExcelHelperTests(unittest.TestCase):
     def test_sanitize_excel_string_removes_invalid_xml_chars(self):
         raw = "Alpha" + chr(0) + "Beta" + chr(0xD800) + "\nGamma"

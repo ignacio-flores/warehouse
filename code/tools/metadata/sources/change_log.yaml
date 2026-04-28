@@ -199,6 +199,358 @@
       "actor": "Ignacio",
       "issue_number": "local-ui",
       "updated_at": "2026-04-27T12:14:08Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-bruneitaxlaw-1984",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:16:59Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlawestate-1929",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:03Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1878",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:08Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1915",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:11Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1923",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:15Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1925",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:19Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1929",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:23Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1932",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:27Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1934",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:31Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1965",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:35Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-chiletaxlaw-1981",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:39Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2008bj",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:43Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2009me",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:47Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2010fr",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:51Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2010gw",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:55Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2011bj",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:17:59Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2020bj",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:03Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2023me",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:07Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2024gw",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:11Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2024sl",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:16Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025bi",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:20Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025cf",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:24Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025dj",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:28Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025dm",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:32Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025er",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:36Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025fm",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:41Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025gm",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:45Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025km",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:49Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025kn",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:53Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025me",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:18:57Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025mm",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:01Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025np",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:06Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025pw",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:10Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025sd",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:14Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025tj",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:18Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025tm",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:22Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025to",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:26Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025vc",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:30Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025vu",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:34Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd2025ye",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:38Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ie1985",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:42Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-legifrance1979",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:46Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-pakistan-tax-law1950",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:50Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-perutaxlaw-1979",
+      "reason": "Added via local UI",
+      "actor": "Ignacio Flores",
+      "issue_number": "local-ui",
+      "updated_at": "2026-04-28T10:19:55Z"
     }
   ]
 }
