@@ -111,6 +111,13 @@
       "new": "Alvaredo2017",
       "reason": "Edited via local UI",
       "updated_at": "2026-04-23T16:17:27Z"
+    },
+    {
+      "type": "source",
+      "old": "Shultz 1926",
+      "new": "Shultz1926",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-04-28T08:15:30Z"
     }
   ]
 }

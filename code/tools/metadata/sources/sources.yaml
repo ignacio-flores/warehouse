@@ -14786,7 +14786,7 @@
       "legend": "IBFD - Tax Research Platform - Germany - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 27 October 2009]",
       "source": "IBFD2009DE",
       "data_type": "",
-      "link": "https://research.ibfd.org/#/doc?url=/linkresolver/static/ita_de_2009-10-27_s_6.&refresh=1752586861123%23ita_de_2009-10-27_s_6",
+      "link": "https://research.ibfd.org/#/login?redirect_path=Lw%3D%3D",
       "ref_link": "",
       "citekey": "IBFD2009DE",
       "inclusion_in_warehouse": "",
@@ -14802,7 +14802,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Germany - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 27 October 2009]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -14821,7 +14821,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:01:00Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2009fr",
@@ -14830,7 +14831,7 @@
       "legend": "IBFD - Tax Research Platform - Individual Taxation - 5. Inheritance and Gift Taxes [Historical version of 15 June 2009]",
       "source": "IBFD2009FR",
       "data_type": "",
-      "link": "https://research.ibfd.org/#/doc?url=/linkresolver/static/gthb_fr_2009-06-15_s_5.&refresh=1752589420303%23gthb_fr_2009-06-15_s_5",
+      "link": "https://research.ibfd.org/#/login?redirect_path=Lw%3D%3D",
       "ref_link": "",
       "citekey": "IBFD2009FR",
       "inclusion_in_warehouse": "",
@@ -14846,7 +14847,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Individual Taxation - 5. Inheritance and Gift Taxes [Historical version of 15 June 2009]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -14865,7 +14866,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:01:09Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2009hn",
@@ -14890,7 +14892,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Honduras - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 February 2009]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -14909,7 +14911,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:01:15Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2010de",
@@ -14917,7 +14920,7 @@
       "aggsource": "Cross-national corporate research",
       "legend": "IBFD - Tax Research Platform - Germany - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2010]",
       "source": "IBFD2010DE",
-      "data_type": "s\na",
+      "data_type": "sa",
       "link": "https://research.ibfd.org/#/doc?url=/linkresolver/static/ita_de_2010-10-01_s_6.&refresh=1752586815670%23ita_de_2010-10-01_s_6",
       "ref_link": "",
       "citekey": "IBFD2010DE",
@@ -14934,7 +14937,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Germany - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2010]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -14953,7 +14956,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:01:32Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2011de",
@@ -14978,7 +14982,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Germany - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2011]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -14997,7 +15001,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:02:11Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2011fr",
@@ -15022,7 +15027,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - France - Individual Taxation - 5. Inheritance and Gift Taxes [Historical version of 25 May 2011]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15041,7 +15046,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:02:23Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2013us",
@@ -15066,7 +15072,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 September 2013]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15085,7 +15091,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:02:30Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2014us",
@@ -15110,7 +15117,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2014]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15129,7 +15136,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:02:36Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2015us",
@@ -15154,7 +15162,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2015]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15173,7 +15181,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:04:26Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2016us",
@@ -15198,7 +15207,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2016]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15217,7 +15226,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:04:34Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2017us",
@@ -15242,7 +15252,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2017]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15261,7 +15271,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:04:43Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2018us",
@@ -15286,7 +15297,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2018]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15305,7 +15316,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:05:06Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2019us",
@@ -15330,7 +15342,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2019]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15349,7 +15361,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:06:00Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2020us",
@@ -15374,7 +15387,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2020]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15393,7 +15406,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:06:32Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2021us",
@@ -15418,7 +15432,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2021]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15437,7 +15451,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:06:45Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2022us",
@@ -15462,7 +15477,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 1 October 2022]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15481,7 +15496,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:06:54Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2023us",
@@ -15506,7 +15522,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 13 October 2023]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15525,7 +15541,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:07:24Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2024us",
@@ -15550,7 +15567,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - United States - Individual Taxation - 6. Inheritance and Gift Taxes [Historical version of 13 November 2024]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "1900",
         "month": "",
         "journal": "",
@@ -15569,7 +15586,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-04-30T09:08:13Z",
+      "updated_by": "Francesca"
     },
     {
       "id": "src-icib",
@@ -35083,7 +35101,7 @@
       "id": "src-chiletaxlaw-1923",
       "section": "Estate, Inheritance, and Gift Taxes",
       "aggsource": "Government Legislation",
-      "legend": "Inheritance and Gift Tax Law",
+      "legend": "Inheritance and Gift Tax Law in Chile 1923",
       "source": "ChileTaxLaw_1923",
       "data_type": "",
       "link": "https://www.bcn.cl/leychile/navegar?idNorma=24359",
@@ -35101,7 +35119,7 @@
       "seeaggsourcelisthere": "",
       "bib": {
         "entry_type": "misc",
-        "title": "Inheritance and Gift Tax Law",
+        "title": "Inheritance and Gift Tax Law in Chile 1923",
         "author": "Unknown",
         "year": "1923",
         "month": "",
@@ -35121,9 +35139,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:15Z",
-      "updated_at": "2026-04-28T10:17:15Z",
+      "updated_at": "2026-04-30T09:33:36Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-chiletaxlaw-1925",
@@ -35408,7 +35426,7 @@
       "legend": "IBFD - Individual Taxation - Benin - Individual Taxation - 5. Inheritance and Gift Taxation",
       "source": "IBFD2008BJ",
       "data_type": "",
-      "link": "https://research.ibfd.org/#/doc?url=/linkresolver/static/gthb_bj_2008-03-04_s_5.&refresh=1770723568988%23gthb_bj_2008-03-04_s_5.",
+      "link": "https://research.ibfd.org/#/login?redirect_path=Lw%3D%3D",
       "ref_link": "",
       "citekey": "IBFD2008BJ",
       "inclusion_in_warehouse": "",
@@ -35424,7 +35442,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Benin - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2008",
         "month": "",
         "journal": "",
@@ -35443,9 +35461,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:43Z",
-      "updated_at": "2026-04-28T10:17:43Z",
+      "updated_at": "2026-04-30T09:00:51Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2009me",
@@ -35470,7 +35488,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Montenegro - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2009",
         "month": "",
         "journal": "",
@@ -35489,9 +35507,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:47Z",
-      "updated_at": "2026-04-28T10:17:47Z",
+      "updated_at": "2026-04-30T09:01:24Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2010fr",
@@ -35516,7 +35534,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - France - Individual Taxation - 5. Inheritance and Gift Taxes [Historical version of 15 December 2010]",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2010",
         "month": "",
         "journal": "",
@@ -35535,9 +35553,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:51Z",
-      "updated_at": "2026-04-28T10:17:51Z",
+      "updated_at": "2026-04-30T09:01:41Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2010gw",
@@ -35562,7 +35580,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Guinea-Bissau - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2010",
         "month": "",
         "journal": "",
@@ -35581,9 +35599,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:55Z",
-      "updated_at": "2026-04-28T10:17:55Z",
+      "updated_at": "2026-04-30T09:01:48Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2011bj",
@@ -35608,7 +35626,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Benin - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2011",
         "month": "",
         "journal": "",
@@ -35627,9 +35645,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:17:59Z",
-      "updated_at": "2026-04-28T10:17:59Z",
+      "updated_at": "2026-04-30T09:01:55Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2020bj",
@@ -35654,7 +35672,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Benin - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2020",
         "month": "",
         "journal": "",
@@ -35673,9 +35691,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:03Z",
-      "updated_at": "2026-04-28T10:18:03Z",
+      "updated_at": "2026-04-30T09:06:11Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2023me",
@@ -35700,7 +35718,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Montenegro - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2023",
         "month": "",
         "journal": "",
@@ -35719,9 +35737,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:07Z",
-      "updated_at": "2026-04-28T10:18:07Z",
+      "updated_at": "2026-04-30T09:07:04Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2024gw",
@@ -35746,7 +35764,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Guinea-Bissau - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2024",
         "month": "",
         "journal": "",
@@ -35765,9 +35783,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:11Z",
-      "updated_at": "2026-04-28T10:18:11Z",
+      "updated_at": "2026-04-30T09:07:43Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2024sl",
@@ -35792,7 +35810,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Sierra Leone - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2024",
         "month": "",
         "journal": "",
@@ -35811,9 +35829,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:16Z",
-      "updated_at": "2026-04-28T10:18:16Z",
+      "updated_at": "2026-04-30T09:07:52Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025bi",
@@ -35838,7 +35856,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Tax Research Platform - Burundi - Idividual Taxation - 5. Inheritance and Gift Taxes",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -35857,9 +35875,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:20Z",
-      "updated_at": "2026-04-28T10:18:20Z",
+      "updated_at": "2026-04-30T09:08:22Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025cf",
@@ -35884,7 +35902,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Central Africa - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -35903,9 +35921,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:24Z",
-      "updated_at": "2026-04-28T10:18:24Z",
+      "updated_at": "2026-04-30T09:08:31Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025dj",
@@ -35930,7 +35948,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Djibouti - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -35949,9 +35967,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:28Z",
-      "updated_at": "2026-04-28T10:18:28Z",
+      "updated_at": "2026-04-30T09:08:37Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025dm",
@@ -35976,7 +35994,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Dominica - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -35995,9 +36013,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:32Z",
-      "updated_at": "2026-04-28T10:18:32Z",
+      "updated_at": "2026-04-30T09:08:51Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025er",
@@ -36022,7 +36040,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Eritrea - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36041,9 +36059,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:36Z",
-      "updated_at": "2026-04-28T10:18:36Z",
+      "updated_at": "2026-04-30T09:08:59Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025fm",
@@ -36068,7 +36086,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Micronesia - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36087,9 +36105,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:40Z",
-      "updated_at": "2026-04-28T10:18:40Z",
+      "updated_at": "2026-04-30T09:09:08Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025gm",
@@ -36114,7 +36132,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Gambia - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36133,9 +36151,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:45Z",
-      "updated_at": "2026-04-28T10:18:45Z",
+      "updated_at": "2026-04-30T09:09:19Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025km",
@@ -36160,7 +36178,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Comoros - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36179,9 +36197,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:49Z",
-      "updated_at": "2026-04-28T10:18:49Z",
+      "updated_at": "2026-04-30T09:09:26Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025kn",
@@ -36206,7 +36224,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - St. Kitts and Nevis - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36225,9 +36243,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:53Z",
-      "updated_at": "2026-04-28T10:18:53Z",
+      "updated_at": "2026-04-30T09:09:32Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025me",
@@ -36252,7 +36270,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Montenegro - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36271,9 +36289,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:18:57Z",
-      "updated_at": "2026-04-28T10:18:57Z",
+      "updated_at": "2026-04-30T09:09:41Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025mm",
@@ -36298,7 +36316,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Myanmar - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36317,9 +36335,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:01Z",
-      "updated_at": "2026-04-28T10:19:01Z",
+      "updated_at": "2026-04-30T09:09:46Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025np",
@@ -36344,7 +36362,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Nepal - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36363,9 +36381,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:06Z",
-      "updated_at": "2026-04-28T10:19:06Z",
+      "updated_at": "2026-04-30T09:09:53Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025pw",
@@ -36390,7 +36408,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Palau - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36409,9 +36427,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:10Z",
-      "updated_at": "2026-04-28T10:19:10Z",
+      "updated_at": "2026-04-30T09:09:59Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025sd",
@@ -36436,7 +36454,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Sudan - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36455,9 +36473,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:14Z",
-      "updated_at": "2026-04-28T10:19:14Z",
+      "updated_at": "2026-04-30T09:10:11Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025tj",
@@ -36482,7 +36500,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Tajikistan - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36501,9 +36519,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:18Z",
-      "updated_at": "2026-04-28T10:19:18Z",
+      "updated_at": "2026-04-30T09:10:21Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025tm",
@@ -36528,7 +36546,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Turkmenistan - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36547,9 +36565,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:22Z",
-      "updated_at": "2026-04-28T10:19:22Z",
+      "updated_at": "2026-04-30T09:10:27Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025to",
@@ -36574,7 +36592,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Tonga - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36593,9 +36611,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:26Z",
-      "updated_at": "2026-04-28T10:19:26Z",
+      "updated_at": "2026-04-30T09:10:34Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025vc",
@@ -36620,7 +36638,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - St. Vincent and the Grenadines - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36639,9 +36657,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:30Z",
-      "updated_at": "2026-04-28T10:19:30Z",
+      "updated_at": "2026-04-30T09:10:43Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025vu",
@@ -36666,7 +36684,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Vanuatu - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36685,9 +36703,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:34Z",
-      "updated_at": "2026-04-28T10:19:34Z",
+      "updated_at": "2026-04-30T09:10:48Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ibfd2025ye",
@@ -36712,7 +36730,7 @@
       "bib": {
         "entry_type": "misc",
         "title": "IBFD - Individual Taxation - Yemen - Individual Taxation - 5. Inheritance and Gift Taxation",
-        "author": "Unknown",
+        "author": "International Bureau of Fiscal Documentation",
         "year": "2025",
         "month": "",
         "journal": "",
@@ -36731,9 +36749,9 @@
         "extra_fields": {}
       },
       "created_at": "2026-04-28T10:19:38Z",
-      "updated_at": "2026-04-28T10:19:38Z",
+      "updated_at": "2026-04-30T09:10:55Z",
       "created_by": "Ignacio Flores",
-      "updated_by": "Ignacio Flores"
+      "updated_by": "Francesca"
     },
     {
       "id": "src-ie1985",
@@ -36918,6 +36936,190 @@
       "updated_at": "2026-04-28T10:19:55Z",
       "created_by": "Ignacio Flores",
       "updated_by": "Ignacio Flores"
+    },
+    {
+      "id": "src-drg2025",
+      "section": "Wealth Inequality Trends",
+      "aggsource": "Corporate research",
+      "legend": "Development Research Group (2025)",
+      "source": "drg2025",
+      "data_type": "",
+      "link": "https://microdata.worldbank.org/index.php/catalog/study/WLD_2024_FINDEX_v02_M",
+      "ref_link": "",
+      "citekey": "drg2025",
+      "inclusion_in_warehouse": "",
+      "multigeo_reference": "",
+      "metadata": "",
+      "metadatalink": "",
+      "qcommentsforta": "",
+      "tareply": "",
+      "tacomments": "",
+      "arjcomments": "",
+      "arjreplies": "",
+      "seeaggsourcelisthere": "",
+      "bib": {
+        "entry_type": "misc",
+        "title": "The Global Findex Database 2025: Connectivity and Financial Inclusion in the Digital Economy",
+        "author": "{Development Research Group, Finance and Private Sector Development Unit}",
+        "year": "2025",
+        "month": "",
+        "journal": "",
+        "booktitle": "",
+        "volume": "",
+        "number": "",
+        "pages": "",
+        "institution": "",
+        "publisher": "World Bank, Development Data Group",
+        "doi": "10.48529/BK9N-8R43",
+        "url": "https://microdata.worldbank.org/index.php/catalog/study/WLD_2024_FINDEX_v02_M",
+        "urldate": "",
+        "abstract": "",
+        "keywords": "",
+        "note": "",
+        "extra_fields": {}
+      },
+      "created_at": "2026-04-29T21:24:32Z",
+      "updated_at": "2026-04-29T21:24:32Z",
+      "created_by": "Ignacio",
+      "updated_by": "Ignacio"
+    },
+    {
+      "id": "src-cyprustaxlaw-1942",
+      "section": "Estate, Inheritance, and Gift Taxes",
+      "aggsource": "Government legislation",
+      "legend": "Estate Duty Law No. 28 of 1942",
+      "source": "CyprusTaxLaw_1942",
+      "data_type": "",
+      "link": "https://www.cylaw.org/nomoi/arith/1942_1_028.pdf",
+      "ref_link": "",
+      "citekey": "CyprusTaxLaw_1942",
+      "inclusion_in_warehouse": "",
+      "multigeo_reference": "",
+      "metadata": "",
+      "metadatalink": "",
+      "qcommentsforta": "",
+      "tareply": "",
+      "tacomments": "",
+      "arjcomments": "",
+      "arjreplies": "",
+      "seeaggsourcelisthere": "",
+      "bib": {
+        "entry_type": "techreport",
+        "title": "The Statute Laws of Cyprus No. 28 of 1942 - A law to provide for the imposition and collection of Estate Duty",
+        "author": "Cyprus Tax Law",
+        "year": "1942",
+        "month": "",
+        "journal": "",
+        "booktitle": "",
+        "volume": "",
+        "number": "",
+        "pages": "",
+        "institution": "",
+        "publisher": "",
+        "doi": "",
+        "url": "https://www.cylaw.org/nomoi/arith/1942_1_028.pdf",
+        "urldate": "",
+        "abstract": "",
+        "keywords": "",
+        "note": "",
+        "extra_fields": {}
+      },
+      "created_at": "2026-04-30T08:46:25Z",
+      "updated_at": "2026-04-30T08:46:25Z",
+      "created_by": "Francesca",
+      "updated_by": "Francesca"
+    },
+    {
+      "id": "src-cyprustaxlaw-1962",
+      "section": "Estate, Inheritance, and Gift Taxes",
+      "aggsource": "Government legislation",
+      "legend": "Estate Duty Law No. 67 of 1962",
+      "source": "CyprusTaxLaw_1962",
+      "data_type": "",
+      "link": "https://www.cylaw.org/nomoi/arith/1962_1_067.pdf",
+      "ref_link": "",
+      "citekey": "CyprusTaxLaw_1962",
+      "inclusion_in_warehouse": "",
+      "multigeo_reference": "",
+      "metadata": "",
+      "metadatalink": "",
+      "qcommentsforta": "",
+      "tareply": "",
+      "tacomments": "",
+      "arjcomments": "",
+      "arjreplies": "",
+      "seeaggsourcelisthere": "",
+      "bib": {
+        "entry_type": "techreport",
+        "title": "Cyprus Law No. 67 of 1962 - Law Providing for the Imposition and Collection of Inheritance Tax",
+        "author": "Cyprus Tax Law",
+        "year": "1962",
+        "month": "",
+        "journal": "",
+        "booktitle": "",
+        "volume": "",
+        "number": "",
+        "pages": "",
+        "institution": "",
+        "publisher": "",
+        "doi": "",
+        "url": "https://www.cylaw.org/nomoi/arith/1962_1_067.pdf",
+        "urldate": "",
+        "abstract": "",
+        "keywords": "",
+        "note": "",
+        "extra_fields": {}
+      },
+      "created_at": "2026-04-30T08:48:17Z",
+      "updated_at": "2026-04-30T08:48:17Z",
+      "created_by": "Francesca",
+      "updated_by": "Francesca"
+    },
+    {
+      "id": "src-cyprustaxlaw-2000",
+      "section": "Estate, Inheritance, and Gift Taxes",
+      "aggsource": "Government legislation",
+      "legend": "Estate Duty (Abolition) Law 74/2000",
+      "source": "CyprusTaxLaw_2000",
+      "data_type": "",
+      "link": "https://www.cylaw.org/nomoi/enop/non-ind/2000_1_78/full",
+      "ref_link": "",
+      "citekey": "CyprusTaxLaw_2000",
+      "inclusion_in_warehouse": "",
+      "multigeo_reference": "",
+      "metadata": "",
+      "metadatalink": "",
+      "qcommentsforta": "",
+      "tareply": "",
+      "tacomments": "",
+      "arjcomments": "",
+      "arjreplies": "",
+      "seeaggsourcelisthere": "",
+      "bib": {
+        "entry_type": "techreport",
+        "title": "Estate of Deceased Persons (Taxation Provisions) Cyprus Law 74 of 2000",
+        "author": "Cyprus Tax Law",
+        "year": "1962",
+        "month": "",
+        "journal": "",
+        "booktitle": "",
+        "volume": "",
+        "number": "",
+        "pages": "",
+        "institution": "",
+        "publisher": "",
+        "doi": "",
+        "url": "https://www.cylaw.org/nomoi/enop/non-ind/2000_1_78/full",
+        "urldate": "",
+        "abstract": "",
+        "keywords": "",
+        "note": "",
+        "extra_fields": {}
+      },
+      "created_at": "2026-04-30T08:52:05Z",
+      "updated_at": "2026-04-30T08:52:05Z",
+      "created_by": "Francesca",
+      "updated_by": "Francesca"
     }
   ]
 }
