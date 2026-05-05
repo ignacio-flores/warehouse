@@ -33,7 +33,7 @@ Generated artifacts:
    - Windows double-click: `code/tools/source_manager_win.bat`
    - Linux: `./code/tools/source_manager_linux.sh`
    - Or Terminal: `python3 code/tools/sources/ui_local.py`
-2. Open `http://127.0.0.1:8765`.
+2. Open the URL printed by the launcher or Terminal. The app prefers `http://127.0.0.1:8765`, but it may choose a fallback port if `8765` is busy.
 3. Choose branch: `Data Sources` or `Wealth Research`.
 4. Choose `mode` = `add` or `edit`.
 5. Fill `Your name` (required for save/delete).
@@ -43,7 +43,9 @@ Generated artifacts:
 7. Optionally paste a full BibTeX entry and parse it into fields.
 8. Validate in the UI (errors must be fixed before save).
 9. Save and regenerate artifacts locally.
-10. Close the UI tab/window to stop the local server.
+10. When finished, use the app's explicit shutdown action or close the Terminal/command window. If left idle, the local server stops after 60 minutes.
+
+Launching the UI does not change source records or generated library files. Changes happen only after explicit save/apply actions inside the UI.
 
 ## Duplicate Rules
 

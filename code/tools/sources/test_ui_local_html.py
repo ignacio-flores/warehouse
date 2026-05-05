@@ -4,6 +4,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE_DIR = pathlib.Path("code/tools/sources").resolve()
 if str(SOURCE_DIR) not in sys.path:
@@ -72,6 +73,86 @@ class UiLocalHtmlTests(unittest.TestCase):
     def test_adam_ssm_branding_is_present(self):
         self.assertIn("ADAM SSM - Sleepless Source Manager", self.html)
         self.assertIn("<title>ADAM SSM - Sleepless Source Manager</title>", self.html)
+
+    def test_beforeunload_dirty_warning_remains_without_unload_shutdown(self):
+        self.assertIn("window.addEventListener('beforeunload'", self.html)
+        self.assertIn("e.returnValue = '';", self.html)
+        self.assertNotIn("window.addEventListener('unload'", self.html)
+        self.assertNotIn("navigator.sendBeacon('/api/shutdown'", self.html)
+        self.assertIn("id='shutdown_app_button'", self.html)
+        self.assertIn("async function shutdownApp()", self.html)
+        self.assertIn("await req('/api/shutdown', {})", self.html)
+        self.assertIn('self.path == "/api/shutdown"', pathlib.Path("code/tools/sources/ui_local.py").read_text(encoding="utf-8"))
+
+    def test_port_candidates_use_requested_port_then_fallback_range(self):
+        self.assertEqual(self.mod.port_candidates(8765, 8767), [8765, 8766, 8767])
+        self.assertEqual(self.mod.port_candidates(8770, 8772), [8770, 8771, 8772])
+        self.assertEqual(self.mod.port_candidates(8790, 8785), [8790])
+
+    def test_create_server_with_port_fallback_uses_requested_port_when_free(self):
+        fake_server = object()
+        with mock.patch.object(self.mod, "ThreadingHTTPServer", return_value=fake_server) as server_factory:
+            server, port = self.mod.create_server_with_port_fallback("127.0.0.1", 8765, object, 8767)
+
+        self.assertIs(server, fake_server)
+        self.assertEqual(port, 8765)
+        server_factory.assert_called_once_with(("127.0.0.1", 8765), object)
+
+    def test_create_server_with_port_fallback_scans_upward(self):
+        fake_server = object()
+        with mock.patch.object(
+            self.mod,
+            "ThreadingHTTPServer",
+            side_effect=[OSError("busy"), fake_server],
+        ) as server_factory:
+            server, port = self.mod.create_server_with_port_fallback("127.0.0.1", 8765, object, 8766)
+
+        self.assertIs(server, fake_server)
+        self.assertEqual(port, 8766)
+        self.assertEqual(
+            server_factory.call_args_list,
+            [
+                mock.call(("127.0.0.1", 8765), object),
+                mock.call(("127.0.0.1", 8766), object),
+            ],
+        )
+
+    def test_create_server_with_port_fallback_reports_no_available_ports(self):
+        with mock.patch.object(self.mod, "ThreadingHTTPServer", side_effect=OSError("busy")):
+            with self.assertRaisesRegex(OSError, "8765 through 8766"):
+                self.mod.create_server_with_port_fallback("127.0.0.1", 8765, object, 8766)
+
+    def test_open_browser_main_path_waits_until_after_bind(self):
+        events = []
+
+        class FakeServer:
+            def serve_forever(self):
+                events.append("serve")
+
+        def fake_create_server(host, port, handler_cls):
+            events.append(("bind", host, port, handler_cls.__name__))
+            return FakeServer(), port
+
+        def fake_open_browser(url):
+            events.append(("open", url))
+            return True
+
+        argv = [
+            "ui_local.py",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8765",
+            "--open-browser",
+        ]
+        with mock.patch.object(self.mod.sys, "argv", argv), \
+             mock.patch.object(self.mod, "create_server_with_port_fallback", side_effect=fake_create_server), \
+             mock.patch.object(self.mod, "open_browser", side_effect=fake_open_browser):
+            self.assertEqual(self.mod.main(), 0)
+
+        self.assertEqual(events[0][:3], ("bind", "127.0.0.1", 8765))
+        self.assertEqual(events[1], ("open", "http://127.0.0.1:8765"))
+        self.assertEqual(events[2], "serve")
 
     def test_editorial_theme_tokens_are_defined(self):
         self.assertIn("--bg-page:", self.html)

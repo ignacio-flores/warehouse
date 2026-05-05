@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import uuid
+import webbrowser
 from difflib import unified_diff
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -56,6 +57,7 @@ YEAR_RE = re.compile(r"^\d{4}$")
 ONLINE_COMPARE_MAX_DIFF_LINES = 400
 ONLINE_COMPARE_MAX_DIFF_CHARS = 60000
 REPO_ROOT = Path(__file__).resolve().parents[3]
+PORT_FALLBACK_MAX = 8785
 RAW_BIB_KEY_RE = re.compile(r"@\w+\s*\{\s*([^,\n]+)\s*,", re.IGNORECASE)
 WEALTH_ENTRY_TYPES = [
     "article",
@@ -71,6 +73,43 @@ WEALTH_ENTRY_TYPES = [
 WEALTH_BIB_FIELDS = list(BIB_FIELD_ORDER)
 DUPLICATE_ERROR_PREFIXES = ("Exact duplicate", "Dictionary duplicate", "Bib duplicate")
 ARTIFACT_DUPLICATE_ERROR_PREFIXES = ("Dictionary duplicate", "Bib duplicate")
+
+
+def source_manager_url(host: str, port: int) -> str:
+    return f"http://{host}:{port}"
+
+
+def port_candidates(requested_port: int, max_port: int = PORT_FALLBACK_MAX) -> List[int]:
+    if requested_port <= max_port:
+        return list(range(requested_port, max_port + 1))
+    return [requested_port]
+
+
+def port_attempt_summary(requested_port: int, max_port: int = PORT_FALLBACK_MAX) -> str:
+    if requested_port <= max_port:
+        return f"{requested_port} through {max_port}"
+    return str(requested_port)
+
+
+def create_server_with_port_fallback(host: str, requested_port: int, handler_cls, max_port: int = PORT_FALLBACK_MAX):
+    last_error = None
+    for port in port_candidates(requested_port, max_port):
+        try:
+            return ThreadingHTTPServer((host, port), handler_cls), port
+        except OSError as exc:
+            last_error = exc
+    if last_error is not None:
+        raise OSError(
+            f"could not bind {host} on port(s) {port_attempt_summary(requested_port, max_port)}"
+        ) from last_error
+    raise OSError(f"no candidate ports were available for {host}:{requested_port}")
+
+
+def open_browser(url: str) -> bool:
+    try:
+        return bool(webbrowser.open(url, new=2))
+    except Exception:
+        return False
 
 
 def now_utc() -> str:
@@ -1580,6 +1619,7 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     </div>
     <div class='app-header-actions'>
       <button id='relaunch_app_button' class='secondary' onclick='relaunchApp()'>Relaunch App</button>
+      <button id='shutdown_app_button' class='warn' onclick='shutdownApp()'>Stop Server</button>
     </div>
   </div>
   <div class='branch-tabs'>
@@ -3347,6 +3387,21 @@ async function relaunchApp(){
   }
 }
 
+async function shutdownApp(){
+  try {
+    const unsaved = dirty || wealthDirty;
+    const msg = unsaved
+      ? 'Stop the local source manager? Unsaved form changes will remain only in this browser tab.'
+      : 'Stop the local source manager?';
+    if (!confirm(msg)) return;
+    const out = await req('/api/shutdown', {});
+    setStatus(out, activeStatusTarget());
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, activeStatusTarget());
+    showErrorWindow(String(err));
+  }
+}
+
 async function historyLoad(preserveSelection=true){
   try {
     const out = await reqGetJson('/api/history');
@@ -4517,12 +4572,6 @@ window.addEventListener('beforeunload', (e) => {
   e.preventDefault();
   e.returnValue = '';
 });
-window.addEventListener('unload', () => {
-  if (isRelaunching) return;
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/shutdown', new Blob([JSON.stringify({})], {type: 'application/json'}));
-  }
-});
 setInterval(() => { fetch('/api/ping').catch(() => {}); }, 2000);
 </script>
 </body></html>"""
@@ -4534,7 +4583,8 @@ class App:
         self.aliases_path = aliases
         self.changelog_path = changelog
         self.last_ping = time.time()
-        self.idle_timeout_seconds = 300
+        self.idle_timeout_seconds = 60 * 60
+        self.stop_reason = "server stopped"
         self.ref_link_review_scans: Dict[str, dict] = {}
         self.ref_link_review_scan_lock = threading.Lock()
 
@@ -5767,11 +5817,13 @@ class Handler(BaseHTTPRequestHandler):
                 host, port = self.server.server_address[:2]
                 relaunch_local_ui(self.app, host, int(port))
                 self._send_json({"ok": True, "message": "Relaunching app. This page will reconnect automatically."})
+                self.app.stop_reason = "explicit relaunch"
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
                 return
 
             if self.path == "/api/shutdown":
                 self._send_json({"ok": True, "message": "Shutting down"})
+                self.app.stop_reason = "explicit shutdown"
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
                 return
 
@@ -5787,17 +5839,27 @@ def main() -> int:
     parser.add_argument("--registry", default=DEFAULT_REGISTRY_PATH)
     parser.add_argument("--aliases", default=DEFAULT_ALIASES_PATH)
     parser.add_argument("--change-log", default=DEFAULT_CHANGE_LOG_PATH)
+    parser.add_argument("--open-browser", action="store_true", help="Open the browser after the server binds.")
     args = parser.parse_args()
 
     app = App(Path(args.registry), Path(args.aliases), Path(args.change_log))
     Handler.app = app
 
-    httpd = ThreadingHTTPServer((args.host, args.port), Handler)
+    try:
+        httpd, selected_port = create_server_with_port_fallback(args.host, args.port, Handler)
+    except OSError as exc:
+        print(f"ADAM SSM - Sleepless Source Manager could not start: {exc}", flush=True)
+        print(f"No ports were available for {port_attempt_summary(args.port)}.", flush=True)
+        print("Close another local server or run again with SOURCE_MANAGER_PORT or --port set to another port.", flush=True)
+        return 1
+
+    url = source_manager_url(args.host, selected_port)
 
     def idle_guard():
         while True:
             time.sleep(1)
             if time.time() - app.last_ping > app.idle_timeout_seconds:
+                app.stop_reason = "idle timeout after 60 minutes"
                 try:
                     httpd.shutdown()
                 except Exception:
@@ -5806,12 +5868,33 @@ def main() -> int:
 
     threading.Thread(target=idle_guard, daemon=True).start()
 
-    print(f"ADAM SSM - Sleepless Source Manager running at http://{args.host}:{args.port}")
-    print("The server stops automatically when the UI window/tab closes.")
+    print("ADAM SSM - Sleepless Source Manager starting", flush=True)
+    print(f"Python: {sys.executable}", flush=True)
+    print(f"Python version: {sys.version.split()[0]}", flush=True)
+    print(f"Host: {args.host}", flush=True)
+    print(f"Requested port: {args.port}", flush=True)
+    print(f"Selected port: {selected_port}", flush=True)
+    print(f"URL: {url}", flush=True)
+    if selected_port != args.port:
+        print(f"Port {args.port} was unavailable, so the app is using port {selected_port}.", flush=True)
+    print("Close this terminal or use the app's explicit shutdown action to stop the server.", flush=True)
+    if args.open_browser:
+        if open_browser(url):
+            print("Browser open: requested", flush=True)
+        else:
+            print("Browser open failed. Paste this URL into your browser:", flush=True)
+            print(url, flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        pass
+        app.stop_reason = "keyboard interrupt"
+    except Exception as exc:
+        app.stop_reason = f"server error: {exc}"
+        raise
+    finally:
+        if hasattr(httpd, "server_close"):
+            httpd.server_close()
+        print(f"Final stop reason: {app.stop_reason}", flush=True)
     return 0
 
 

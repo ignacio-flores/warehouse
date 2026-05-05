@@ -34,9 +34,9 @@ python3 code/tools/sources/ui_local.py
 1. In Finder, open this repository folder.
 2. Open `code/tools`.
 3. Double-click `source_manager_mac.command`.
-4. Your browser should open automatically at `http://127.0.0.1:8765`.
+4. Your browser should open automatically. If port `8765` is busy, the Terminal prints the fallback URL to use.
 5. Keep the Terminal window open while using the UI.
-6. Close the UI tab/window when finished; the local server stops automatically.
+6. When finished, use the app's explicit shutdown action or close the Terminal window. If left idle, the local server stops after 60 minutes.
 
 If macOS blocks the file the first time:
 1. Right-click `source_manager_mac.command`.
@@ -48,9 +48,9 @@ If macOS blocks the file the first time:
 1. Open this repository folder in File Explorer.
 2. Open `code/tools`.
 3. Double-click `source_manager_win.bat`.
-4. Your browser opens at `http://127.0.0.1:8765`.
+4. Your browser should open automatically. If port `8765` is busy, the command window prints the fallback URL to use.
 5. Keep the command window open while using the UI.
-6. Close the UI tab/window when finished; the local server stops automatically.
+6. When finished, use the app's explicit shutdown action or close the command window. If left idle, the local server stops after 60 minutes.
 
 ### Option 3 (Terminal)
 
@@ -59,7 +59,9 @@ If macOS blocks the file the first time:
    - `cd /path/to/warehouse`
 3. Run:
    - `python3 code/tools/sources/ui_local.py`
-4. Open `http://127.0.0.1:8765` in your browser.
+4. Open the URL printed in Terminal. The app prefers `http://127.0.0.1:8765`, but it may print a fallback URL if that port is busy.
+
+These launch instructions only start the local source-management UI. They do not change source records or generated library files unless you save changes inside the UI.
 
 ### If Python is missing
 
