@@ -991,6 +991,70 @@
       "actor": "Francesca",
       "issue_number": "local-ui",
       "updated_at": "2026-04-30T09:33:36Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-alvaredo2024",
+      "reason": "Added via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:27:22Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2024",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:36:30Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2024",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:36:41Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2024",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:37:14Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2024",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:37:52Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-alvaredo2024",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T08:49:14Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-alvaredo2024",
+      "reason": "Deleted via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T09:06:50Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-alvaredo2024",
+      "reason": "Added via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T09:07:37Z"
     }
   ]
 }
