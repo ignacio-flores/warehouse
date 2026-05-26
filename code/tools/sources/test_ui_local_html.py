@@ -235,7 +235,9 @@ class UiLocalHtmlTests(unittest.TestCase):
         self.assertIn("setStatusWithChecks(out, 'Save complete.', {nextMessage: addReadyMessage});", body)
         self.assertIn("if (payload.mode === 'add' && !emptyAddPayload) {", body)
         self.assertIn("resetDataAddFormAfterSave();", body)
-        self.assertIn("} else {\n      clearDirty();\n    }", body)
+        self.assertIn("loadedSourceValue = v('source_value');", body)
+        self.assertIn("loadedCitekeyValue = v('citekey_value');", body)
+        self.assertIn("clearDirty();", body)
 
     def test_wealth_add_save_resets_entry_fields_but_preserves_editor(self):
         body = self.js_function("resetWealthAddFormAfterSave")
@@ -463,6 +465,24 @@ class UiLocalHtmlTests(unittest.TestCase):
             "Relaunch App",
             "/api/relaunch",
             "relaunchApp()",
+        ]:
+            self.assertIn(marker, self.html)
+
+    def test_maintenance_tab_and_hybrid_key_hooks_exist(self):
+        for marker in [
+            "branch_maintenance_tab",
+            "branch_maintenance",
+            "source_value",
+            "citekey_value",
+            "shared_citekey_group",
+            "shared_citekey_note",
+            "/api/maintenance/health",
+            "/api/maintenance/rebuild_artifacts",
+            "/api/maintenance/normalize_citekey",
+            "/api/maintenance/mark_shared_citekey",
+            "maintenanceLoad()",
+            "maintenanceNormalizeCitekey",
+            "maintenanceMarkSharedCitekey",
         ]:
             self.assertIn(marker, self.html)
 

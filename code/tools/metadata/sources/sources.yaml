@@ -8477,7 +8477,7 @@
     {
       "id": "src-dhs-ineq",
       "section": "Wealth Inequality Trends",
-      "aggsource": "Cross-national official statistics",
+      "aggsource": "Cross-national official survey data",
       "legend": "Demographic and Health Surveys (own estimates)",
       "source": "DHS_ineq",
       "data_type": "Wealth survey",
@@ -8516,7 +8516,8 @@
         "extra_fields": {}
       },
       "created_at": "2026-02-19T08:49:20Z",
-      "updated_at": "2026-02-19T08:49:20Z"
+      "updated_at": "2026-05-26T15:54:31Z",
+      "updated_by": "Ignacio"
     },
     {
       "id": "src-disslbacher2023",

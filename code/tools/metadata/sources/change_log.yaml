@@ -1255,6 +1255,14 @@
       "actor": "Matteo",
       "issue_number": "local-ui",
       "updated_at": "2026-05-26T13:33:20Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-dhs-ineq",
+      "reason": "Edited via local UI",
+      "actor": "Ignacio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T15:54:31Z"
     }
   ]
 }

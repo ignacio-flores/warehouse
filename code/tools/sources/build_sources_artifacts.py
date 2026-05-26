@@ -47,11 +47,17 @@ BIB_FIELD_ORDER = [
 
 def write_bib(path: Path, records: list) -> None:
     entries = []
+    emitted_shared_keys = {}
     for rec in records:
         key = normalize_whitespace(rec.get("citekey", "")) or normalize_whitespace(rec.get("source", ""))
         if not key:
             continue
+        shared_group = normalize_whitespace(rec.get("shared_citekey_group", ""))
+        if shared_group and emitted_shared_keys.get(key) == shared_group:
+            continue
         entries.append(render_bib_entry(key, rec))
+        if shared_group:
+            emitted_shared_keys[key] = shared_group
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n\n".join(entries).strip() + "\n", encoding="utf-8")
 

@@ -9,6 +9,14 @@
   "definitions": {
     "record": {
       "type": "object",
+      "properties": {
+        "shared_citekey_group": {
+          "type": "string"
+        },
+        "shared_citekey_note": {
+          "type": "string"
+        }
+      },
       "required": [
         "id",
         "section",

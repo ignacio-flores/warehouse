@@ -66,6 +66,13 @@ def validate_records(registry: dict, strict: bool = False) -> list:
     by_url = {}
     by_title_year = {}
 
+    def intentional_shared(first: dict, current: dict) -> bool:
+        first_citekey = normalize_whitespace(str(first.get("citekey", "")))
+        current_citekey = normalize_whitespace(str(current.get("citekey", "")))
+        first_group = normalize_whitespace(str(first.get("shared_citekey_group", "")))
+        current_group = normalize_whitespace(str(current.get("shared_citekey_group", "")))
+        return bool(first_citekey and first_citekey == current_citekey and first_group and first_group == current_group)
+
     for rec in records:
         rec_id = rec.get("id", "")
         source = normalize_whitespace(rec.get("source", ""))
@@ -124,26 +131,34 @@ def validate_records(registry: dict, strict: bool = False) -> list:
             by_source[source] = rec_id
 
         if citekey in by_citekey:
-            msg = f"Exact duplicate citekey: {citekey} ({by_citekey[citekey]} and {rec_id})"
-            (errors if strict else warns).append(msg)
+            first = by_citekey[citekey]
+            first_group = normalize_whitespace(str(first.get("shared_citekey_group", "")))
+            current_group = normalize_whitespace(str(rec.get("shared_citekey_group", "")))
+            if not first_group or first_group != current_group:
+                msg = f"Exact duplicate citekey: {citekey} ({first.get('id', '')} and {rec_id})"
+                (errors if strict else warns).append(msg)
         else:
-            by_citekey[citekey] = rec_id
+            by_citekey[citekey] = rec
 
         url_candidate = normalize_url(bib_url or link)
         if url_candidate:
             if url_candidate in by_url:
-                msg = f"Exact duplicate URL: {url_candidate} ({by_url[url_candidate]} and {rec_id}). Use edit mode."
-                (errors if strict else warns).append(msg)
+                first = by_url[url_candidate]
+                if not intentional_shared(first, rec):
+                    msg = f"Exact duplicate URL: {url_candidate} ({first.get('id', '')} and {rec_id}). Use edit mode."
+                    (errors if strict else warns).append(msg)
             else:
-                by_url[url_candidate] = rec_id
+                by_url[url_candidate] = rec
 
         if title and year:
             ty = (normalize_text(title), year)
             if ty in by_title_year:
-                msg = f"Exact duplicate title/year: {title} ({year}) ({by_title_year[ty]} and {rec_id}). Use edit mode."
-                (errors if strict else warns).append(msg)
+                first = by_title_year[ty]
+                if not intentional_shared(first, rec):
+                    msg = f"Exact duplicate title/year: {title} ({year}) ({first.get('id', '')} and {rec_id}). Use edit mode."
+                    (errors if strict else warns).append(msg)
             else:
-                by_title_year[ty] = rec_id
+                by_title_year[ty] = rec
 
     warns.extend(fuzzy_warnings(records))
 

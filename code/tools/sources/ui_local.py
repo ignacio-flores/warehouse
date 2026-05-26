@@ -7,13 +7,16 @@ Then open http://127.0.0.1:8765
 """
 
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import re
 import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -22,7 +25,7 @@ from difflib import unified_diff
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
@@ -480,6 +483,45 @@ def find_target(records: List[dict], target: str) -> List[dict]:
     return hits
 
 
+def record_summary(rec: dict) -> dict:
+    bib = rec.get("bib", {}) or {}
+    return {
+        "id": normalize_whitespace(str(rec.get("id", ""))),
+        "source": normalize_whitespace(str(rec.get("source", ""))),
+        "citekey": normalize_whitespace(str(rec.get("citekey", ""))),
+        "legend": normalize_whitespace(str(rec.get("legend", ""))),
+        "year": normalize_whitespace(str(bib.get("year", ""))),
+        "title": normalize_whitespace(str(bib.get("title", ""))),
+        "shared_citekey_group": normalize_whitespace(str(rec.get("shared_citekey_group", ""))),
+        "shared_citekey_note": normalize_whitespace(str(rec.get("shared_citekey_note", ""))),
+    }
+
+
+def target_skip_values(records: List[dict], target: str) -> set:
+    values = {normalize_whitespace(target)}
+    hits = find_target(records, target)
+    if len(hits) == 1:
+        rec = hits[0]
+        values.update(
+            {
+                normalize_whitespace(str(rec.get("id", ""))),
+                normalize_whitespace(str(rec.get("source", ""))),
+                normalize_whitespace(str(rec.get("citekey", ""))),
+            }
+        )
+    return {value for value in values if value}
+
+
+def shared_citekey_group(rec: dict) -> str:
+    return normalize_whitespace(str(rec.get("shared_citekey_group", "")))
+
+
+def shared_citekey_allowed(candidate: dict, rec: dict) -> bool:
+    c_group = shared_citekey_group(candidate)
+    r_group = shared_citekey_group(rec)
+    return bool(c_group and r_group and c_group == r_group)
+
+
 def validate_candidate(records: List[dict], candidate: dict, mode: str, target_id: str = "") -> Dict[str, List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
@@ -496,12 +538,16 @@ def validate_candidate(records: List[dict], candidate: dict, mode: str, target_i
         "detail": "All required fields present" if not missing_required else f"Missing: {', '.join(missing_required)}",
     })
 
-    if candidate.get("source", "") != candidate.get("citekey", ""):
-        errors.append("source and citekey must be the same value")
+    source_matches_citekey = candidate.get("source", "") == candidate.get("citekey", "")
+    if not source_matches_citekey:
+        if mode == "add":
+            errors.append("source and citekey must be the same value for new records")
+        else:
+            warnings.append("source and citekey differ; preserving legacy bibliography key")
     checks.append({
         "name": "Source/Citekey consistency",
-        "passed": candidate.get("source", "") == candidate.get("citekey", ""),
-        "detail": "source equals citekey",
+        "passed": source_matches_citekey or mode == "edit",
+        "detail": "source equals citekey" if source_matches_citekey else "legacy source/citekey mismatch preserved",
     })
 
     bib = candidate.get("bib", {}) or {}
@@ -576,17 +622,26 @@ def validate_candidate(records: List[dict], candidate: dict, mode: str, target_i
             duplicate_errors.append(msg)
             errors.append(msg)
         if c_citekey and c_citekey == r_citekey:
-            msg = f"Exact duplicate citekey found: {c_citekey} (record {rid})"
-            duplicate_errors.append(msg)
-            errors.append(msg)
+            if shared_citekey_allowed(candidate, rec):
+                warnings.append(f"Shared citekey marked intentional: {c_citekey} (record {rid})")
+            else:
+                msg = f"Exact duplicate citekey found: {c_citekey} (record {rid})"
+                duplicate_errors.append(msg)
+                errors.append(msg)
         if c_url and c_url == r_url:
-            msg = f"Exact duplicate URL found: {c_url} (record {rid})"
-            duplicate_errors.append(msg)
-            errors.append(msg)
+            if shared_citekey_allowed(candidate, rec) and c_citekey and c_citekey == r_citekey:
+                warnings.append(f"Shared citekey also shares URL: {c_url} (record {rid})")
+            else:
+                msg = f"Exact duplicate URL found: {c_url} (record {rid})"
+                duplicate_errors.append(msg)
+                errors.append(msg)
         if c_title and c_year and c_title == r_title and c_year == r_year:
-            msg = f"Exact duplicate (title, year) found: ({c_title}, {c_year}) (record {rid})"
-            duplicate_errors.append(msg)
-            errors.append(msg)
+            if shared_citekey_allowed(candidate, rec) and c_citekey and c_citekey == r_citekey:
+                warnings.append(f"Shared citekey also shares title/year: ({c_title}, {c_year}) (record {rid})")
+            else:
+                msg = f"Exact duplicate (title, year) found: ({c_title}, {c_year}) (record {rid})"
+                duplicate_errors.append(msg)
+                errors.append(msg)
     checks.append({
         "name": "Exact duplicate checks",
         "passed": len(duplicate_errors) == 0,
@@ -604,9 +659,20 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
     dictionary_path = _dictionary_output_path(cfg)
     bib_path = Path(cfg.get("bib_output", "documentation/BibTeX files/GCWealthProject_DataSourcesLibrary.bib"))
     target_norm = normalize_whitespace(target)
+    skip_values = target_skip_values(registry.get("records", []), target) if mode == "edit" else set()
 
     c_source = normalize_whitespace(candidate.get("source", ""))
     c_citekey = normalize_whitespace(candidate.get("citekey", ""))
+    for rec in registry.get("records", []):
+        if c_citekey and c_citekey == normalize_whitespace(str(rec.get("citekey", ""))) and shared_citekey_allowed(candidate, rec):
+            skip_values.update(
+                {
+                    normalize_whitespace(str(rec.get("id", ""))),
+                    normalize_whitespace(str(rec.get("source", ""))),
+                    normalize_whitespace(str(rec.get("citekey", ""))),
+                }
+            )
+    skip_values = {value for value in skip_values if value}
     cbib = candidate.get("bib", {}) or {}
     c_url = normalize_url(str(cbib.get("url", "") or candidate.get("link", "")))
     c_title = normalize_text(str(cbib.get("title", "")))
@@ -622,7 +688,11 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
                 r_source = normalize_whitespace(str(row.get("Source", "")))
                 r_citekey = normalize_whitespace(str(row.get("Citekey", "")))
                 r_link = normalize_url(str(row.get("Link", "")))
-                if mode == "edit" and target_norm and (r_source == target_norm or r_citekey == target_norm):
+                if mode == "edit" and (
+                    (target_norm and (r_source == target_norm or r_citekey == target_norm))
+                    or r_source in skip_values
+                    or r_citekey in skip_values
+                ):
                     continue
                 if c_source and c_source == r_source:
                     dict_errors.append(f"Dictionary duplicate Source: {c_source}")
@@ -651,7 +721,7 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
             bib_checked = True
             for key, entry in entries.items():
                 k_norm = normalize_whitespace(key)
-                if mode == "edit" and target_norm and k_norm == target_norm:
+                if mode == "edit" and ((target_norm and k_norm == target_norm) or k_norm in skip_values):
                     continue
                 if c_citekey and c_citekey == k_norm:
                     bib_errors.append(f"Bib duplicate key: {c_citekey}")
@@ -677,6 +747,176 @@ def validate_candidate_against_artifacts(registry: dict, candidate: dict, mode: 
     })
 
     return {"errors": sorted(set(errors)), "warnings": sorted(set(warnings)), "checks": checks}
+
+
+def _run_build_sources_artifacts(
+    registry_path: Path,
+    *,
+    dictionary_template: Optional[Path] = None,
+    dictionary_output: Optional[Path] = None,
+    bib_output: Optional[Path] = None,
+    wealth_bib_input: Optional[Path] = None,
+    both_bib_output: Optional[Path] = None,
+    quiet: bool = False,
+) -> None:
+    from build_sources_artifacts import main as build_main  # pylint: disable=import-outside-toplevel
+
+    argv = ["build_sources_artifacts.py", "--registry", str(registry_path)]
+    optional_args = [
+        ("--dictionary-template", dictionary_template),
+        ("--dictionary-output", dictionary_output),
+        ("--bib-output", bib_output),
+        ("--wealth-bib-input", wealth_bib_input),
+        ("--both-bib-output", both_bib_output),
+    ]
+    for flag, path_value in optional_args:
+        if path_value is not None:
+            argv.extend([flag, str(path_value)])
+
+    argv_orig = sys.argv[:]
+    try:
+        sys.argv = argv
+        if quiet:
+            with contextlib.redirect_stdout(io.StringIO()):
+                build_main()
+        else:
+            build_main()
+    finally:
+        sys.argv = argv_orig
+
+
+def generated_artifact_drift(registry_path: Path, cfg: dict) -> dict:
+    dictionary_path = _dictionary_output_path(cfg)
+    data_bib_path = _data_bib_path(cfg)
+    wealth_bib_path = _wealth_bib_path(cfg)
+    both_bib_path = _both_bib_path(cfg)
+    stale_paths: List[str] = []
+    errors: List[str] = []
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_root = Path(tmpdir)
+        tmp_dict = tmp_root / "dictionary.xlsx"
+        tmp_data_bib = tmp_root / "data.bib"
+        tmp_both_bib = tmp_root / "both.bib"
+        try:
+            if not dictionary_path.exists():
+                errors.append(f"Dictionary artifact missing: {dictionary_path}")
+                return {"stale_artifact_paths": [str(dictionary_path)], "errors": errors}
+            shutil.copy2(dictionary_path, tmp_dict)
+            _run_build_sources_artifacts(
+                registry_path,
+                dictionary_template=tmp_dict,
+                dictionary_output=tmp_dict,
+                bib_output=tmp_data_bib,
+                wealth_bib_input=wealth_bib_path,
+                both_bib_output=tmp_both_bib,
+                quiet=True,
+            )
+
+            if not data_bib_path.exists() or data_bib_path.read_text(encoding="utf-8") != tmp_data_bib.read_text(encoding="utf-8"):
+                stale_paths.append(str(data_bib_path))
+            if not both_bib_path.exists() or both_bib_path.read_text(encoding="utf-8") != tmp_both_bib.read_text(encoding="utf-8"):
+                stale_paths.append(str(both_bib_path))
+            try:
+                current_rows = read_sources_sheet(dictionary_path)
+                rebuilt_rows = read_sources_sheet(tmp_dict)
+                if json.dumps(current_rows, sort_keys=True) != json.dumps(rebuilt_rows, sort_keys=True):
+                    stale_paths.append(str(dictionary_path))
+            except Exception as exc:  # pylint: disable=broad-except
+                errors.append(f"Dictionary artifact check could not run: {exc}")
+        except Exception as exc:  # pylint: disable=broad-except
+            errors.append(f"Generated artifact drift check failed: {exc}")
+
+    return {"stale_artifact_paths": sorted(set(stale_paths)), "errors": errors}
+
+
+def build_maintenance_health(registry: dict, registry_path: Path) -> dict:
+    records = registry.get("records", [])
+    cfg = registry.get("config", {}) or {}
+    issues: List[dict] = []
+
+    for rec in records:
+        source = normalize_whitespace(str(rec.get("source", "")))
+        citekey = normalize_whitespace(str(rec.get("citekey", "")))
+        if source and citekey and source != citekey:
+            issues.append(
+                {
+                    "type": "source_citekey_mismatch",
+                    "severity": "needs_review",
+                    "record": record_summary(rec),
+                    "message": f"Source {source} uses bibliography citekey {citekey}.",
+                }
+            )
+
+    by_citekey: Dict[str, List[dict]] = {}
+    for rec in records:
+        citekey = normalize_whitespace(str(rec.get("citekey", "")))
+        if citekey:
+            by_citekey.setdefault(citekey, []).append(rec)
+    for citekey, grouped in sorted(by_citekey.items(), key=lambda item: item[0].lower()):
+        if len(grouped) <= 1:
+            continue
+        groups = {shared_citekey_group(rec) for rec in grouped}
+        intentional = len(groups) == 1 and "" not in groups
+        issues.append(
+            {
+                "type": "duplicate_citekey",
+                "severity": "intentional" if intentional else "needs_review",
+                "citekey": citekey,
+                "records": [record_summary(rec) for rec in grouped],
+                "message": (
+                    f"Shared citekey {citekey} is marked intentional."
+                    if intentional
+                    else f"Citekey {citekey} is used by {len(grouped)} records and needs review."
+                ),
+            }
+        )
+
+    for label, path in [("Data Sources", _data_bib_path(cfg)), ("Combined", _both_bib_path(cfg))]:
+        try:
+            blob = _read_bib_with_duplicate_detection(path)
+            duplicate_keys = blob.get("duplicate_keys", [])
+            if duplicate_keys:
+                issues.append(
+                    {
+                        "type": "artifact_duplicate_keys",
+                        "severity": "needs_rebuild",
+                        "artifact": str(path),
+                        "library_label": label,
+                        "duplicate_keys": duplicate_keys,
+                        "message": f"{label} BibTeX artifact contains duplicate key(s): {', '.join(duplicate_keys)}.",
+                    }
+                )
+        except Exception as exc:  # pylint: disable=broad-except
+            issues.append(
+                {
+                    "type": "artifact_check_failed",
+                    "severity": "needs_review",
+                    "artifact": str(path),
+                    "message": f"Could not inspect {label} BibTeX artifact: {exc}",
+                }
+            )
+
+    drift = generated_artifact_drift(registry_path, cfg)
+    if drift.get("stale_artifact_paths"):
+        issues.append(
+            {
+                "type": "generated_artifacts_stale",
+                "severity": "needs_rebuild",
+                "stale_artifact_paths": drift.get("stale_artifact_paths", []),
+                "message": "Generated artifacts differ from the canonical registry.",
+            }
+        )
+    for err in drift.get("errors", []):
+        issues.append({"type": "artifact_drift_check_failed", "severity": "needs_review", "message": err})
+
+    summary = {
+        "total": len(issues),
+        "needs_review": sum(1 for issue in issues if issue.get("severity") == "needs_review"),
+        "needs_rebuild": sum(1 for issue in issues if issue.get("severity") == "needs_rebuild"),
+        "intentional": sum(1 for issue in issues if issue.get("severity") == "intentional"),
+    }
+    return {"ok": True, "summary": summary, "issues": issues}
 
 
 def parse_bib_paste(text: str) -> dict:
@@ -719,6 +959,14 @@ def make_candidate(payload: dict) -> dict:
     record = payload.get("record", {})
     mode = normalize_whitespace(payload.get("mode", "add")).lower()
     source_key = normalize_whitespace(record.get("source_key", ""))
+    source_value = normalize_whitespace(record.get("source", ""))
+    citekey_value = normalize_whitespace(record.get("citekey", ""))
+    if mode == "add":
+        source_value = source_key
+        citekey_value = source_key
+    else:
+        source_value = source_value or source_key
+        citekey_value = citekey_value or source_value or source_key
     bib = record.get("bib", {}) or {}
     link_value = normalize_whitespace(record.get("link", ""))
     bib_url_value = normalize_whitespace(bib.get("url", ""))
@@ -730,8 +978,8 @@ def make_candidate(payload: dict) -> dict:
         "section": normalize_whitespace(record.get("section", "")),
         "aggsource": normalize_whitespace(record.get("aggsource", "")),
         "legend": normalize_whitespace(record.get("legend", "")),
-        "source": source_key,
-        "citekey": source_key,
+        "source": source_value,
+        "citekey": citekey_value,
         "data_type": normalize_whitespace(record.get("data_type", "")),
         "link": link_value,
         "ref_link": normalize_whitespace(record.get("ref_link", "")),
@@ -739,6 +987,8 @@ def make_candidate(payload: dict) -> dict:
         "multigeo_reference": normalize_whitespace(record.get("multigeo_reference", "")),
         "metadata": normalize_whitespace(record.get("metadata", "")),
         "metadatalink": normalize_whitespace(record.get("metadatalink", "")),
+        "shared_citekey_group": normalize_whitespace(record.get("shared_citekey_group", "")),
+        "shared_citekey_note": normalize_whitespace(record.get("shared_citekey_note", "")),
         "editor_name": editor_name,
         "bib": {
             "entry_type": normalize_whitespace(bib.get("entry_type", "")),
@@ -776,6 +1026,8 @@ ADD_RECORD_FIELDS = [
     "multigeo_reference",
     "metadata",
     "metadatalink",
+    "shared_citekey_group",
+    "shared_citekey_note",
 ]
 ADD_BIB_FIELDS = [
     "entry_type",
@@ -840,6 +1092,7 @@ def is_empty_wealth_add_payload(payload: dict) -> bool:
 SUMMARY_TOP_FIELDS = [
     "section", "aggsource", "legend", "source", "citekey", "data_type", "link", "ref_link",
     "inclusion_in_warehouse", "multigeo_reference", "metadata", "metadatalink",
+    "shared_citekey_group", "shared_citekey_note",
 ]
 SUMMARY_BIB_FIELDS = [
     "entry_type", "title", "author", "year", "month", "journal", "booktitle",
@@ -1242,7 +1495,8 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
         updated = json.loads(json.dumps(rec))
         for k in [
             "section", "aggsource", "legend", "source", "citekey", "data_type", "link", "ref_link",
-            "inclusion_in_warehouse", "multigeo_reference", "metadata", "metadatalink"
+            "inclusion_in_warehouse", "multigeo_reference", "metadata", "metadatalink",
+            "shared_citekey_group", "shared_citekey_note",
         ]:
             val = candidate.get(k, "")
             if val != "":
@@ -1271,8 +1525,10 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
         rec.update(updated)
 
         if changed_key and breaking:
-            append_alias(aliases_path, "source", before_source, rec.get("source", ""), reason)
-            append_alias(aliases_path, "citekey", before_citekey, rec.get("citekey", ""), reason)
+            if before_source != rec.get("source", ""):
+                append_alias(aliases_path, "source", before_source, rec.get("source", ""), reason)
+            if before_citekey != rec.get("citekey", ""):
+                append_alias(aliases_path, "citekey", before_citekey, rec.get("citekey", ""), reason)
 
         append_change(changelog_path, "edit", rec.get("id", ""), reason, editor_name)
         return {
@@ -1301,6 +1557,8 @@ def apply_payload(registry: dict, payload: dict, aliases_path: Path, changelog_p
         "multigeo_reference": candidate.get("multigeo_reference", ""),
         "metadata": candidate.get("metadata", ""),
         "metadatalink": candidate.get("metadatalink", ""),
+        "shared_citekey_group": candidate.get("shared_citekey_group", ""),
+        "shared_citekey_note": candidate.get("shared_citekey_note", ""),
         "qcommentsforta": "",
         "tareply": "",
         "tacomments": "",
@@ -1626,6 +1884,7 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     <button id='branch_data_tab' class='branch-tab active' onclick="switchBranch('data')">Data Sources</button>
     <button id='branch_wealth_tab' class='branch-tab' onclick="switchBranch('wealth')">Wealth Research</button>
     <button id='branch_history_tab' class='branch-tab' onclick="switchBranch('history')">History</button>
+    <button id='branch_maintenance_tab' class='branch-tab' onclick="switchBranch('maintenance')">Maintenance</button>
   </div>
 
   <div id='branch_data'>
@@ -1682,7 +1941,9 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     <div class='row'><label>Section <span class='req'>*</span></label><input id='section' list='section_opts'></div>
     <div class='row'><label>Aggsource <span class='req'>*</span></label><input id='aggsource' list='aggsource_opts'></div>
     <div class='row'><label>Legend <span class='req'>*</span></label><input id='legend'></div>
-    <div class='row'><label>Source / Citekey <span class='req'>*</span></label><input id='source_key' placeholder='Same value used as Source and citekey'></div>
+    <div class='row' id='row_source_key'><label>Source / Citekey <span class='req'>*</span></label><input id='source_key' placeholder='Same value used as Source and citekey'></div>
+    <div class='row hidden' id='row_source_value'><label>Source <span class='req'>*</span></label><input id='source_value'></div>
+    <div class='row hidden' id='row_citekey_value'><label>Citekey <span class='req'>*</span></label><input id='citekey_value'></div>
     <div class='row'><label>URL / Link <span class='req'>*</span></label><input id='link'></div>
   </div>
   </div>
@@ -1713,6 +1974,8 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
     <div class='grid3' style='margin-top:10px;'>
       <div class='row'><label>Data_type</label><input id='data_type' list='data_type_opts'></div>
       <div class='row'><label>Ref_link</label><input id='ref_link'></div>
+      <div class='row'><label>Shared citekey group</label><input id='shared_citekey_group'></div>
+      <div class='row'><label>Shared citekey note</label><input id='shared_citekey_note'></div>
       <div class='row'><label>Inclusion_in_Warehouse</label><input id='inclusion_in_warehouse' list='inclusion_in_warehouse_opts'></div>
       <div class='row'><label>Multigeo_Reference</label><input id='multigeo_reference'></div>
       <div class='row'><label>Metadatalink</label><input id='metadatalink'></div>
@@ -1768,6 +2031,24 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
   <h3 class='section-heading'>Status</h3>
   <pre id='status'></pre>
   </div>
+  </div>
+
+  <div id='branch_maintenance' class='hidden'>
+    <div class='panel'>
+      <h3 class='section-heading'>Registry Health</h3>
+      <div class='row'>
+        <div style='display:flex; gap:10px; flex-wrap:wrap;'>
+          <button class='secondary' onclick='maintenanceLoad()'>Refresh health scan</button>
+          <button class='secondary' onclick='maintenanceRebuildArtifacts()'>Rebuild generated artifacts</button>
+        </div>
+      </div>
+      <div id='maintenance_summary' class='help'></div>
+      <div class='search-results' id='maintenance_issues'></div>
+    </div>
+    <div class='panel'>
+      <h3 class='section-heading'>Maintenance Status</h3>
+      <pre id='maintenance_status'></pre>
+    </div>
   </div>
 
   <div id='branch_wealth' class='hidden'>
@@ -2109,6 +2390,8 @@ function showErrorWindow(msg){
 let activeBranch = 'data';
 let dirty = false;
 let loadedSourceKey = '';
+let loadedSourceValue = '';
+let loadedCitekeyValue = '';
 function markDirty(){ dirty = true; }
 function clearDirty(){ dirty = false; }
 let wealthDirty = false;
@@ -2119,6 +2402,7 @@ let historyEntries = [];
 let historySummary = {};
 let historySelectedId = '';
 let historyCleanupReason = '';
+let maintenanceIssues = [];
 let isRelaunching = false;
 const REF_LINK_REVIEW_STORAGE_PREFIX = 'adam-ssm-ref-link-review';
 function defaultRefLinkReviewColumnWidths(){
@@ -3493,16 +3777,19 @@ Generated files are not changed.`;
 }
 
 function switchBranch(branch){
-  activeBranch = branch === 'wealth' ? 'wealth' : (branch === 'history' ? 'history' : 'data');
+  activeBranch = branch === 'wealth' ? 'wealth' : (branch === 'history' ? 'history' : (branch === 'maintenance' ? 'maintenance' : 'data'));
   const isData = activeBranch === 'data';
   const isWealth = activeBranch === 'wealth';
   const isHistory = activeBranch === 'history';
+  const isMaintenance = activeBranch === 'maintenance';
   document.getElementById('branch_data').classList.toggle('hidden', !isData);
   document.getElementById('branch_wealth').classList.toggle('hidden', !isWealth);
   document.getElementById('branch_history').classList.toggle('hidden', !isHistory);
+  document.getElementById('branch_maintenance').classList.toggle('hidden', !isMaintenance);
   document.getElementById('branch_data_tab').classList.toggle('active', isData);
   document.getElementById('branch_wealth_tab').classList.toggle('active', isWealth);
   document.getElementById('branch_history_tab').classList.toggle('active', isHistory);
+  document.getElementById('branch_maintenance_tab').classList.toggle('active', isMaintenance);
   if (isWealth) {
     closeRefLinkReviewModal();
     wealthOnModeChange();
@@ -3511,6 +3798,9 @@ function switchBranch(branch){
   } else if (isHistory) {
     closeRefLinkReviewModal();
     historyLoad().catch((err) => setStatus({ok:false, error:String(err)}, 'history_status'));
+  } else if (isMaintenance) {
+    closeRefLinkReviewModal();
+    maintenanceLoad().catch((err) => setStatus({ok:false, error:String(err)}, 'maintenance_status'));
   } else {
     onModeChange();
     onEntryTypeChange();
@@ -3526,9 +3816,16 @@ function onModeChange(){
   document.getElementById('dataBibPasteWrap').classList.toggle('hidden', isEdit);
   document.getElementById('loadBtn').disabled = !isEdit;
   document.getElementById('row_bib_url').classList.toggle('hidden', !isEdit);
+  document.getElementById('row_source_key').classList.toggle('hidden', isEdit);
+  document.getElementById('row_source_value').classList.toggle('hidden', !isEdit);
+  document.getElementById('row_citekey_value').classList.toggle('hidden', !isEdit);
   if (!isEdit) {
     loadedSourceKey = '';
+    loadedSourceValue = '';
+    loadedCitekeyValue = '';
     document.getElementById('target').value = '';
+    document.getElementById('source_value').value = '';
+    document.getElementById('citekey_value').value = '';
     // In add mode we keep a single URL field and mirror it to bib.url on save.
     document.getElementById('bib_url').value = '';
   }
@@ -3575,8 +3872,10 @@ function getPayload(){
     key_rename_confirmed: false,
     record: {
       section: v('section'), aggsource: v('aggsource'), legend: v('legend'), source_key: v('source_key'),
+      source: v('source_value'), citekey: v('citekey_value'),
       data_type: v('data_type'), link: v('link'), ref_link: v('ref_link'), inclusion_in_warehouse: v('inclusion_in_warehouse'),
       multigeo_reference: v('multigeo_reference'), metadata: v('metadata'), metadatalink: v('metadatalink'),
+      shared_citekey_group: v('shared_citekey_group'), shared_citekey_note: v('shared_citekey_note'),
       bib: {
         entry_type: v('bib_entry_type'), title: v('bib_title'), author: v('bib_author'), year: v('bib_year'), month: v('bib_month'),
         journal: v('bib_journal'), booktitle: v('bib_booktitle'), volume: v('bib_volume'), number: v('bib_number'), pages: v('bib_pages'),
@@ -3594,7 +3893,8 @@ function isEmptyAddPayload(payload){
   const bib = record.bib || {};
   const recordFields = [
     'section', 'aggsource', 'legend', 'source_key', 'data_type', 'link',
-    'ref_link', 'inclusion_in_warehouse', 'multigeo_reference', 'metadata', 'metadatalink'
+    'ref_link', 'inclusion_in_warehouse', 'multigeo_reference', 'metadata', 'metadatalink',
+    'shared_citekey_group', 'shared_citekey_note'
   ];
   const bibFields = [
     'entry_type', 'title', 'author', 'year', 'month', 'journal', 'booktitle',
@@ -3675,6 +3975,7 @@ function buildStaleArtifactGuidance(out){
   if (!out || out.error_code !== 'stale_artifacts') return '';
   const lines = [
     'Generated artifacts are out of sync with the canonical registry.',
+    'Use the Maintenance tab -> Rebuild generated artifacts, then retry the save.',
   ];
   if (out.rebuild_hint) lines.push(`Rebuild command: ${out.rebuild_hint}`);
   const files = Array.isArray(out.stale_artifact_paths) ? out.stale_artifact_paths : [];
@@ -3828,7 +4129,7 @@ function dataRenderSearchResults(){
   }
   const rows = filtered.map((row) => `
     <tr>
-      <td><button class='search-btn' data-key="${escapeHtml(row.citekey || '')}">${escapeHtml(row.citekey || '')}</button></td>
+      <td><button class='search-btn' data-key="${escapeHtml(row.source || row.citekey || '')}">${escapeHtml(row.citekey || '')}</button></td>
       <td>${escapeHtml(row.source || '')}</td>
       <td>${escapeHtml(row.legend || '')}</td>
       <td>${escapeHtml(row.year || '')}</td>
@@ -3851,6 +4152,144 @@ function dataRenderSearchResults(){
       });
     });
   });
+}
+
+function maintenancePrimaryRecord(issue){
+  if (!issue) return null;
+  if (issue.record) return issue.record;
+  if (Array.isArray(issue.records) && issue.records.length) return issue.records[0];
+  return null;
+}
+
+function maintenanceIssueActions(issue, index){
+  const actions = [];
+  const rec = maintenancePrimaryRecord(issue);
+  if (rec) actions.push(`<button class='secondary maintenance-action' data-action='load' data-index='${index}'>Load</button>`);
+  if (issue.type === 'source_citekey_mismatch' && rec) {
+    actions.push(`<button class='secondary maintenance-action' data-action='normalize' data-index='${index}'>Normalize citekey</button>`);
+  }
+  if (issue.type === 'duplicate_citekey' && issue.severity !== 'intentional') {
+    actions.push(`<button class='secondary maintenance-action' data-action='mark_shared' data-index='${index}'>Mark shared</button>`);
+  }
+  if (issue.type === 'generated_artifacts_stale' || issue.type === 'artifact_duplicate_keys') {
+    actions.push(`<button class='secondary maintenance-action' data-action='rebuild' data-index='${index}'>Rebuild</button>`);
+  }
+  return actions.join(' ');
+}
+
+function renderMaintenanceHealth(out){
+  const summary = out.summary || {};
+  maintenanceIssues = out.issues || [];
+  document.getElementById('maintenance_summary').textContent =
+    `Total issues: ${summary.total || 0} | Needs review: ${summary.needs_review || 0} | Needs rebuild: ${summary.needs_rebuild || 0} | Intentional shared citekeys: ${summary.intentional || 0}`;
+  const holder = document.getElementById('maintenance_issues');
+  if (!maintenanceIssues.length) {
+    holder.innerHTML = '<small>No maintenance issues detected.</small>';
+    return;
+  }
+  const rows = maintenanceIssues.slice(0, 300).map((issue, index) => {
+    const rec = maintenancePrimaryRecord(issue) || {};
+    const target = rec.id ? `${rec.id} / ${rec.source || ''} / ${rec.citekey || ''}` : (issue.citekey || issue.artifact || '');
+    return `
+      <tr>
+        <td>${escapeHtml(issue.severity || '')}</td>
+        <td>${escapeHtml(issue.type || '')}</td>
+        <td>${escapeHtml(target)}</td>
+        <td>${escapeHtml(issue.message || '')}</td>
+        <td>${maintenanceIssueActions(issue, index)}</td>
+      </tr>
+    `;
+  }).join('');
+  const omitted = maintenanceIssues.length > 300 ? `<p><small>${maintenanceIssues.length - 300} additional issue(s) omitted from this view.</small></p>` : '';
+  holder.innerHTML = `
+    <table>
+      <thead><tr><th>Severity</th><th>Type</th><th>Target</th><th>Message</th><th>Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${omitted}
+  `;
+  holder.querySelectorAll('button.maintenance-action').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const index = Number(btn.getAttribute('data-index') || '0');
+      const action = btn.getAttribute('data-action') || '';
+      if (action === 'load') maintenanceLoadRecord(index);
+      if (action === 'normalize') maintenanceNormalizeCitekey(index);
+      if (action === 'mark_shared') maintenanceMarkSharedCitekey(index);
+      if (action === 'rebuild') maintenanceRebuildArtifacts();
+    });
+  });
+}
+
+async function maintenanceLoad(){
+  const out = await reqGetJson('/api/maintenance/health');
+  renderMaintenanceHealth(out);
+  setStatus({ok:true, message:'Maintenance health scan complete.'}, 'maintenance_status');
+  return out;
+}
+
+async function maintenanceLoadRecord(index){
+  const issue = maintenanceIssues[index];
+  const rec = maintenancePrimaryRecord(issue);
+  if (!rec) return;
+  switchBranch('data');
+  document.getElementById('mode').value = 'edit';
+  onModeChange();
+  document.getElementById('target').value = rec.source || rec.citekey || rec.id || '';
+  await loadTarget();
+}
+
+async function maintenanceRebuildArtifacts(){
+  try {
+    const out = await req('/api/maintenance/rebuild_artifacts', {});
+    if (out.health) renderMaintenanceHealth(out.health);
+    setStatusWithChecks(out, 'Maintenance rebuild complete.', {targetId: 'maintenance_status', includeDuplicateGuidance: false, includeOnlineCompare: false});
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'maintenance_status');
+    showErrorWindow(String(err));
+  }
+}
+
+async function maintenanceNormalizeCitekey(index){
+  try {
+    const issue = maintenanceIssues[index];
+    const rec = maintenancePrimaryRecord(issue);
+    if (!rec) throw new Error('No record is attached to this issue.');
+    const ok = confirm(`Normalize citekey to source for ${rec.id}?\\n\\n${rec.citekey} -> ${rec.source}`);
+    if (!ok) return;
+    const editor = await ensureEditorName('normalize this citekey');
+    const out = await req('/api/maintenance/normalize_citekey', {target: rec.id || rec.source || rec.citekey, editor_name: editor});
+    if (out.health) renderMaintenanceHealth(out.health);
+    setStatusWithChecks(out, 'Maintenance normalization complete.', {targetId: 'maintenance_status', includeDuplicateGuidance: false, includeOnlineCompare: false});
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'maintenance_status');
+    showErrorWindow(String(err));
+  }
+}
+
+async function maintenanceMarkSharedCitekey(index){
+  try {
+    const issue = maintenanceIssues[index];
+    if (!issue || issue.type !== 'duplicate_citekey') throw new Error('Select a duplicate citekey issue.');
+    const citekey = issue.citekey || '';
+    const defaultGroup = citekey ? `shared-${citekey}` : 'shared-citekey';
+    const group = (prompt('Shared citekey group:', defaultGroup) || '').trim();
+    if (!group) throw new Error('Shared citekey group is required.');
+    const note = (prompt('Shared citekey note:', 'Intentional shared bibliography item') || '').trim();
+    const editor = await ensureEditorName('mark this shared citekey');
+    const recordIds = (issue.records || []).map((rec) => rec.id).filter(Boolean);
+    const out = await req('/api/maintenance/mark_shared_citekey', {
+      citekey,
+      record_ids: recordIds,
+      shared_citekey_group: group,
+      shared_citekey_note: note,
+      editor_name: editor
+    });
+    if (out.health) renderMaintenanceHealth(out.health);
+    setStatusWithChecks(out, 'Shared citekey marked.', {targetId: 'maintenance_status', includeDuplicateGuidance: false, includeOnlineCompare: false});
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'maintenance_status');
+    showErrorWindow(String(err));
+  }
 }
 
 async function parseBib(){
@@ -3896,13 +4335,20 @@ async function loadTarget(){
       throw new Error('Could not reach local server while loading the target entry.');
     }
     const j = await r.json();
-    if(!r.ok) throw new Error(j.error || `Load failed (HTTP ${r.status}).`);
+    if(!r.ok) {
+      const matchLines = (j.matches || []).map((m) => `${m.id}: source=${m.source}, citekey=${m.citekey}, legend=${m.legend}, year=${m.year}`);
+      throw new Error((j.error || `Load failed (HTTP ${r.status}).`) + (matchLines.length ? `\\n\\nMatches:\\n- ${matchLines.join('\\n- ')}` : ''));
+    }
     const rec = j.record || {};
     document.getElementById('section').value = rec.section || '';
     document.getElementById('aggsource').value = rec.aggsource || '';
     document.getElementById('legend').value = rec.legend || '';
     document.getElementById('source_key').value = rec.source || rec.citekey || '';
+    document.getElementById('source_value').value = rec.source || '';
+    document.getElementById('citekey_value').value = rec.citekey || rec.source || '';
     loadedSourceKey = rec.source || rec.citekey || '';
+    loadedSourceValue = rec.source || '';
+    loadedCitekeyValue = rec.citekey || rec.source || '';
     document.getElementById('data_type').value = rec.data_type || '';
     document.getElementById('link').value = rec.link || '';
     document.getElementById('ref_link').value = rec.ref_link || '';
@@ -3910,6 +4356,8 @@ async function loadTarget(){
     document.getElementById('multigeo_reference').value = rec.multigeo_reference || '';
     document.getElementById('metadata').value = rec.metadata || '';
     document.getElementById('metadatalink').value = rec.metadatalink || '';
+    document.getElementById('shared_citekey_group').value = rec.shared_citekey_group || '';
+    document.getElementById('shared_citekey_note').value = rec.shared_citekey_note || '';
     const b = rec.bib || {};
     document.getElementById('bib_entry_type').value = b.entry_type || '';
     document.getElementById('bib_title').value = b.title || '';
@@ -3947,7 +4395,11 @@ async function validateOnly(){
     }
   }
   catch(err){
-    setStatus({ok:false, error:String(err)});
+    if (err && err.error_code === 'stale_artifacts') {
+      setStatusWithChecks(err, 'Validation failed.');
+    } else {
+      setStatus({ok:false, error:String(err)});
+    }
     showErrorWindow(String(err));
   }
 }
@@ -3960,6 +4412,8 @@ function resetDataAddFormAfterSave(){
     'aggsource',
     'legend',
     'source_key',
+    'source_value',
+    'citekey_value',
     'link',
     'data_type',
     'ref_link',
@@ -3967,6 +4421,8 @@ function resetDataAddFormAfterSave(){
     'multigeo_reference',
     'metadatalink',
     'metadata',
+    'shared_citekey_group',
+    'shared_citekey_note',
     'bib_entry_type',
     'bib_title',
     'bib_author',
@@ -3991,6 +4447,8 @@ function resetDataAddFormAfterSave(){
     if (el) el.value = '';
   });
   loadedSourceKey = '';
+  loadedSourceValue = '';
+  loadedCitekeyValue = '';
   delete document.getElementById('legend').dataset.userEdited;
   onEntryTypeChange();
   clearDirty();
@@ -4003,12 +4461,16 @@ async function applyAndBuild(){
     const payload = getPayload();
     const emptyAddPayload = isEmptyAddPayload(payload);
     if (payload.mode === 'edit') {
-      const before = (loadedSourceKey || '').trim();
-      const after = (v('source_key') || '').trim();
-      if (before && after && before !== after) {
+      const beforeSource = (loadedSourceValue || '').trim();
+      const beforeCitekey = (loadedCitekeyValue || '').trim();
+      const afterSource = (v('source_value') || '').trim();
+      const afterCitekey = (v('citekey_value') || '').trim();
+      if ((beforeSource && afterSource && beforeSource !== afterSource) || (beforeCitekey && afterCitekey && beforeCitekey !== afterCitekey)) {
         const ok = confirm(
-          `You are renaming Source/Citekey from '${before}' to '${after}'.\\n\\n` +
-          `This is a compatibility change and will add an alias mapping. Continue?`
+          `You are changing Source/Citekey identifiers.\\n\\n` +
+          `Source: '${beforeSource}' -> '${afterSource}'\\n` +
+          `Citekey: '${beforeCitekey}' -> '${afterCitekey}'\\n\\n` +
+          `This is a compatibility change and will add alias mapping for changed keys. Continue?`
         );
         if (!ok) {
           throw new Error('Save cancelled. Key rename was not confirmed.');
@@ -4031,11 +4493,20 @@ async function applyAndBuild(){
     if (payload.mode === 'add' && !emptyAddPayload) {
       resetDataAddFormAfterSave();
     } else {
+      if (payload.mode === 'edit') {
+        loadedSourceValue = v('source_value');
+        loadedCitekeyValue = v('citekey_value');
+        loadedSourceKey = loadedSourceValue || loadedCitekeyValue;
+      }
       clearDirty();
     }
   }
   catch(err){
-    setStatus({ok:false, error:String(err)});
+    if (err && err.error_code === 'stale_artifacts') {
+      setStatusWithChecks(err, 'Save failed.');
+    } else {
+      setStatus({ok:false, error:String(err)});
+    }
     showErrorWindow(String(err));
   }
 }
@@ -5088,6 +5559,11 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, **build_history_feed(self.app, reg)})
             return
 
+        if parsed.path == "/api/maintenance/health":
+            reg = self.app.registry
+            self._send_json(build_maintenance_health(reg, self.app.registry_path))
+            return
+
         if parsed.path == "/api/ref_link_review_scan_status":
             qs = parse_qs(parsed.query)
             scan_id = normalize_whitespace((qs.get("scan_id") or [""])[0])
@@ -5119,7 +5595,13 @@ class Handler(BaseHTTPRequestHandler):
             target = (qs.get("target") or [""])[0]
             hits = find_target(reg.get("records", []), target)
             if len(hits) != 1:
-                self._send_json({"error": f"target must match exactly one record; got {len(hits)}"}, 400)
+                self._send_json(
+                    {
+                        "error": f"target must match exactly one record; got {len(hits)}",
+                        "matches": [record_summary(rec) for rec in hits],
+                    },
+                    400,
+                )
                 return
             self._send_json({"record": hits[0]})
             return
@@ -5149,6 +5631,134 @@ class Handler(BaseHTTPRequestHandler):
                 data = self._read_json()
                 out = parse_bib_paste(data.get("text", ""))
                 self._send_json(out)
+                return
+
+            if self.path == "/api/maintenance/rebuild_artifacts":
+                reg = self.app.registry
+                tracked_paths = self.app.artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                _run_build_sources_artifacts(self.app.registry_path)
+                after = file_mtimes(tracked_paths)
+                changed_files = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        "operation": "maintenance_rebuild_artifacts",
+                        "modified_files": changed_files,
+                        "file_change_summary": build_file_change_summary(changed_files, "build_only", "", [], False),
+                        "health": build_maintenance_health(self.app.registry, self.app.registry_path),
+                        "message": "Generated artifacts rebuilt.",
+                    }
+                )
+                return
+
+            if self.path == "/api/maintenance/mark_shared_citekey":
+                data = self._read_json()
+                reg = self.app.registry
+                records = reg.get("records", [])
+                citekey = normalize_whitespace(data.get("citekey", ""))
+                record_ids = [normalize_whitespace(str(value)) for value in data.get("record_ids", []) if normalize_whitespace(str(value))]
+                group = normalize_whitespace(data.get("shared_citekey_group", ""))
+                note = normalize_whitespace(data.get("shared_citekey_note", ""))
+                editor = normalize_whitespace(data.get("editor_name", ""))
+                if not citekey:
+                    raise ValueError("citekey is required")
+                if not group:
+                    raise ValueError("shared_citekey_group is required")
+                if not editor:
+                    raise ValueError("editor_name is required")
+
+                selected = [
+                    rec
+                    for rec in records
+                    if normalize_whitespace(str(rec.get("citekey", ""))) == citekey
+                    and (not record_ids or normalize_whitespace(str(rec.get("id", ""))) in record_ids)
+                ]
+                if len(selected) < 2:
+                    raise ValueError("At least two matching records are required to mark a shared citekey")
+
+                tracked_paths = self.app.artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                timestamp = now_utc()
+                changed_ids = []
+                for rec in selected:
+                    rec["shared_citekey_group"] = group
+                    rec["shared_citekey_note"] = note
+                    rec["updated_at"] = timestamp
+                    rec["updated_by"] = editor
+                    changed_ids.append(normalize_whitespace(str(rec.get("id", ""))))
+                    append_change(self.app.changelog_path, "edit", rec.get("id", ""), "Marked shared citekey via maintenance", editor)
+                self.app.save(reg)
+                _run_build_sources_artifacts(self.app.registry_path)
+                after = file_mtimes(tracked_paths)
+                changed_files = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        "operation": "maintenance_mark_shared_citekey",
+                        "citekey": citekey,
+                        "record_ids": changed_ids,
+                        "modified_files": changed_files,
+                        "file_change_summary": build_file_change_summary(changed_files, "edit", citekey, ["shared_citekey_group", "shared_citekey_note"], False),
+                        "health": build_maintenance_health(reg, self.app.registry_path),
+                        "message": f"Marked {len(changed_ids)} record(s) as intentionally sharing {citekey}.",
+                    }
+                )
+                return
+
+            if self.path == "/api/maintenance/normalize_citekey":
+                data = self._read_json()
+                reg = self.app.registry
+                records = reg.get("records", [])
+                target = normalize_whitespace(data.get("target", ""))
+                editor = normalize_whitespace(data.get("editor_name", ""))
+                if not target:
+                    raise ValueError("target is required")
+                if not editor:
+                    raise ValueError("editor_name is required")
+                hits = find_target(records, target)
+                if len(hits) != 1:
+                    self._send_json(
+                        {
+                            "ok": False,
+                            "error": f"target must match exactly one record; got {len(hits)}",
+                            "matches": [record_summary(rec) for rec in hits],
+                        },
+                        400,
+                    )
+                    return
+                rec = hits[0]
+                before_rec = json.loads(json.dumps(rec))
+                source = normalize_whitespace(str(rec.get("source", "")))
+                old_citekey = normalize_whitespace(str(rec.get("citekey", "")))
+                if not source:
+                    raise ValueError("target record has no source")
+                tracked_paths = self.app.artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                reason = "Normalized citekey to source via maintenance"
+                if old_citekey != source:
+                    rec["citekey"] = source
+                    rec["updated_at"] = now_utc()
+                    rec["updated_by"] = editor
+                    append_alias(self.app.aliases_path, "citekey", old_citekey, source, reason)
+                    append_change(self.app.changelog_path, "edit", rec.get("id", ""), reason, editor)
+                    self.app.save(reg)
+                    _run_build_sources_artifacts(self.app.registry_path)
+                after = file_mtimes(tracked_paths)
+                changed_files = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        "operation": "maintenance_normalize_citekey",
+                        "record_id": rec.get("id", ""),
+                        "changed_fields": summarize_record_diff(before_rec, rec),
+                        "key_renamed": old_citekey != source,
+                        "modified_files": changed_files,
+                        "file_change_summary": build_file_change_summary(changed_files, "edit", rec.get("id", ""), summarize_record_diff(before_rec, rec), old_citekey != source),
+                        "health": build_maintenance_health(reg, self.app.registry_path),
+                        "message": "Citekey normalized to source." if old_citekey != source else "Citekey already matched source.",
+                    }
+                )
                 return
 
             if self.path == "/api/wealth/validate_entry":
@@ -5528,6 +6138,7 @@ class Handler(BaseHTTPRequestHandler):
                             "ok": False,
                             "errors": [f"Edit target must match exactly one record; got {len(hits)}"],
                             "warnings": [],
+                            "matches": [record_summary(rec) for rec in hits],
                             "checks": [{"name": "Edit target resolution", "passed": False, "detail": f"Matches found: {len(hits)}"}],
                         })
                         return
