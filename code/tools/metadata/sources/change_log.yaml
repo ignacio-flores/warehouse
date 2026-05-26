@@ -1055,6 +1055,206 @@
       "actor": "Matteo",
       "issue_number": "local-ui",
       "updated_at": "2026-05-06T09:07:37Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-fed-dwa-ineq",
+      "reason": "Added via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T14:34:59Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-fed-dwa-ineq",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T14:37:49Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-fed-dwa-ineq",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-06T14:38:04Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-me-csfi1982",
+      "reason": "Edited via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-07T08:53:03Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ey2025b",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-11T13:19:01Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ey2026a",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-11T13:55:58Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lithuania-taxlaw1995",
+      "reason": "Added via local UI",
+      "actor": "Luca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T08:57:37Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lithuania-taxlaw1997",
+      "reason": "Added via local UI",
+      "actor": "Luca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T08:58:53Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lithuania-taxlaw2002",
+      "reason": "Added via local UI",
+      "actor": "Luca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T08:59:44Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-tidv2",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T10:35:40Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-tiddata",
+      "reason": "Deleted via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T10:52:52Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-tidseelkopf2021",
+      "reason": "Deleted via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T10:53:27Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-tidv2",
+      "reason": "Deleted via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-12T10:56:31Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-ibfd",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-14T09:04:58Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lex-do1950",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-22T09:35:36Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lex-do2004",
+      "reason": "Added via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-22T09:36:44Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lex-ve1999",
+      "reason": "Added via local UI",
+      "actor": "Luca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-22T12:39:40Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-lex-bo1995",
+      "reason": "Added via local UI",
+      "actor": "Luca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-22T12:40:47Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-ey2025b",
+      "reason": "Edited via local UI",
+      "actor": "Francesca",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-25T13:59:09Z"
+    },
+    {
+      "operation": "add",
+      "record_id": "src-gabbuti2025",
+      "reason": "Added via local UI",
+      "actor": "Demetrio",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-25T17:30:41Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-drg2025",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T13:11:50Z"
+    },
+    {
+      "operation": "edit",
+      "record_id": "src-drg2025",
+      "reason": "Edited via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T13:27:53Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-dhs-topo",
+      "reason": "Deleted via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T13:31:23Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-waemu-topo",
+      "reason": "Deleted via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T13:32:39Z"
+    },
+    {
+      "operation": "delete",
+      "record_id": "src-lsms-topo",
+      "reason": "Deleted via local UI",
+      "actor": "Matteo",
+      "issue_number": "local-ui",
+      "updated_at": "2026-05-26T13:33:20Z"
     }
   ]
 }

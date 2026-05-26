@@ -9,7 +9,6 @@ Then open http://127.0.0.1:8765
 import argparse
 import hashlib
 import json
-import os
 import re
 import shlex
 import shutil
@@ -76,40 +75,8 @@ DUPLICATE_ERROR_PREFIXES = ("Exact duplicate", "Dictionary duplicate", "Bib dupl
 ARTIFACT_DUPLICATE_ERROR_PREFIXES = ("Dictionary duplicate", "Bib duplicate")
 
 
-def browser_host(bind_host: str) -> str:
-    host = (bind_host or "").strip()
-    if host in {"", "0.0.0.0", "::", "[::]"}:
-        return "127.0.0.1"
-    return host
-
-
 def source_manager_url(host: str, port: int) -> str:
-    return f"http://{browser_host(host)}:{port}"
-
-
-def source_manager_status(status: str, **updates) -> dict:
-    payload = {
-        "app": "ADAM SSM - Sleepless Source Manager",
-        "status": status,
-        "updated_at": now_utc(),
-        "pid": os.getpid(),
-    }
-    payload.update({key: value for key, value in updates.items() if value is not None})
-    return payload
-
-
-def write_json_file(path: str, payload: dict):
-    if not path:
-        return
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def write_status_file(path: str, status: str, **updates) -> dict:
-    payload = source_manager_status(status, **updates)
-    write_json_file(path, payload)
-    return payload
+    return f"http://{host}:{port}"
 
 
 def port_candidates(requested_port: int, max_port: int = PORT_FALLBACK_MAX) -> List[int]:
@@ -4616,10 +4583,6 @@ class App:
         self.aliases_path = aliases
         self.changelog_path = changelog
         self.last_ping = time.time()
-        self.started_at = now_utc()
-        self.bind_host = ""
-        self.browser_url = ""
-        self.selected_port = 0
         self.idle_timeout_seconds = 60 * 60
         self.stop_reason = "server stopped"
         self.ref_link_review_scans: Dict[str, dict] = {}
@@ -5118,22 +5081,6 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/ping":
             self.app.last_ping = time.time()
             self._send_json({"ok": True})
-            return
-
-        if parsed.path == "/api/health":
-            self._send_json(
-                {
-                    "ok": True,
-                    "status": "ready",
-                    "app": "ADAM SSM - Sleepless Source Manager",
-                    "url": self.app.browser_url,
-                    "bind_host": self.app.bind_host,
-                    "port": self.app.selected_port,
-                    "pid": os.getpid(),
-                    "started_at": self.app.started_at,
-                    "idle_timeout_seconds": self.app.idle_timeout_seconds,
-                }
-            )
             return
 
         if parsed.path == "/api/history":
@@ -5893,54 +5840,20 @@ def main() -> int:
     parser.add_argument("--aliases", default=DEFAULT_ALIASES_PATH)
     parser.add_argument("--change-log", default=DEFAULT_CHANGE_LOG_PATH)
     parser.add_argument("--open-browser", action="store_true", help="Open the browser after the server binds.")
-    parser.add_argument("--ready-file", default="", help="Write selected URL and bind details after startup.")
-    parser.add_argument("--status-file", default="", help="Write structured startup status transitions.")
     args = parser.parse_args()
 
     app = App(Path(args.registry), Path(args.aliases), Path(args.change_log))
     Handler.app = app
-    write_status_file(
-        args.status_file,
-        "starting",
-        bind_host=args.host,
-        requested_port=args.port,
-        python=sys.executable,
-        python_version=sys.version.split()[0],
-    )
 
     try:
         httpd, selected_port = create_server_with_port_fallback(args.host, args.port, Handler)
     except OSError as exc:
-        write_status_file(
-            args.status_file,
-            "failed",
-            bind_host=args.host,
-            requested_port=args.port,
-            error=str(exc),
-            message=f"No ports were available for {port_attempt_summary(args.port)}.",
-        )
         print(f"ADAM SSM - Sleepless Source Manager could not start: {exc}", flush=True)
         print(f"No ports were available for {port_attempt_summary(args.port)}.", flush=True)
         print("Close another local server or run again with SOURCE_MANAGER_PORT or --port set to another port.", flush=True)
         return 1
 
     url = source_manager_url(args.host, selected_port)
-    app.bind_host = args.host
-    app.browser_url = url
-    app.selected_port = selected_port
-    ready_payload = source_manager_status(
-        "ready",
-        bind_host=args.host,
-        host=browser_host(args.host),
-        requested_port=args.port,
-        selected_port=selected_port,
-        port=selected_port,
-        url=url,
-        python=sys.executable,
-        python_version=sys.version.split()[0],
-    )
-    write_json_file(args.ready_file, ready_payload)
-    write_status_file(args.status_file, "ready", **{key: value for key, value in ready_payload.items() if key != "status"})
 
     def idle_guard():
         while True:
@@ -5962,7 +5875,6 @@ def main() -> int:
     print(f"Requested port: {args.port}", flush=True)
     print(f"Selected port: {selected_port}", flush=True)
     print(f"URL: {url}", flush=True)
-    print(f"SOURCE_MANAGER_READY {json.dumps(ready_payload, sort_keys=True)}", flush=True)
     if selected_port != args.port:
         print(f"Port {args.port} was unavailable, so the app is using port {selected_port}.", flush=True)
     print("Close this terminal or use the app's explicit shutdown action to stop the server.", flush=True)
@@ -5978,29 +5890,10 @@ def main() -> int:
         app.stop_reason = "keyboard interrupt"
     except Exception as exc:
         app.stop_reason = f"server error: {exc}"
-        write_status_file(
-            args.status_file,
-            "failed",
-            bind_host=args.host,
-            requested_port=args.port,
-            selected_port=selected_port,
-            url=url,
-            error=str(exc),
-            stop_reason=app.stop_reason,
-        )
         raise
     finally:
         if hasattr(httpd, "server_close"):
             httpd.server_close()
-        write_status_file(
-            args.status_file,
-            "stopped",
-            bind_host=args.host,
-            requested_port=args.port,
-            selected_port=selected_port,
-            url=url,
-            stop_reason=app.stop_reason,
-        )
         print(f"Final stop reason: {app.stop_reason}", flush=True)
     return 0
 

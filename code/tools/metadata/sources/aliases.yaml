@@ -118,6 +118,34 @@
       "new": "Shultz1926",
       "reason": "Edited via local UI",
       "updated_at": "2026-04-28T08:15:30Z"
+    },
+    {
+      "type": "source",
+      "old": "EY2025b",
+      "new": "EY2026b",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-05-25T13:59:09Z"
+    },
+    {
+      "type": "citekey",
+      "old": "EY2025b",
+      "new": "EY2026b",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-05-25T13:59:09Z"
+    },
+    {
+      "type": "source",
+      "old": "drg2025",
+      "new": "Findex_ineq",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-05-26T13:11:50Z"
+    },
+    {
+      "type": "citekey",
+      "old": "drg2025",
+      "new": "Findex_ineq",
+      "reason": "Edited via local UI",
+      "updated_at": "2026-05-26T13:11:50Z"
     }
   ]
 }

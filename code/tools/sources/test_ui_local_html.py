@@ -89,12 +89,6 @@ class UiLocalHtmlTests(unittest.TestCase):
         self.assertEqual(self.mod.port_candidates(8770, 8772), [8770, 8771, 8772])
         self.assertEqual(self.mod.port_candidates(8790, 8785), [8790])
 
-    def test_source_manager_url_normalizes_browser_host(self):
-        self.assertEqual(self.mod.source_manager_url("127.0.0.1", 8765), "http://127.0.0.1:8765")
-        self.assertEqual(self.mod.source_manager_url("localhost", 8765), "http://localhost:8765")
-        self.assertEqual(self.mod.source_manager_url("0.0.0.0", 8765), "http://127.0.0.1:8765")
-        self.assertEqual(self.mod.source_manager_url("::", 8765), "http://127.0.0.1:8765")
-
     def test_create_server_with_port_fallback_uses_requested_port_when_free(self):
         fake_server = object()
         with mock.patch.object(self.mod, "ThreadingHTTPServer", return_value=fake_server) as server_factory:
@@ -127,73 +121,6 @@ class UiLocalHtmlTests(unittest.TestCase):
         with mock.patch.object(self.mod, "ThreadingHTTPServer", side_effect=OSError("busy")):
             with self.assertRaisesRegex(OSError, "8765 through 8766"):
                 self.mod.create_server_with_port_fallback("127.0.0.1", 8765, object, 8766)
-
-    def test_ready_and_status_files_are_written_after_bind(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = pathlib.Path(tmpdir)
-            ready_file = root / "ready.json"
-            status_file = root / "status.json"
-            observed_statuses = []
-
-            class FakeServer:
-                def serve_forever(self):
-                    observed_statuses.append(json.loads(status_file.read_text(encoding="utf-8"))["status"])
-
-                def server_close(self):
-                    pass
-
-            def fake_create_server(host, port, handler_cls):
-                return FakeServer(), 8766
-
-            argv = [
-                "ui_local.py",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8765",
-                "--ready-file",
-                str(ready_file),
-                "--status-file",
-                str(status_file),
-            ]
-            with mock.patch.object(self.mod.sys, "argv", argv), \
-                 mock.patch.object(self.mod, "create_server_with_port_fallback", side_effect=fake_create_server):
-                self.assertEqual(self.mod.main(), 0)
-
-            ready = json.loads(ready_file.read_text(encoding="utf-8"))
-            stopped = json.loads(status_file.read_text(encoding="utf-8"))
-        self.assertEqual(ready["status"], "ready")
-        self.assertEqual(ready["url"], "http://127.0.0.1:8766")
-        self.assertEqual(ready["selected_port"], 8766)
-        self.assertEqual(observed_statuses, ["ready"])
-        self.assertEqual(stopped["status"], "stopped")
-        self.assertEqual(stopped["stop_reason"], "server stopped")
-
-    def test_bind_failure_writes_failed_status(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            status_file = pathlib.Path(tmpdir) / "status.json"
-            argv = [
-                "ui_local.py",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "8765",
-                "--status-file",
-                str(status_file),
-            ]
-            with mock.patch.object(self.mod.sys, "argv", argv), \
-                 mock.patch.object(self.mod, "create_server_with_port_fallback", side_effect=OSError("busy")):
-                self.assertEqual(self.mod.main(), 1)
-            status = json.loads(status_file.read_text(encoding="utf-8"))
-        self.assertEqual(status["status"], "failed")
-        self.assertIn("busy", status["error"])
-
-    def test_api_health_contract_exists(self):
-        source = pathlib.Path("code/tools/sources/ui_local.py").read_text(encoding="utf-8")
-        self.assertIn('parsed.path == "/api/health"', source)
-        self.assertIn('"status": "ready"', source)
-        self.assertIn('"idle_timeout_seconds": self.app.idle_timeout_seconds', source)
-        self.assertIn('"url": self.app.browser_url', source)
 
     def test_open_browser_main_path_waits_until_after_bind(self):
         events = []
