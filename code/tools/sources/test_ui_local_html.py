@@ -480,9 +480,19 @@ class UiLocalHtmlTests(unittest.TestCase):
             "/api/maintenance/rebuild_artifacts",
             "/api/maintenance/normalize_citekey",
             "/api/maintenance/mark_shared_citekey",
+            "/api/maintenance/bulk_label_preview",
+            "/api/maintenance/bulk_label_apply",
             "maintenanceLoad()",
             "maintenanceNormalizeCitekey",
             "maintenanceMarkSharedCitekey",
+            "Bulk Label Update",
+            "bulk_label_field",
+            "bulk_label_old",
+            "bulk_label_new",
+            "bulk_label_preview_results",
+            "maintenanceBulkLabelPreview",
+            "maintenanceBulkLabelApply",
+            "maintenanceBulkLabelSelectAll",
         ]:
             self.assertIn(marker, self.html)
 
@@ -520,6 +530,17 @@ class UiLocalHtmlTests(unittest.TestCase):
             summaries["handmade_tables/dictionary.xlsx"],
             "Regenerated Sources sheet from canonical registry.",
         )
+
+    def test_build_file_change_summary_reports_bulk_label_update(self):
+        summary = self.mod.build_file_change_summary(
+            [f"/tmp/{DEFAULT_REGISTRY_PATH}", f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"],
+            "bulk_label_update",
+            "data_type:Old->New",
+            ["data_type"],
+        )
+        summaries = {entry["file"]: entry["summary"] for entry in summary}
+        self.assertIn("Bulk-updated data_type:Old->New.", summaries[f"/tmp/{DEFAULT_REGISTRY_PATH}"])
+        self.assertIn("Added bulk_label_update history record", summaries[f"/tmp/{DEFAULT_CHANGE_LOG_PATH}"])
 
     def test_build_file_change_summary_matches_new_wealth_log_path(self):
         summary = self.mod.build_file_change_summary(

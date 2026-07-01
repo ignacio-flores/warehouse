@@ -76,6 +76,15 @@ WEALTH_ENTRY_TYPES = [
 WEALTH_BIB_FIELDS = list(BIB_FIELD_ORDER)
 DUPLICATE_ERROR_PREFIXES = ("Exact duplicate", "Dictionary duplicate", "Bib duplicate")
 ARTIFACT_DUPLICATE_ERROR_PREFIXES = ("Dictionary duplicate", "Bib duplicate")
+BULK_LABEL_FIELDS = [
+    {"field": "section", "label": "Section"},
+    {"field": "aggsource", "label": "Aggsource"},
+    {"field": "data_type", "label": "Data type"},
+    {"field": "inclusion_in_warehouse", "label": "Inclusion in warehouse"},
+    {"field": "multigeo_reference", "label": "Multigeo reference"},
+]
+BULK_LABEL_FIELD_LABELS = {item["field"]: item["label"] for item in BULK_LABEL_FIELDS}
+BULK_SECTION_KEYWORD_PREFIX = "Data Sources: "
 
 
 def source_manager_url(host: str, port: int) -> str:
@@ -445,7 +454,195 @@ def append_alias(aliases_path: Path, alias_type: str, old: str, new: str, reason
     aliases_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def suggested_options(records: List[dict]) -> Dict[str, List[str]]:
+def _bulk_label_field(field: str) -> str:
+    value = normalize_whitespace(str(field))
+    if value not in BULK_LABEL_FIELD_LABELS:
+        allowed = ", ".join(item["field"] for item in BULK_LABEL_FIELDS)
+        raise ValueError(f"field must be one of: {allowed}")
+    return value
+
+
+def _bulk_label_values(records: List[dict]) -> Dict[str, List[dict]]:
+    out: Dict[str, List[dict]] = {}
+    for field in BULK_LABEL_FIELD_LABELS:
+        counts: Dict[str, int] = {}
+        for rec in records:
+            value = normalize_whitespace(str(rec.get(field, "")))
+            if value:
+                counts[value] = counts.get(value, 0) + 1
+        out[field] = [
+            {"value": value, "count": count}
+            for value, count in sorted(counts.items(), key=lambda item: item[0].lower())
+        ]
+    return out
+
+
+def _bulk_section_keyword(label: str) -> str:
+    return f"{BULK_SECTION_KEYWORD_PREFIX}{label}"
+
+
+def _bulk_label_keyword_preview(rec: dict, field: str, old_label: str, new_label: str) -> dict:
+    if field != "section":
+        return {
+            "keyword_mirror_update": False,
+            "keywords_before": "",
+            "keywords_after": "",
+        }
+    bib = rec.get("bib", {}) or {}
+    keywords = normalize_whitespace(str(bib.get("keywords", "")))
+    old_keywords = _bulk_section_keyword(old_label)
+    if keywords != old_keywords:
+        return {
+            "keyword_mirror_update": False,
+            "keywords_before": keywords,
+            "keywords_after": keywords,
+        }
+    return {
+        "keyword_mirror_update": True,
+        "keywords_before": keywords,
+        "keywords_after": _bulk_section_keyword(new_label),
+    }
+
+
+def _bulk_label_preview_row(rec: dict, field: str, old_label: str, new_label: str) -> dict:
+    summary = record_summary(rec)
+    keyword_preview = _bulk_label_keyword_preview(rec, field, old_label, new_label)
+    return {
+        **summary,
+        "label_before": old_label,
+        "label_after": new_label,
+        **keyword_preview,
+    }
+
+
+def bulk_label_preview(registry: dict, field: str, old_label: str, new_label: str) -> dict:
+    label_field = _bulk_label_field(field)
+    old_value = normalize_whitespace(str(old_label))
+    new_value = normalize_whitespace(str(new_label))
+    if not old_value:
+        raise ValueError("old_label is required")
+    if not new_value:
+        raise ValueError("new_label is required")
+    if old_value == new_value:
+        raise ValueError("new_label must be different from old_label")
+
+    records = registry.get("records", [])
+    rows = [
+        _bulk_label_preview_row(rec, label_field, old_value, new_value)
+        for rec in records
+        if normalize_whitespace(str(rec.get(label_field, ""))) == old_value
+    ]
+    keyword_updates = sum(1 for row in rows if row.get("keyword_mirror_update"))
+    return {
+        "ok": True,
+        "operation": "bulk_label_preview",
+        "field": label_field,
+        "field_label": BULK_LABEL_FIELD_LABELS[label_field],
+        "old_label": old_value,
+        "new_label": new_value,
+        "total_matches": len(rows),
+        "keyword_mirror_updates": keyword_updates,
+        "records": rows,
+        "message": f"Preview found {len(rows)} matching record(s).",
+    }
+
+
+def _selected_bulk_label_records(records: List[dict], field: str, old_label: str, record_ids: List[str]) -> List[dict]:
+    requested_ids = []
+    seen = set()
+    for value in record_ids:
+        record_id = normalize_whitespace(str(value))
+        if record_id and record_id not in seen:
+            requested_ids.append(record_id)
+            seen.add(record_id)
+    if not requested_ids:
+        raise ValueError("record_ids is required")
+
+    by_id = {normalize_whitespace(str(rec.get("id", ""))): rec for rec in records if normalize_whitespace(str(rec.get("id", "")))}
+    stale_ids = []
+    selected = []
+    for record_id in requested_ids:
+        rec = by_id.get(record_id)
+        if not rec or normalize_whitespace(str(rec.get(field, ""))) != old_label:
+            stale_ids.append(record_id)
+            continue
+        selected.append(rec)
+    if stale_ids:
+        raise ValueError(
+            "Bulk label selection is stale for record(s): "
+            + ", ".join(stale_ids)
+            + ". Refresh the preview and try again."
+        )
+    return selected
+
+
+def apply_bulk_label_update(registry: dict, payload: dict, changelog_path: Path) -> dict:
+    field = _bulk_label_field(payload.get("field", ""))
+    old_label = normalize_whitespace(str(payload.get("old_label", "")))
+    new_label = normalize_whitespace(str(payload.get("new_label", "")))
+    editor = normalize_whitespace(str(payload.get("editor_name", "")))
+    if not old_label:
+        raise ValueError("old_label is required")
+    if not new_label:
+        raise ValueError("new_label is required")
+    if old_label == new_label:
+        raise ValueError("new_label must be different from old_label")
+    if not editor:
+        raise ValueError("editor_name is required")
+
+    records = registry.get("records", [])
+    selected = _selected_bulk_label_records(records, field, old_label, payload.get("record_ids", []) or [])
+    timestamp = now_utc()
+    keyword_updates = 0
+    changed_ids = []
+    for rec in selected:
+        rec[field] = new_label
+        if field == "section":
+            bib = rec.get("bib")
+            if not isinstance(bib, dict):
+                bib = {}
+                rec["bib"] = bib
+            if normalize_whitespace(str(bib.get("keywords", ""))) == _bulk_section_keyword(old_label):
+                bib["keywords"] = _bulk_section_keyword(new_label)
+                keyword_updates += 1
+        rec["updated_at"] = timestamp
+        rec["updated_by"] = editor
+        changed_ids.append(normalize_whitespace(str(rec.get("id", ""))))
+
+    changed_fields = [field]
+    if keyword_updates:
+        changed_fields.append("bib.keywords")
+    record_id = f"{field}:{old_label}->{new_label}"
+    reason = (
+        f"Bulk label update via maintenance: {BULK_LABEL_FIELD_LABELS[field]} "
+        f"'{old_label}' -> '{new_label}' ({len(changed_ids)} records)"
+    )
+    append_change(changelog_path, "bulk_label_update", record_id, reason, editor)
+    return {
+        "status": "ok",
+        "operation": "bulk_label_update",
+        "field": field,
+        "field_label": BULK_LABEL_FIELD_LABELS[field],
+        "old_label": old_label,
+        "new_label": new_label,
+        "record_id": record_id,
+        "record_ids": changed_ids,
+        "changed_fields": changed_fields,
+        "keyword_mirror_updates": keyword_updates,
+        "warnings": [],
+        "errors": [],
+        "checks": [
+            {
+                "name": "Bulk label selection",
+                "passed": True,
+                "detail": f"{len(changed_ids)} selected record(s) still matched the old label.",
+            }
+        ],
+        "message": f"Updated {len(changed_ids)} record(s).",
+    }
+
+
+def suggested_options(records: List[dict]) -> Dict[str, object]:
     def uniq(key: str) -> List[str]:
         return sorted({normalize_whitespace(str(r.get(key, ""))) for r in records if normalize_whitespace(str(r.get(key, "")))})
 
@@ -469,6 +666,9 @@ def suggested_options(records: List[dict]) -> Dict[str, List[str]]:
         "aggsource": uniq("aggsource"),
         "data_type": uniq("data_type"),
         "inclusion_in_warehouse": uniq("inclusion_in_warehouse"),
+        "multigeo_reference": uniq("multigeo_reference"),
+        "bulk_label_fields": BULK_LABEL_FIELDS,
+        "bulk_label_values": _bulk_label_values(records),
         "targets": targets,
         "data_search_rows": data_search_rows,
     }
@@ -1131,7 +1331,9 @@ def build_file_change_summary(modified_files: List[str], operation: str, record_
     for fp in modified_files:
         p = str(fp)
         if path_matches(p, DEFAULT_REGISTRY_PATH):
-            if operation == "edit":
+            if operation == "bulk_label_update":
+                text = f"Bulk-updated {record_id}. Fields changed: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
+            elif operation == "edit":
                 text = f"Updated record {record_id}. Fields changed: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
             elif operation == "add":
                 text = f"Added record {record_id}. Fields populated: {', '.join(changed_fields) if changed_fields else '(none detected)'}."
@@ -1196,6 +1398,7 @@ def _history_action_label(operation: str, reason: str) -> str:
         "edit": "Edit",
         "delete": "Delete",
         "build_only": "Build only",
+        "bulk_label_update": "Bulk label update",
     }
     return labels.get(op, op.replace("_", " ").title() or "Change")
 
@@ -1257,7 +1460,7 @@ def _history_file_descriptors(
 
     add_descriptor(registry_path, "canonical", "Primary Data Sources registry.")
     add_descriptor(changelog_path, "history", "Data Sources history log.")
-    if op in {"add", "edit", "delete", "build_only"}:
+    if op in {"add", "edit", "delete", "build_only", "bulk_label_update"}:
         add_descriptor(_dictionary_output_path(cfg), "generated", "Sources sheet rebuilt from canonical registry.")
         add_descriptor(_data_bib_path(cfg), "generated", "Data Sources BibTeX library regenerated.")
         add_descriptor(_both_bib_path(cfg), "generated", "Combined bibliography regenerated from both libraries.")
@@ -2046,6 +2249,40 @@ summary { cursor: pointer; font-family: "Avenir Next Condensed", "Gill Sans", "T
       <div class='search-results' id='maintenance_issues'></div>
     </div>
     <div class='panel'>
+      <h3 class='section-heading'>Bulk Label Update</h3>
+      <div class='grid3'>
+        <div class='row'>
+          <label>Field</label>
+          <select id='bulk_label_field' onchange='bulkLabelOnFieldChange()'>
+            <option value='section'>Section</option>
+            <option value='aggsource'>Aggsource</option>
+            <option value='data_type'>Data type</option>
+            <option value='inclusion_in_warehouse'>Inclusion in warehouse</option>
+            <option value='multigeo_reference'>Multigeo reference</option>
+          </select>
+        </div>
+        <div class='row'>
+          <label>Old label</label>
+          <select id='bulk_label_old' onchange='bulkLabelResetPreview()'></select>
+        </div>
+        <div class='row'>
+          <label>New label</label>
+          <input id='bulk_label_new' list='bulk_label_new_opts' oninput='bulkLabelResetPreview()'>
+        </div>
+      </div>
+      <div class='row'>
+        <div style='display:flex; gap:10px; flex-wrap:wrap;'>
+          <button class='secondary' onclick='maintenanceBulkLabelPreview()'>Preview label update</button>
+          <button class='secondary' onclick='maintenanceBulkLabelSelectAll(true)'>Select all</button>
+          <button class='secondary' onclick='maintenanceBulkLabelSelectAll(false)'>Unselect all</button>
+          <button class='warn' onclick='maintenanceBulkLabelApply()'>Apply selected label update</button>
+        </div>
+      </div>
+      <datalist id='bulk_label_new_opts'></datalist>
+      <div id='bulk_label_summary' class='help'></div>
+      <div class='search-results' id='bulk_label_preview_results'></div>
+    </div>
+    <div class='panel'>
       <h3 class='section-heading'>Maintenance Status</h3>
       <pre id='maintenance_status'></pre>
     </div>
@@ -2403,6 +2640,7 @@ let historySummary = {};
 let historySelectedId = '';
 let historyCleanupReason = '';
 let maintenanceIssues = [];
+let bulkLabelState = {values: {}, preview: null, selectedIds: new Set()};
 let isRelaunching = false;
 const REF_LINK_REVIEW_STORAGE_PREFIX = 'adam-ssm-ref-link-review';
 function defaultRefLinkReviewColumnWidths(){
@@ -4102,6 +4340,8 @@ async function loadOptions(){
     dl.innerHTML = '';
     vals.forEach(val => { const opt = document.createElement('option'); opt.value = val; dl.appendChild(opt); });
   }
+  bulkLabelState.values = j.bulk_label_values || {};
+  renderBulkLabelControls();
   dataEntries = j.data_search_rows || [];
   const nextDefaultBenchmark = String(j.ref_link_review_benchmark_url || '');
   const previousDefaultBenchmark = String(refLinkReviewState.default_benchmark_url || '');
@@ -4152,6 +4392,193 @@ function dataRenderSearchResults(){
       });
     });
   });
+}
+
+function bulkLabelFieldLabel(field){
+  const labels = {
+    section: 'Section',
+    aggsource: 'Aggsource',
+    data_type: 'Data type',
+    inclusion_in_warehouse: 'Inclusion in warehouse',
+    multigeo_reference: 'Multigeo reference'
+  };
+  return labels[field] || field || '';
+}
+
+function bulkLabelValuesForField(field){
+  return (bulkLabelState.values || {})[field] || [];
+}
+
+function renderBulkLabelControls(){
+  const fieldEl = document.getElementById('bulk_label_field');
+  const oldEl = document.getElementById('bulk_label_old');
+  const newOptsEl = document.getElementById('bulk_label_new_opts');
+  if (!fieldEl || !oldEl || !newOptsEl) return;
+  const field = fieldEl.value || 'section';
+  const values = bulkLabelValuesForField(field);
+  const previousOld = oldEl.value || '';
+  oldEl.innerHTML = '<option value="">select label</option>';
+  values.forEach((item) => {
+    const opt = document.createElement('option');
+    opt.value = item.value || '';
+    opt.textContent = `${item.value || ''} (${item.count || 0})`;
+    oldEl.appendChild(opt);
+  });
+  if (previousOld && values.some((item) => item.value === previousOld)) {
+    oldEl.value = previousOld;
+  }
+  newOptsEl.innerHTML = '';
+  values.forEach((item) => {
+    const opt = document.createElement('option');
+    opt.value = item.value || '';
+    newOptsEl.appendChild(opt);
+  });
+  if (!bulkLabelState.preview) {
+    const summaryEl = document.getElementById('bulk_label_summary');
+    if (summaryEl) summaryEl.textContent = '';
+  }
+}
+
+function bulkLabelResetPreview(){
+  bulkLabelState.preview = null;
+  bulkLabelState.selectedIds = new Set();
+  const summaryEl = document.getElementById('bulk_label_summary');
+  const holder = document.getElementById('bulk_label_preview_results');
+  if (summaryEl) summaryEl.textContent = '';
+  if (holder) holder.innerHTML = '';
+}
+
+function bulkLabelOnFieldChange(){
+  bulkLabelResetPreview();
+  renderBulkLabelControls();
+}
+
+function bulkLabelPayload(){
+  return {
+    field: v('bulk_label_field'),
+    old_label: v('bulk_label_old'),
+    new_label: v('bulk_label_new')
+  };
+}
+
+function bulkLabelSelectedCount(){
+  const preview = bulkLabelState.preview || {};
+  const rows = preview.records || [];
+  return rows.filter((row) => bulkLabelState.selectedIds.has(row.id)).length;
+}
+
+function renderBulkLabelSummary(){
+  const summaryEl = document.getElementById('bulk_label_summary');
+  if (!summaryEl) return;
+  const preview = bulkLabelState.preview;
+  if (!preview) {
+    summaryEl.textContent = '';
+    return;
+  }
+  const selectedCount = bulkLabelSelectedCount();
+  const keywordText = preview.keyword_mirror_updates
+    ? ` | Bib keywords mirrored: ${preview.keyword_mirror_updates}`
+    : '';
+  summaryEl.textContent =
+    `${bulkLabelFieldLabel(preview.field)}: '${preview.old_label}' -> '${preview.new_label}' | ` +
+    `Selected: ${selectedCount} of ${preview.total_matches || 0}${keywordText}`;
+}
+
+function renderBulkLabelPreview(){
+  renderBulkLabelSummary();
+  const holder = document.getElementById('bulk_label_preview_results');
+  const preview = bulkLabelState.preview;
+  if (!holder) return;
+  if (!preview) {
+    holder.innerHTML = '';
+    return;
+  }
+  const rows = preview.records || [];
+  if (!rows.length) {
+    holder.innerHTML = '<small>No records match this old label.</small>';
+    return;
+  }
+  holder.innerHTML = `
+    <table>
+      <thead><tr><th>Use</th><th>Source</th><th>Citekey</th><th>Legend</th><th>Keyword mirror</th></tr></thead>
+      <tbody>
+        ${rows.map((row) => {
+          const checked = bulkLabelState.selectedIds.has(row.id) ? 'checked' : '';
+          const keywordText = row.keyword_mirror_update ? `${row.keywords_before || ''} -> ${row.keywords_after || ''}` : '';
+          return `
+            <tr>
+              <td><input type="checkbox" class="bulk-label-record" data-id="${escapeHtml(row.id || '')}" ${checked}></td>
+              <td>${escapeHtml(row.source || '')}</td>
+              <td>${escapeHtml(row.citekey || '')}</td>
+              <td>${escapeHtml(row.legend || '')}</td>
+              <td>${escapeHtml(keywordText)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+  holder.querySelectorAll('input.bulk-label-record').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      const recordId = checkbox.getAttribute('data-id') || '';
+      if (checkbox.checked) bulkLabelState.selectedIds.add(recordId);
+      else bulkLabelState.selectedIds.delete(recordId);
+      renderBulkLabelSummary();
+    });
+  });
+}
+
+async function maintenanceBulkLabelPreview(){
+  try {
+    const out = await req('/api/maintenance/bulk_label_preview', bulkLabelPayload());
+    bulkLabelState.preview = out;
+    bulkLabelState.selectedIds = new Set((out.records || []).map((row) => row.id).filter(Boolean));
+    renderBulkLabelPreview();
+    setStatusWithChecks(out, 'Bulk label preview complete.', {targetId: 'maintenance_status', includeDuplicateGuidance: false, includeOnlineCompare: false});
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'maintenance_status');
+    showErrorWindow(String(err));
+  }
+}
+
+function maintenanceBulkLabelSelectAll(selected){
+  const preview = bulkLabelState.preview;
+  if (!preview) return;
+  const ids = (preview.records || []).map((row) => row.id).filter(Boolean);
+  bulkLabelState.selectedIds = selected ? new Set(ids) : new Set();
+  renderBulkLabelPreview();
+}
+
+async function maintenanceBulkLabelApply(){
+  try {
+    const preview = bulkLabelState.preview;
+    if (!preview) throw new Error('Preview the label update before applying it.');
+    const recordIds = (preview.records || [])
+      .map((row) => row.id)
+      .filter((recordId) => bulkLabelState.selectedIds.has(recordId));
+    if (!recordIds.length) throw new Error('Select at least one record to update.');
+    const ok = confirm(
+      `Apply bulk label update?\\n\\n` +
+      `${bulkLabelFieldLabel(preview.field)}: '${preview.old_label}' -> '${preview.new_label}'\\n` +
+      `Records: ${recordIds.length} of ${preview.total_matches || 0}`
+    );
+    if (!ok) return;
+    const editor = await ensureEditorName('apply this bulk label update');
+    const out = await req('/api/maintenance/bulk_label_apply', {
+      field: preview.field,
+      old_label: preview.old_label,
+      new_label: preview.new_label,
+      record_ids: recordIds,
+      editor_name: editor
+    });
+    if (out.health) renderMaintenanceHealth(out.health);
+    setStatusWithChecks(out, 'Bulk label update complete.', {targetId: 'maintenance_status', includeDuplicateGuidance: false, includeOnlineCompare: false});
+    bulkLabelResetPreview();
+    await loadOptions();
+  } catch (err) {
+    setStatus({ok:false, error:String(err)}, 'maintenance_status');
+    showErrorWindow(String(err));
+  }
 }
 
 function maintenancePrimaryRecord(issue){
@@ -5648,6 +6075,45 @@ class Handler(BaseHTTPRequestHandler):
                         "file_change_summary": build_file_change_summary(changed_files, "build_only", "", [], False),
                         "health": build_maintenance_health(self.app.registry, self.app.registry_path),
                         "message": "Generated artifacts rebuilt.",
+                    }
+                )
+                return
+
+            if self.path == "/api/maintenance/bulk_label_preview":
+                data = self._read_json()
+                reg = self.app.registry
+                out = bulk_label_preview(
+                    reg,
+                    data.get("field", ""),
+                    data.get("old_label", ""),
+                    data.get("new_label", ""),
+                )
+                self._send_json(out)
+                return
+
+            if self.path == "/api/maintenance/bulk_label_apply":
+                data = self._read_json()
+                reg = self.app.registry
+                tracked_paths = self.app.artifact_paths(reg)
+                before = file_mtimes(tracked_paths)
+                out = apply_bulk_label_update(reg, data, self.app.changelog_path)
+                self.app.save(reg)
+                _run_build_sources_artifacts(self.app.registry_path)
+                after = file_mtimes(tracked_paths)
+                changed_files = modified_paths(before, after)
+                self._send_json(
+                    {
+                        "ok": True,
+                        **out,
+                        "modified_files": changed_files,
+                        "file_change_summary": build_file_change_summary(
+                            changed_files,
+                            out.get("operation", "bulk_label_update"),
+                            out.get("record_id", ""),
+                            out.get("changed_fields", []),
+                            False,
+                        ),
+                        "health": build_maintenance_health(reg, self.app.registry_path),
                     }
                 )
                 return

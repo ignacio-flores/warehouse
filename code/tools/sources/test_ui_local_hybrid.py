@@ -191,6 +191,146 @@ class HybridSourceCitekeyTests(unittest.TestCase):
         self.assertEqual(len(duplicate), 1)
         self.assertEqual(duplicate[0]["severity"], "intentional")
 
+    def test_bulk_label_preview_matches_exact_normalized_label(self):
+        registry = {
+            "records": [
+                {
+                    "id": "src-a",
+                    "section": " Wealth Survey ",
+                    "source": "A",
+                    "citekey": "A",
+                    "legend": "A",
+                    "bib": {"keywords": "Data Sources: Wealth Survey"},
+                },
+                {
+                    "id": "src-b",
+                    "section": "Wealth Survey",
+                    "source": "B",
+                    "citekey": "B",
+                    "legend": "B",
+                    "bib": {"keywords": "Custom,Data Sources: Wealth Survey"},
+                },
+                {
+                    "id": "src-c",
+                    "section": "Other",
+                    "source": "C",
+                    "citekey": "C",
+                    "legend": "C",
+                    "bib": {"keywords": "Data Sources: Other"},
+                },
+            ]
+        }
+
+        out = self.ui.bulk_label_preview(registry, "section", "Wealth Survey", "Household Survey")
+
+        self.assertEqual(out["total_matches"], 2)
+        self.assertEqual([row["id"] for row in out["records"]], ["src-a", "src-b"])
+        self.assertEqual(out["keyword_mirror_updates"], 1)
+        self.assertTrue(out["records"][0]["keyword_mirror_update"])
+        self.assertFalse(out["records"][1]["keyword_mirror_update"])
+
+    def test_bulk_label_apply_updates_selected_records_and_one_history_entry(self):
+        registry = {
+            "records": [
+                {"id": "src-a", "data_type": "Wealth Survey", "source": "A", "citekey": "A", "bib": {}},
+                {"id": "src-b", "data_type": "Wealth Survey", "source": "B", "citekey": "B", "bib": {}},
+                {"id": "src-c", "data_type": "Other", "source": "C", "citekey": "C", "bib": {}},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            changelog = pathlib.Path(tmpdir) / "change_log.json"
+            changelog.write_text('{"changes": []}\n', encoding="utf-8")
+
+            out = self.ui.apply_bulk_label_update(
+                registry,
+                {
+                    "field": "data_type",
+                    "old_label": "Wealth Survey",
+                    "new_label": "Household Survey",
+                    "record_ids": ["src-a"],
+                    "editor_name": "Francesca",
+                },
+                changelog,
+            )
+
+            data = self.ui.load_json_yaml(changelog)
+
+        self.assertEqual(out["record_ids"], ["src-a"])
+        self.assertEqual(registry["records"][0]["data_type"], "Household Survey")
+        self.assertEqual(registry["records"][0]["updated_by"], "Francesca")
+        self.assertEqual(registry["records"][1]["data_type"], "Wealth Survey")
+        self.assertEqual(len(data["changes"]), 1)
+        self.assertEqual(data["changes"][0]["operation"], "bulk_label_update")
+        self.assertIn("Wealth Survey", data["changes"][0]["reason"])
+
+    def test_bulk_label_apply_rejects_stale_selected_record(self):
+        registry = {
+            "records": [
+                {"id": "src-a", "aggsource": "Official survey data", "source": "A", "citekey": "A", "bib": {}},
+                {"id": "src-b", "aggsource": "Academic research", "source": "B", "citekey": "B", "bib": {}},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            changelog = pathlib.Path(tmpdir) / "change_log.json"
+            changelog.write_text('{"changes": []}\n', encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "stale"):
+                self.ui.apply_bulk_label_update(
+                    registry,
+                    {
+                        "field": "aggsource",
+                        "old_label": "Official survey data",
+                        "new_label": "Official statistics",
+                        "record_ids": ["src-b"],
+                        "editor_name": "Francesca",
+                    },
+                    changelog,
+                )
+            data = self.ui.load_json_yaml(changelog)
+
+        self.assertEqual(registry["records"][1]["aggsource"], "Academic research")
+        self.assertEqual(data["changes"], [])
+
+    def test_bulk_label_apply_updates_only_exact_section_keyword_mirrors(self):
+        registry = {
+            "records": [
+                {
+                    "id": "src-a",
+                    "section": "Wealth Inequality Trends",
+                    "source": "A",
+                    "citekey": "A",
+                    "bib": {"keywords": "Data Sources: Wealth Inequality Trends"},
+                },
+                {
+                    "id": "src-b",
+                    "section": "Wealth Inequality Trends",
+                    "source": "B",
+                    "citekey": "B",
+                    "bib": {"keywords": "Data Sources: Wealth Inequality Trends,Methods"},
+                },
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            changelog = pathlib.Path(tmpdir) / "change_log.json"
+            changelog.write_text('{"changes": []}\n', encoding="utf-8")
+
+            out = self.ui.apply_bulk_label_update(
+                registry,
+                {
+                    "field": "section",
+                    "old_label": "Wealth Inequality Trends",
+                    "new_label": "Wealth Distribution",
+                    "record_ids": ["src-a", "src-b"],
+                    "editor_name": "Francesca",
+                },
+                changelog,
+            )
+
+        self.assertEqual(out["keyword_mirror_updates"], 1)
+        self.assertIn("bib.keywords", out["changed_fields"])
+        self.assertEqual(registry["records"][0]["bib"]["keywords"], "Data Sources: Wealth Distribution")
+        self.assertEqual(registry["records"][1]["bib"]["keywords"], "Data Sources: Wealth Inequality Trends,Methods")
+
     def test_marked_shared_citekey_writes_one_bib_entry(self):
         records = [
             {
