@@ -128,7 +128,7 @@ This section contains a comprehensive database on the evolution of estate, inher
 Understanding how governments tax these transfers is essential because bequests, inheritances, and inter vivos gifts are crucial economic resources for households and because their scale has increased substantially in recent decades relative to total national income. Very little work has been done to analyze how patterns of wealth transfer taxation affect the extent of these transfers across countries and across households within countries. This systematic compilation of tax data will provide researchers a crucial tool for scholarship and policy analysis focused on the behavioral effects of wealth taxes.
 
 - [Interactive Dashboard](https://wealthproject.gc.cuny.edu/EIG/)
-- **Download the Estate, Inheritance, and Gift Taxes database with metadata**: [CSV](https://drive.google.com/file/d/1ro5vo6cwvm1GYkTULr5CgE30BX5GBCmt/view?usp=drive_link)
+- **Download the Estate, Inheritance, and Gift Taxes database**: [CSV](https://drive.google.com/file/d/1ro5vo6cwvm1GYkTULr5CgE30BX5GBCmt/view?usp=drive_link)
 ### 4. Inheritance Trends (Coming Soon)
 This section, forthcoming in 2025, will present cross-country estimates of annual flows of wealth left at death as well as gifts from living donors. The included estimates will be taken from existing works in the literature or derived using a variety of approaches drawing on national accounts data and survey data, as well as estate, inheritance, and gifts tax records.
 
@@ -165,7 +165,7 @@ Source metadata is now managed from `metadata/sources/sources.yaml` (JSON-compat
 
 ## Warehouse History 
 
-For the sake of space keeping and accessibility, former versions are only accessible in CSV format, which is unlicensed and lighter than the alternatives. 
+For the sake of space keeping and accessibility, former versions are only accessible in CSV format, with metadata, and in full length.  
 
 ### First version v1.0 - November 2023 release: 
 
