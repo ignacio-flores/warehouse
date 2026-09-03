@@ -1,9 +1,16 @@
 
+
 //1. define paths and directories 
 
 //inequality and trends
 global ineq_dir_raw raw_data/ineq
 global ineq_code 	code/dashboards/ineq
+
+
+//Inheritance and trends
+global inhe_dir_raw raw_data/inhe
+global inhe_code 	code/dashboards/inhe
+
 
 //topography 
 global topo_dir_raw raw_data/topo
