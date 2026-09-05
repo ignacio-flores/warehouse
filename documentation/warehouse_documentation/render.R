@@ -27,6 +27,9 @@ support_dir <- file.path(base_dir, "render_support")
 source(file.path(support_dir, "render_config.R"))
 setwd(doc_root)
 
+bibliography_file <- file.path(doc_root, "..", "BibTeX files", "digital_library.bib")
+bibliography_yaml <- "../BibTeX files/digital_library.bib"
+
 dir.create(outputs_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(section_outputs_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -177,7 +180,7 @@ section_output_format <- function() {
   # LaTeX packages and bibliography support that sections normally inherit from
   # the master document.
   bibliography <- render_path(
-    file.path(doc_root, "..", "BibTeX files", "BothLibraries.bib"),
+    bibliography_file,
     mustWork = FALSE
   )
 
@@ -210,7 +213,7 @@ wrapper_lines <- function(target) {
   # Some sections do not set up their own render context. For those, a temporary
   # wrapper gives them a small master-like YAML header and a setup chunk.
   bibliography <- render_path(
-    file.path(doc_root, "..", "BibTeX files", "BothLibraries.bib"),
+    bibliography_file,
     mustWork = FALSE
   )
   body <- readLines(target$path, warn = FALSE)
@@ -396,8 +399,8 @@ render_full_document <- function() {
 
   wrapper_lines <- readLines(master_rmd_path, warn = FALSE)
   wrapper_lines <- sub(
-    '^bibliography: ".*BothLibraries\\.bib"$',
-    'bibliography: "../BibTeX files/BothLibraries.bib"',
+    '^bibliography: ".*(BothLibraries|digital_library)\\.bib"$',
+    paste0('bibliography: "', bibliography_yaml, '"'),
     wrapper_lines
   )
   writeLines(wrapper_lines, wrapper_file, useBytes = TRUE)

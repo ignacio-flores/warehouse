@@ -76,6 +76,7 @@ run $harmonize_ctries
 qui rename GEO area 
 
 //order 
+run $harmonize_source_aliases
 qui sort source area _2_sector_lab
 qui order source area _2_sector_lab _4_concept_lab metadata label 
 qui export excel "output/metadata/metadata_topo.xlsx", ///

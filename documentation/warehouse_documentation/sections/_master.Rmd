@@ -37,7 +37,7 @@ header-includes:
 subtitle: null
 urlcolor: blue
 documentclass: report
-bibliography: "../../BibTeX files/BothLibraries.bib"
+bibliography: "../../BibTeX files/digital_library.bib"
 link-citations: yes
 suppress-bibliography: no
 ---

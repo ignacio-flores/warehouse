@@ -61,6 +61,7 @@ qui import excel "output/metadata/metadata_topo.xlsx", ///
 	sheet("meta") firstrow clear case(lower)
 qui rename _1_dasboard _1_dashboard_lab	
 cap rename (area metadata) (geo metadata_topo) 
+run $harmonize_source_aliases
 tempfile tf_topo 
 qui save `tf_topo'
 di as result "topo metadata variables: " _continue
@@ -98,6 +99,7 @@ foreach p in `pctls' {
 qui import delimited ///
 	"raw_data/taxw/intermediary_files/warehouse_ar.csv", varnames(1) clear 
 qui replace varcode = subinstr(varcode, "_", "-", .) 
+run $harmonize_source_aliases
 
 *fill longname 
 preserve 
@@ -423,10 +425,6 @@ foreach z in "_meta" "_norm" {
 	}
 	*/
 }		
-
-
-
-
 
 
 

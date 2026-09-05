@@ -42,8 +42,8 @@ foreach d in ineq taxw topo inhe {
 	qui save `x', replace 
 }
 
-*filter old sources out 
-qui drop if inlist(source, "WID", "LWS")
+*canonicalize source aliases without dropping extensionless source names
+run $harmonize_source_aliases
 qui rename area GEO 
 
 //run checks and harmonize 
